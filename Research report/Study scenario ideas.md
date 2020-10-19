@@ -1,4 +1,4 @@
-### Scenario 1 variation in event fraction
+### Scenario 1: variation in event fraction
 Constant:
 *	AUC = 0.75
 *	Dimensionality = 10
@@ -14,7 +14,7 @@ Gives: 2 * 2 * 2 = 8 different scenarios
 
 8 * 7 (i.v. approaches) = 56 estimands
 
-### Scenario 2 variation in dimensionality
+### Scenario 2: variation in dimensionality
 Constant:
 *	AUC = 0.75
 *	Event fraction = 0.2
