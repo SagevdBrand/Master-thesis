@@ -8,7 +8,7 @@ prev1 <- c(0.05, 0.2)
 ## Models used:
 models1 <-  as.factor(c("OLS",  "Firth", "SVM"))
 
-## all scenarios:
+## all combinations:
 s1 <- expand.grid(AUC = AUC1, dim = dim1, n = n1, prev = prev1, model = models1)
 
 ############### Scenario 2 #################
@@ -21,7 +21,7 @@ prev2 <- 0.2
 ## Models used:
 models2 <-  as.factor(c("OLS",  "Firth", "SVM"))
 
-## all scenarios:
+## all combinations:
 s2 <- expand.grid(AUC = AUC2, prev = prev2, dim = dim2, n = n2, model = models2)
 
 
@@ -32,10 +32,10 @@ dim3 <- 10
 n3 <- as.factor(c("at", "below"))
 prev3 <- 0.2
 
-## Models used:
+## Models combinations:
 models3 <-  as.factor(c("OLS", "Ridge", "Firth", "LASSO", "Elastic Net", "SVM", "ANN", "RF"))
 
 
-## all scenarios:
-s3 <- expand.grid(AUC = AUC3, dim = dim3, n = n3, prev = prev3, model = models3)
+## all combinations:
+s3 <- expand.grid(AUC = AUC3, prev = prev3, dim = dim3, n = n3, model = models3)
 
