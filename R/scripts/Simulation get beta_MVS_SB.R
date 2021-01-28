@@ -10,6 +10,10 @@ set.seed(123)
 
 #### Functions #####
 
+###############
+# C-statistic #
+###############
+
 c_stat2 <- function(preds, outcome){
   preds <- as.matrix(preds)
   cats <- sort(unique(outcome))
@@ -25,17 +29,17 @@ c_stat2 <- function(preds, outcome){
 ## R^2 ##
 #########
 
-pseudo_Rsqrs <- function(p, SIMxy){ 
+pseudo_Rsqrs <- function(p, y){ 
   
-  .LL <- function(p, SIMxy){
-    sum(SIMxy[,"y"]*log(p)+(1-SIMxy[,"y"])*log(1-p))
+  .LL <- function(p, y){
+    sum(y*log(p)+(1-y)*log(1-p))
   }
   
-  LL_fit  <- .LL(p=p, SIMxy=SIMxy) 
-  LL_null <- .LL(p=mean(SIMxy[,"y"]), SIMxy=SIMxy)
+  LL_fit  <- .LL(p=p, y=y) 
+  LL_null <- .LL(p=mean(y), y=y)
   
-  cox <- 1-exp(-(LL_fit-LL_null)*2/nrow(SIMxy)) 
-  cox_max <- 1 - exp(2 * nrow(SIMxy) ^ (-1) * LL_null)
+  cox <- 1-exp(-(LL_fit-LL_null)*2/length(y)) 
+  cox_max <- 1 - exp(2 * length(y) ^ (-1) * LL_null)
   c("cox"=cox)
   
 }
@@ -46,8 +50,8 @@ pseudo_Rsqrs <- function(p, SIMxy){
 
 sigma <- matrix(0.2, ncol = 3, nrow = 3) # create covariance matrix to be used as input
 diag(sigma) <- 1 # set the diagonal to 1
-mu <- c(0,0, 0) # provide a vector of values for mu
-n <- 10000 #setting n
+mu <- c(0,0,0) # provide a vector of values for mu
+n <- 10000 # setting n
 X <- mvrnorm(n = n, mu = mu, Sigma = sigma) # create 3 predictor columns
 dm <- cbind(1, X) # Putting the above in a data matrix, including intercept
 
@@ -59,9 +63,7 @@ dm <- cbind(1, X) # Putting the above in a data matrix, including intercept
 ## differences between the preferred and observed 
 ## values of both the C-statistic and prevalence
 
-par <- c(0.5, 0.5)
-
-func <- function(par,pref_cstat,pref_prev){
+func_c <- function(par,pref_cstat,pref_prev){
 # par is a vector with initial guesses for both
 # the intercept and the beta1-3 coefficients.
 # However since beta1-3 have been restricted to be equal
@@ -73,10 +75,10 @@ dgm_par <- c(par[1], rep(par[2], 3))
 
 # Obtain values for y based on Bernoulli distribution, with input p
 #system.time(p <- exp(dm %*% dgm_par)/(1+exp(dm %*% dgm_par)))
-system.time(p <- 1/(1+exp(-dm %*% dgm_par))) # SAME THING, JUST SLIGHTLY LESS COMPUTATION
+p <- 1/(1+exp(-dm %*% dgm_par)) # SAME THING, JUST SLIGHTLY LESS COMPUTATION
 
 #system.time(y <- rbinom(length(p),1,p))
-system.time(y <-as.numeric(p>runif(length(p)))) # SAME THING, JUST SLIGHTLY FASTER
+y <-as.numeric(p>runif(length(p))) # SAME THING, JUST SLIGHTLY FASTER
 
 # Obtain observed values of c-statistic and 
 # average predicted probability of an event
@@ -90,21 +92,132 @@ obs_prev <- mean(y) # KEEP IT SIMPLE ;)
 
 }
 
-## Try to optimize using initial guesses 0.5 and 0.5 
-system.time(results <- optim(c(0.5, 0.5), func, pref_cstat = 0.75, pref_prev = 0.2))
-
 ###################
 ## check results ##
 ###################
+## A function that checks whether the determined coefficients return
+## The preferred C-statistic and prevalence
 
+checking <- function(par){
 ## What do the observed prevalence and c-statistic look like?
-dgm_par <- c(results$par[1], rep(results$par[2], 3)) 
+dgm_par <- c(par[1], rep(par[2], 3)) 
 
 # Obtain values for y based on Bernoulli distribution, with input p
 p <- plogis(dm %*% dgm_par)
 y <- rbinom(length(p),1,p)
 
 # Obtain observed values
-(obs_cstat <- c_stat2(preds = p, outcome = y)) # obtain c-statistic based on p and y
-(obs_prev <- mean(y)) # THE OBSERVED PREVALENCE IS NOT A FUNCTION OF JUST THE INTERCEPT
+obs_cstat <- c_stat2(preds = p, outcome = y) # obtain c-statistic based on p and y
+obs_prev <- mean(y) # THE OBSERVED PREVALENCE IS NOT A FUNCTION OF JUST THE INTERCEPT
+c("cstat" = obs_cstat, "prev" = obs_prev)
+
+}
+
+#############################
+#### Using R^2 Cox-Snell ####
+#############################
+
+func_r <- function(par,pref_R2, pref_prev){
+  # par is a vector with initial guesses for both
+  # the intercept and the beta1-3 coefficients.
+  # However since beta1-3 have been restricted to be equal
+  # only one value is necessary.
+  
+  # Providing the beta0 and beta1-3 as specified in the par object. 
+  # Again, beta1-3 are restricted to be equal.
+  dgm_par <- c(par[1], rep(par[2], 3)) 
+  
+  # Obtain values for y based on Bernoulli distribution, with input p
+  #system.time(p <- exp(dm %*% dgm_par)/(1+exp(dm %*% dgm_par)))
+  p <- 1/(1+exp(-dm %*% dgm_par))# SAME THING, JUST SLIGHTLY LESS COMPUTATION
+  
+  #system.time(y <- rbinom(length(p),1,p))
+  y <-as.numeric(p>runif(length(p))) # SAME THING, JUST SLIGHTLY FASTER
+  
+  # Obtain observed values of c-statistic and 
+  # average predicted probability of an event
+  
+  obs_R2 <- pseudo_Rsqrs(p = p, y = y) # obtain R2cs based on p and y
+  obs_prev <- mean(y) # KEEP IT SIMPLE ;)
+  
+  # Sum of absolute differences of both values:
+  #abs(obs_cstat-pref_cstat) + abs(obs_prev-pref_prev)
+  (obs_R2-pref_R2)^2 + (obs_prev-pref_prev)^2# alternative, not sure which one is better
+  
+}
+
+
+### Comparing the two methods ###
+source("scripts/Sample size determination.R") # to obtain the R2cs according to a prevalence of .2
+set.seed(123)
+
+## Only one run
+system.time(results_r <- optim(c(0.5, 0.5), func_r, pref_R2 = Rcs_prev_.2, pref_prev = 0.2))
+checking(par = results_r$par)
+system.time(results_c <- optim(c(0.5, 0.5), func_c, pref_cstat = 0.75, pref_prev = 0.2))
+checking(par = results_c$par)
+
+# Both seem to approach the right values, albeit that using the _r method is more precise
+# It seems as if the _c approach is faster, but let's check over multiple runs
+
+#### 20 repetitions
+system.time(reps_r <- replicate(n = 20, optim(c(0.5, 0.5), func_r, pref_R2 = Rcs_prev_.2, pref_prev = 0.2), simplify = F))
+# elapsed time = 15.00
+
+system.time(reps_c <- replicate(n = 20, optim(c(0.5, 0.5), func_c, pref_cstat = 0.75, pref_prev = 0.2), simplify = F))
+# elapsed time =  23.28
+
+
+#### The _r function seems to be faster, contrary to the initial run!
+
+
+## But what do the estimates look like?
+## R^2
+results_check_r <- apply(sapply(reps_r, '[[', 1), 2, checking)
+apply(results_check_r, 1, summary)
+# As can be seen especially for the prevalence 
+# there are multiple times where this sticks around 0.5-0.6, are they outliers?
+
+## C-statistic
+results_check_c <- apply(sapply(reps_c, '[[', 1), 2, checking)
+apply(results_check_c, 1, summary)
+
+# Using the C-statistic seems to yield less variance on the prevalence. But the median of prevalence of R^2 still seems alright. 
+# So for the coefficients, maybe use the median coefficients?
+par_c <- apply(sapply(reps_c, '[[', 1), 1, median)
+par_r <- apply(sapply(reps_r, '[[', 1), 1, median)
+
+
+######### Validate results on independent validation set ############
+## Create validation dataset ##
+set.seed(111)
+n_val <- 100000 # setting n
+X_val <- mvrnorm(n = n_val, mu = mu, Sigma = sigma) # create 3 predictor columns
+dm_val <- cbind(1, X_val) # Putting the above in a data matrix, including intercept
+
+## Use the function as defined here to check results
+checking_val <- function(par){
+dgm_par_val <- c(par[1], rep(par[2], 3)) 
+
+p_val <- plogis(dm_val %*% dgm_par_val)
+y_val <- rbinom(length(p_val),1,p_val)
+
+# Obtain observed values
+obs_cstat <- c_stat2(preds = p_val, outcome = y_val) # obtain c-statistic based on p and y
+obs_prev <- mean(y_val) # THE OBSERVED PREVALENCE IS NOT A FUNCTION OF JUST THE INTERCEPT
+c("cstat" = obs_cstat, "prev" = obs_prev)
+}
+
+checking_val(par_r)
+checking_val(par_c)
+
+## So when taking the median of all coefficients, the results in the validation set are good
+## for both approaches. The main difference is that using R^2 is faster, 
+## but leads to a bit more variation in the prevalence
+
+####################################
+####################################
+####################################
+## END SCRIPT
+
 
