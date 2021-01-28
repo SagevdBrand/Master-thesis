@@ -32,6 +32,6 @@ pref_cstat <- 0.75
 pref_prev <- .2
 
 Rcs_prev_.2 <- approximate_R2(auc = pref_cstat, prev = 0.2)$R2.coxsnell
-Rcs_prev_.05 <- approximate_R2(auc = 0.75, prev = 0.05)$R2.coxsnell
+Rcs_prev_.05 <- approximate_R2(auc = pref_cstat, prev = 0.05)$R2.coxsnell
 
-n <- pmsampsize(type = "b", parameters = 3, prevalence = 0.2, rsquared = Rcs_prev_.2)$sample_size
+n_estimate <- pmsampsize(type = "b", parameters = 3, prevalence = 0.2, rsquared = Rcs_prev_.2)$sample_size

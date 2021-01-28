@@ -63,7 +63,7 @@ dm <- cbind(1, X) # Putting the above in a data matrix, including intercept
 ## differences between the preferred and observed 
 ## values of both the C-statistic and prevalence
 
-func_c <- function(par,pref_cstat,pref_prev){
+func_c <- function(par, pref_cstat, pref_prev){
 # par is a vector with initial guesses for both
 # the intercept and the beta1-3 coefficients.
 # However since beta1-3 have been restricted to be equal
@@ -160,18 +160,20 @@ checking(par = results_c$par)
 # Both seem to approach the right values, albeit that using the _r method is more precise
 # It seems as if the _c approach is faster, but let's check over multiple runs
 
-#### 20 repetitions
+#### 20 repetitions #####
+### Comparing on computational time ###
+
+## R^2
 system.time(reps_r <- replicate(n = 20, optim(c(0.5, 0.5), func_r, pref_R2 = Rcs_prev_.2, pref_prev = 0.2), simplify = F))
-# elapsed time = 15.00
+# elapsed time = 12.19
 
+## C-statistic
 system.time(reps_c <- replicate(n = 20, optim(c(0.5, 0.5), func_c, pref_cstat = 0.75, pref_prev = 0.2), simplify = F))
-# elapsed time =  23.28
+# elapsed time =  16.16
+## The _r function seems to be faster, contrary to the initial run!
 
+### Comparing the estimates ###
 
-#### The _r function seems to be faster, contrary to the initial run!
-
-
-## But what do the estimates look like?
 ## R^2
 results_check_r <- apply(sapply(reps_r, '[[', 1), 2, checking)
 apply(results_check_r, 1, summary)
@@ -181,14 +183,16 @@ apply(results_check_r, 1, summary)
 ## C-statistic
 results_check_c <- apply(sapply(reps_c, '[[', 1), 2, checking)
 apply(results_check_c, 1, summary)
+# Here the C-statistic varies more than above, the prevalence also shows some deviations. 
 
-# Using the C-statistic seems to yield less variance on the prevalence. But the median of prevalence of R^2 still seems alright. 
-# So for the coefficients, maybe use the median coefficients?
+# Both have some variation in both estimates, but what 
+# So maybe we should use the median coefficients?
 par_c <- apply(sapply(reps_c, '[[', 1), 1, median)
 par_r <- apply(sapply(reps_r, '[[', 1), 1, median)
 
-
+#####################################################################
 ######### Validate results on independent validation set ############
+#####################################################################
 ## Create validation dataset ##
 set.seed(111)
 n_val <- 100000 # setting n
