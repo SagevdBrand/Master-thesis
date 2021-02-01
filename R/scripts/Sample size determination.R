@@ -6,7 +6,9 @@ library(rms)
 set.seed(123)
 
 ## Approximate R^2 from a desired AUC of 0.75 and prev of 0.2 & 0.05
-
+# “A note on estimating the Cox-Snell R2 from a reported C-statistic 
+# (AUROC) to inform sample size calculations for developing 
+# a prediction model with a binary outcome” 
 approximate_R2 <- function(auc, prev, n = 1000000){
   # define mu as a function of the C statistic
   mu <- sqrt(2) * qnorm(auc)
@@ -34,4 +36,4 @@ pref_prev <- .2
 Rcs_prev_.2 <- approximate_R2(auc = pref_cstat, prev = 0.2)$R2.coxsnell
 Rcs_prev_.05 <- approximate_R2(auc = pref_cstat, prev = 0.05)$R2.coxsnell
 
-n_estimate <- pmsampsize(type = "b", parameters = 3, prevalence = 0.2, rsquared = Rcs_prev_.2)$sample_size
+n_estimate <- pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = Rcs_prev_.2)$sample_size

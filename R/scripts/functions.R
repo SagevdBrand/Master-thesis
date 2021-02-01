@@ -68,6 +68,14 @@ c.stat2 <- function(preds, outcome){
   (S0 - n0 * (n0 + 1)/2)/(as.numeric(n0) * as.numeric(n1))
 }
 
+fastAUC <- function(p, y) {
+  x1 = p[y==1]; n1 = length(x1); 
+  x2 = p[y==0]; n2 = length(x2);
+  r = rank(c(x1,x2))  
+  auc = (sum(r[1:n1]) - n1*(n1+1)/2) / n1 / n2
+  return(auc)
+}
+
 # obtain matrix for ciAUC
 auc_mat <- function(ciAUC){
   ciAUC <- as.matrix(unlist(ciAUC))
