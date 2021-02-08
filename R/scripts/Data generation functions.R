@@ -122,17 +122,17 @@ optim_beta <- function(prev_scenario, R2_scenario){
   # With trial and error, it was discovered that the optimization would get
   # stuck at a local minimum.
   if (prev_scenario == 0.05){ 
-    init_coef <- c(-1, 0.2) 
+    par_i <- c(-1, 0.2) 
   } else { 
-    init_coef <- c(-1.5, 0.1) }
+    par_i <- c(-1.5, 0.1) }
 
   # Optimizing the dist_R2_prev to determine the beta coefficients for which the squared distance 
   # between the observed and preferred values of R2 and prevalence are minimal. 
-  # init_coef are just initial values for the coefficients. 
+  # par_i are just initial values for the coefficients. 
   
   #### 30 repetitions #####
   results <- replicate(n = 30, 
-                       optim(init_coef, 
+                       optim(par_i, 
                              dist_R2_prev,
                              pref_R2 = R2_scenario,
                              pref_prev = prev_scenario),

@@ -22,7 +22,7 @@ prev1 <- c(0.05, 0.2)
 models1 <-  as.factor(c("OLS",  "Firth", "SVM"))
 
 ## all combinations:
-s1 <- expand.grid(AUC = AUC1, dim = dim1, n = n1, prev = prev1, model = models1)
+s1 <- expand.grid(AUC = AUC1, dim = dim1, n_state = n1, prev = prev1, model = models1)
 
 ############### Scenario 2 #################
 ## Varying data gen mechanism
@@ -35,7 +35,7 @@ prev2 <- 0.2
 models2 <-  as.factor(c("OLS",  "Firth", "SVM"))
 
 ## all combinations:
-s2 <- expand.grid(AUC = AUC2, prev = prev2, dim = dim2, n = n2, model = models2)
+s2 <- expand.grid(AUC = AUC2, prev = prev2, dim = dim2, n_state = n2, model = models2)
 
 
 ############### Scenario 3 ##################
@@ -49,11 +49,11 @@ prev3 <- 0.2
 models3 <-  as.factor(c("OLS", "Ridge", "Firth", "LASSO", "Elastic Net", "SVM", "ANN", "RF"))
 
 ## all combinations:
-s3 <- expand.grid(AUC = AUC3, prev = prev3, dim = dim3, n = n3, model = models3)
+s3 <- expand.grid(AUC = AUC3, prev = prev3, dim = dim3, n_state = n3, model = models3)
 
 #### Expected R^2 ####
 
-source("scripts/Sample size determination.R") 
+source("scripts/Data generation functions.R")
 # Within the script above, a desired level of R^2 Cs is approximated for a given
 # prevalence and C-statistic. The same script also allows for the calculation of
 # the minimum sample size in each simulation.
@@ -75,13 +75,26 @@ s3$R2 <- R2[2]
 #### Actual sample size ####
 at_n_10x_e.2 <- pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = R2[2])$sample_size
 at_n_10x_e.05 <- pmsampsize(type = "b", parameters = 10, prevalence = 0.05, rsquared = R2[1])$sample_size
-at_n_32x_e.2 <- pmsampsize(type = "b", parameters = 33, prevalence = 0.2, rsquared = R2[2])$sample_size
-at_n_60x_e.2 <- pmsampsize(type = "b", parameters = 60, prevalence = 0.2, rsquared = R2[2])$sample_size
+# at_n_32x_e.2 <- pmsampsize(type = "b", parameters = 33, prevalence = 0.2, rsquared = R2[2])$sample_size
+# at_n_60x_e.2 <- pmsampsize(type = "b", parameters = 60, prevalence = 0.2, rsquared = R2[2])$sample_size
+# 
+below_n_10x_e.2 <- ceiling(0.8 * at_n_10x_e.2)
+below_n_10x_e.05<- ceiling(0.8 * at_n_10x_e.05)
+# below_n_32x_e.2<- ceiling(0.8 * at_n_32x_e.2)
+# below_n_60x_e.2<- ceiling(0.8 * at_n_60x_e.2)
 
-below_n_10x_e.2 <- 0.8 * at_n_10x_e.2
-below_n_10x_e.05<- 0.8 * at_n_10x_e.05
-below_n_32x_e.2<- 0.8 * at_n_32x_e.2
-below_n_60x_e.2<- 0.8 * at_n_60x_e.2
+#
+
+s1 <- s1 %>%
+  mutate(
+    n = case_when(
+      prev == 0.2 & n_state == "at" ~ at_n_10x_e.2,
+      prev == 0.2 & n_state == "below" ~ below_n_10x_e.2,
+      prev == 0.05 & n_state == "at" ~ at_n_10x_e.05,
+      prev == 0.05 & n_state == "below" ~ below_n_10x_e.05,
+      TRUE ~ NA_real_
+      )
+    )
 
 
 # Remove everything except the three scenario matrices
