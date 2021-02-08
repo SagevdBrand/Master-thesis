@@ -64,7 +64,7 @@ d_R2_prev <- function(par,pref_R2, pref_prev){
   obs_prev <- mean(y) # "Observed" prevalence
   
   # Sum of absolute differences of both values:
-  #abs(obs_cstat-pref_cstat) + abs(obs_prev-pref_prev)
+  #abs(obs_auc-pref_auc) + abs(obs_prev-pref_prev)
   (obs_R2-pref_R2)^2 + (obs_prev-pref_prev)^2# alternative, not sure which one is better
   
 }
@@ -82,10 +82,10 @@ checking <- function(par){
   y <- rbinom(length(p),1,p)
   
   # Obtain observed values
-  #obs_cstat <- c_stat2(preds = p, outcome = y) # obtain c-statistic based on p and y
-  obs_cstat <- fastAUC(p = p, y = y)
+  #obs_auc <- c_stat2(preds = p, outcome = y) # obtain c-statistic based on p and y
+  obs_auc <- fastAUC(p = p, y = y)
   obs_prev <- mean(y) # THE OBSERVED PREVALENCE IS NOT A FUNCTION OF JUST THE INTERCEPT
-  c("cstat" = obs_cstat, "prev" = obs_prev)
+  c("auc" = obs_auc, "prev" = obs_prev)
 }
 
 # Same idea as the checking function, however, using the validation data:
@@ -96,10 +96,10 @@ checking_val <- function(par){
   y_val <- rbinom(length(p_val),1,p_val)
   
   # Obtain observed values
-  #obs_cstat <- c_stat2(preds = p_val, outcome = y_val) # obtain c-statistic based on p and y
-  obs_cstat <- fastAUC(p = p_val, y = y_val)
+  #obs_auc <- c_stat2(preds = p_val, outcome = y_val) # obtain c-statistic based on p and y
+  obs_auc <- fastAUC(p = p_val, y = y_val)
   obs_prev <- mean(y_val) # THE OBSERVED PREVALENCE IS NOT A FUNCTION OF JUST THE INTERCEPT
-  c("cstat" = obs_cstat, "prev" = obs_prev)
+  c("auc" = obs_auc, "prev" = obs_prev)
 }
 
 #######################
