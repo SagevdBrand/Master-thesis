@@ -10,6 +10,9 @@
 ## Adapt initial coefficients for different number of predictors (scenario 3)
 ## How to determine initial coefficients for optimization?
 
+## DATA GEN:
+## Add a check for how many y-values are drawn as an event!
+
 #####################################
 ### Approximation of R2 Cox-Snell ###
 #####################################
@@ -200,6 +203,50 @@ checking_val <- function(par){
   obs_prev <- mean(y_val) # THE OBSERVED PREVALENCE IS NOT A FUNCTION OF JUST THE INTERCEPT
   c("cstat" = obs_cstat, "prev" = obs_prev)
 }
+
+
+#######################################################
+### Generate data script once betas have been found ###
+#######################################################
+
+
+generate_data <- function(scenario){
+  
+  s_list <- split(scenario, seq(nrow(scenario))) 
+  
+  .per_element <- function(s_list){
+    
+    
+    sigma <- matrix(0.2, ncol = s_list$dim, nrow = s_list$dim) # create covariance matrix to be used as input
+    diag(sigma) <- 1 # set the diagonal to 1
+    mu <- c(rep(0, s_list$dim)) 
+    X <- mvrnorm(n = s_list$n, mu = mu, Sigma = sigma) # create 10 predictor columns
+    dm <- cbind(1, X) # Putting the above in a data matrix, including intercept
+    # Half of the predictors is strong:
+    dgm_par <- c(s_list$par1, rep(s_list$par2, round(s_list$dim/2)), rep((s_list$par2*3), round(s_list$dim/2))) 
+    # All predictors are equally strong
+    # dgm_par <- c(par[1], rep(par[2], n_pred)) 
+    
+    # Obtain values for y based on Bernoulli distribution, with input p
+    #system.time(p <- exp(dm %*% dgm_par)/(1+exp(dm %*% dgm_par)))
+    p <- 1/(1+exp(-dm %*% dgm_par))# SAME THING, JUST SLIGHTLY LESS COMPUTATION
+    
+    #system.time(y <- rbinom(length(p),1,p))
+    y <- as.numeric(p > runif(length(p))) # SAME THING, JUST SLIGHTLY FASTER
+    
+    #######################################################
+    ## BUILT CHECK FOR HOW MANY EVENTS HAVE BEEN SAMPLED ##
+    #######################################################
+    
+    return(as.data.frame(cbind(X, y)))
+  }
+  
+  data_in_lists <- lapply(s_list, .per_element)
+  return(data_in_lists)
+  
+}
+
+
 
 ####################################
 ####################################

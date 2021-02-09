@@ -25,7 +25,7 @@ source("scripts/Data generation functions.R")
 #######################
 
 n <- 30000 # setting n to develop betas on.
-n_pred <- 10 # For the first 2 scenario's at least
+n_pred <- 10 # For the first and third scenario's at least
 sigma <- matrix(0.2, ncol = n_pred, nrow = n_pred) # create covariance matrix to be used as input
 diag(sigma) <- 1 # set the diagonal to 1
 mu <- c(rep(0, n_pred)) # provide a vector of values for mu -> standard normal
