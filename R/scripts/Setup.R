@@ -1,30 +1,26 @@
 ################# INITIAL SETUP ##################
 ## Script to define paths to the simulated data ##
 ##################################################
-library(tidyverse)
-library(glue)
+source("scripts/libraries.R")
 
-datasets <- list.dirs(path = "data", recursive = F, full.names = F)
-data_files <- glue(datasets, ".csv")
-data_dir <- glue("data/", datasets)
+### 
+scenario_setting_path <- "Data/Simulation settings/"
+scenario_data_path <- "Data/simulation data/"
 
-
-################
-## Vocabulary ##
-################
-
-# dm        = Design matrix
-# dgm_*     = data generating mechanism
-# *_par_*   = parameters
-# *_i       = initial
-# p         = predicted probability
-# pref_*    = preferred
-# obs_*     = observed
-# *_fit_*   = indicates a model that has been fitted.
+scenario_1_settings <- "Data/Simulation settings/Scenario 1/"
+scenario_1_data <- "Data/simulation data/scenario 1/"
 
 
-# Within each of the scenarios, the specific settings used are abbreviated.
-# These abbreviations mean the following:
+# for (i in 1:3){
+# scenario_specific <- paste0(" ", i, "/")
+# dir.create(file.path(paste0(scenario_data_path, scenario_specific)), recursive = TRUE)
+# }
+
+
+
+# datasets <- list.dirs(path = "data", recursive = F, full.names = F)
+# data_files <- glue(datasets, ".csv")
+# data_dir <- glue("data/", datasets)
 
 ########################
 ###### Scenario 1 ######
