@@ -4,6 +4,82 @@
 ### Simulation functions
 ### Estimands
 
+###### Apparent performance ######
+## Depends on which model is used.
+get_app_estimands <- function(df, model) {
+  # Fit model depending on scenario
+  # And get predicted probabilities
+  if (model == "OLS") {
+    fit_app <- glm(y ~ ., family = "binomial", data = df) #%>%
+    #step(direction = "backward", trace = F) # This should be changeable depending on which thing you're using
+    p_app <- predict(fit_app, type = "response")
+    app_matrix <- model.matrix(object = fit_app$formula, data = df)
+    
+  } else { # If model = Firth (or svm for now)
+    fit_app <- logistf(y ~ ., data = df, flic = T)
+    app_matrix <- model.matrix(object = fit_app$formula, data = df)
+    p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
+  }
+  
+  # Performance measures
+  auc_app <- fastAUC(p = p_app, y = df$y)
+  R2_app <- pseudo_Rsqrs(p = p_app, y = df$y)
+  
+  calib_app <-
+    calib(
+      modelmatrix = app_matrix,
+      data = df,
+      coefs = fit_app$coefficients
+    )
+  
+  eci_app <-
+    eci_bvc(
+      data = df,
+      modelmatrix = app_matrix,
+      coefs = fit_app$coefficients,
+      preds = p_app
+    )
+  
+  # Save results
+  results <-
+    c(
+      "AUC_app" = auc_app,
+      "calib_int_app" = calib_app['intercept'],
+      "calib_slope_app" = calib_app['slope'],
+      "R2_cox_snell_app" = R2_app,
+      "ECI_app" = eci_app
+    )
+}
+
+get_app_results <- function(scenario, df) {
+  results_app <- list() #object to store results
+  
+  for (i in 1:length(df)) {
+    model <- s1[i, ]$model
+    results_app[[i]] <- get_app_estimands(df = as.data.frame(df[[i]]), model = model)
+  }
+  
+  return(results_app)
+}
+
+
+###### Cross-validation  approaches ######
+get_cv_estimands(data, scenario){
+  
+  
+  
+  
+}
+
+
+
+
+
+######################################################################################
+##########################################OLD#########################################
+######################################################################################
+
+
 ##########################
 ### Splitting the data ###
 ##########################
@@ -120,21 +196,20 @@ results_table <- function(results_folds) {
 ## R^2 ##
 #########
 
-pseudo_Rsqrs <- function(p, SIMxy){ 
+pseudo_Rsqrs <- function(p, y){ 
   
-  .LL <- function(p, SIMxy){
-    sum(SIMxy[,"y"]*log(p)+(1-SIMxy[,"y"])*log(1-p))
+  .LL <- function(p, y){
+    sum(y*log(p)+(1-y)*log(1-p))
   }
   
-  LL_fit  <- .LL(p=p, SIMxy=SIMxy) 
-  LL_null <- .LL(p=mean(SIMxy[,"y"]), SIMxy=SIMxy)
+  LL_fit  <- .LL(p=p, y=y) 
+  LL_null <- .LL(p=mean(y), y=y)
   
-  cox <- 1-exp(-(LL_fit-LL_null)*2/nrow(SIMxy)) 
-  cox_max <- 1 - exp(2 * nrow(SIMxy) ^ (-1) * LL_null)
+  cox <- 1-exp(-(LL_fit-LL_null)*2/length(y)) 
+  cox_max <- 1 - exp(2 * length(y) ^ (-1) * LL_null)
   c("cox"=cox)
   
 }
-
 
 Rcoxsnell_for_folds <- function(folds, p, SIMxy){
   n.folds <- length(folds)
@@ -193,7 +268,7 @@ calibration_for_folds <- function(folds, modelmatrix, data, coefs){
 
 #### Code by Ben: #####
 # ECI own function
-eci_bvc <- function(data, folds, modelmatrix, coefs, preds, k){
+eci_bvc <- function(data, modelmatrix, coefs, preds){
   
   .obtain_calout <- function(data, modelmatrix, coefs){
     phat <- 1/(1+exp(-(modelmatrix%*%coefs)))
@@ -201,19 +276,11 @@ eci_bvc <- function(data, folds, modelmatrix, coefs, preds, k){
     return(calout)
   }
   
-  n.folds <- length(folds)
-  eci <- matrix(NA, nrow = n.folds, ncol = 1, dimnames = list(c(), c("ECI_bias_c")))
+  calout <- .obtain_calout(data = data, modelmatrix = modelmatrix, coefs = coefs)
+  eci <- (mean((preds-fitted(calout))*(preds-fitted(calout))))*(100)
   
-  for (i in 1:n.folds){
-    calout <- .obtain_calout(data = data, modelmatrix = modelmatrix, coefs = coefs[,i])
-    eci[i,] <- (mean((preds-fitted(calout))*(preds-fitted(calout))))*(100*k/2)
-  }
-  
-  results<- results_table(eci)
-  
-  return(results)
+  return(eci)
 }
-
 # ECI own function, compared with random model
 # eci_rel <- function(calout,preds,k,outc){
 #   prevm=matrix((table(outc)/length(outc))[1:k],nrow=dim(preds)[1],ncol=k,byrow=T)

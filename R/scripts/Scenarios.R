@@ -7,10 +7,14 @@
 ## Think of solutions to add sample size and beta coefficient more efficiently
 
 ### Setting up ###
-library(tidyverse)
-library(pmsampsize)
+
 set.seed(123)
 
+source("scripts/Setup.R")
+source("scripts/Data generation functions.R")
+
+# Within the script above, the function "approximate_R2" is called. Here, a desired level of R^2 Cs is approximated for a given
+# prevalence and C-statistic. This can then be used to optimize beta coefficients and to determine the minimal sample size needed. 
 
 ########################
 ###### Scenario 1 ######
@@ -32,10 +36,6 @@ s1 <- expand.grid(AUC = AUC1, dim = dim1, n_state = n1, prev = prev1, model = mo
 ##################
 ## Expected R^2 ##
 ##################
-
-source("scripts/Data generation functions.R")
-# Within the script above, the function "approximate_R2" is called. Here, a desired level of R^2 Cs is approximated for a given
-# prevalence and C-statistic. This can then be used to optimize beta coefficients and to determine the minimal sample size needed. 
 
 ## Determine which R2 belongs to each situation:
 R2 <- c(approximate_R2(auc = AUC1, prev = prev1[1])$R2.coxsnell,
@@ -71,8 +71,8 @@ s1 <- s1 %>%
 ## coefficients ##
 ##################
 
-beta_0.05 <- readRDS("Data/Simulation settings/Scenario 1/Betas/Betas_prev_0.05_halfstrong.Rds")
-beta_0.2 <- readRDS("Data/Simulation settings/Scenario 1/Betas/Betas_prev_0.2_halfstrong.Rds")
+beta_0.05 <- readRDS(paste0(scenario_1_settings,"Betas/Betas_prev_0.05_halfstrong.Rds"))
+beta_0.2 <- readRDS(paste0(scenario_1_settings,"Betas/Betas_prev_0.2_halfstrong.Rds"))
 
 s1 <- s1 %>% 
   mutate(par1 = case_when(prev == 0.05 ~ beta_0.05[1],
@@ -83,6 +83,7 @@ s1 <- s1 %>%
                           prev == 0.2 ~ beta_0.2[2],
                           TRUE ~ NA_real_))
 
+write_rds(s1, file = paste0(scenario_1_settings, "s1.Rds"))
 
 
 #######################################################################################################################

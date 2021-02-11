@@ -19,7 +19,7 @@
 
 ##based on predefined AUC and prevalence
 ## Using code from Riley et al., see title below!
-library(rms)
+source("scripts/libraries.R")
 
 ## Approximate R^2 from a desired AUC of 0.75 and prev of 0.2 & 0.05
 # “A note on estimating the Cox-Snell R2 from a reported C-statistic 

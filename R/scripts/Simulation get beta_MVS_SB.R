@@ -10,15 +10,12 @@
 ##################
 ### Setting up ###
 ##################
-
-library(MASS)
-library(tidyverse)
-
 set.seed(123)
 
-source("scripts/Scenarios.R") 
+source("scripts/libraries.R")
+source("scripts/Scenarios.R") #Eventually should be gone!
+source("scripts/Setup.R")
 source("scripts/Data generation functions.R")
-
 
 #######################
 ### data generation ###
@@ -53,8 +50,8 @@ checking_val(par = beta_prev_0.05)
 checking_val(par = beta_prev_0.2)
 
 ## Save beta's in an object!
-saveRDS(beta_prev_0.05, file = "Data/Simulation settings/Scenario 1/Betas/Betas_prev_0.05_halfstrong.Rds")
-saveRDS(beta_prev_0.2, file = "Data/Simulation settings/Scenario 1/Betas/Betas_prev_0.2_halfstrong.Rds")
+saveRDS(beta_prev_0.05, file = paste0(scenario_1_settings,"Betas/Betas_prev_0.05_halfstrong.Rds"))
+saveRDS(beta_prev_0.2, file = paste0(scenario_1_settings,"Betas/Betas_prev_0.2_halfstrong.Rds"))
 
 ####################################
 ####################################
