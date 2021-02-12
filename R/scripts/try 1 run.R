@@ -5,15 +5,15 @@
 set.seed(123)
 
 ############ Load necessary stuff ############
+source("scripts/setup.R")
 source("scripts/libraries.R")
-source("scripts/Scenarios.R") 
+#source("scripts/Scenarios.R") 
 source("scripts/estimand functions.R")
 
 #### Load data #####
-data_dir <- "Data/simulation data/scenario 1/"
-data_files <- list.files(path = data_dir, recursive = T, full.names = F)
-
-df <- lapply(paste0(data_dir,data_files),readRDS,.GlobalEnv)
+data_files <- list.files(path = scenario_1_data, recursive = T, full.names = F)
+df <- lapply(paste0(scenario_1_data,data_files),readRDS,.GlobalEnv)
+s1 <- read_rds(paste0(scenario_1_settings,"s1.Rds"))
 system.time(results_app <- get_app_results(scenario = s1, df = df))
 
 ###### try-out svm tuning ######

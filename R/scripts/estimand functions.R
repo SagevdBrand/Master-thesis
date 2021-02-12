@@ -57,19 +57,15 @@ get_app_results <- function(scenario, df) {
   for (i in 1:length(df)) {
     model <- s1[i, ]$model
     results_app[[i]] <- get_app_estimands(df = as.data.frame(df[[i]]), model = model)
+    names(results_app) <- data_files
   }
-  
+  names(results_app) <- data_files
   return(results_app)
 }
 
 
 ###### Cross-validation  approaches ######
-get_cv_estimands(data, scenario){
-  
-  
-  
-  
-}
+#get_cv_estimands(data, scenario){}
 
 
 
