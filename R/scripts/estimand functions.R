@@ -56,101 +56,16 @@ get_app_results <- function(scenario, df) {
   
   for (i in 1:length(df)) {
     model <- s1[i, ]$model
-    results_app[[i]] <- get_app_estimands(df = as.data.frame(df[[i]]), model = model)
-    names(results_app) <- data_files
-  }
-  names(results_app) <- data_files
+    results_app[[i]] <- get_app_estimands(df = df[[i]], model = model)
+    
+    }
+  names(results_app) <- c(1:length(df))
   return(results_app)
 }
 
 
 ###### Cross-validation  approaches ######
-#get_cv_estimands(data, scenario){}
-
-
-
-
-
-######################################################################################
-##########################################OLD#########################################
-######################################################################################
-
-
-##########################
-### Splitting the data ###
-##########################
-
-###################
-## CV approaches ##
-###################
-
-## either balanced ##
-cvFoldsB <- function(Y, V){  #Create Balanced CV folds (stratify by outcome)
-  Y0 <- split(sample(which(Y=="0")), rep(1:V, length=length(which(Y==0))))
-  Y1 <- split(sample(which(Y=="1")), rep(1:V, length=length(which(Y==1))))
-  folds <- vector("list", length=V)
-  for (v in seq(V)) {folds[[v]] <- c(Y0[[v]], Y1[[v]])}		
-  return(folds)
-}
-
-## or unbalanced ##
-cvFoldsUB <- function(Y, V) {
-  folds <- as.vector(split(sample(row_number(Y)), rep(1:V, length = length(Y))))
-  return(folds) 
-}
-
-
-########################
-## applying the model ##
-########################
-
-## Using the same model across all the training sets and only getting the predictions out ##
-predicting <- function(folds, data, formula) {
-  V <- length(folds)
-  
-  doFit <- function(v, folds, data){  #Train/test glm for each fold
-    fit <-  glm(modelform, data=data[-folds[[v]],], family=binomial)
-    coefs <- coef(fit)
-    pred <- predict(fit, newdata=data[folds[[v]],], type="response")
-    lp <- fit$linear.predictors
-    results <- list(pred, coefs, lp)
-    return(results)
-  }
-  
-  results <- (lapply(seq(V), doFit, folds=foldsb, data=xydata)) #CV train/predict
-  predictions <- unlist(sapply(results, "[[", 1)) # Get out pred values as a single thing
-  predictions[unlist(folds)] <- predictions #Re-order pred values
-  
-  p_per_fold <- sapply(results, "[[", 1) #getting the predictions per fold
-  coefs <- (sapply(results, "[[", 2)) # Get out model coefficients
-  lp <- (sapply(results, "[[", 3)) # get out the linear predictors
-  
-  results <-  list("predictions" = predictions, "coefficients" = coefs, "linear predictors" = lp, "p_per_fold" = p_per_fold)
-  return(results)
-}
-
-
-####################################
-## obtaining performance measures ##
-####################################
-c.stat2 <- function(preds, outcome){
-  preds <- as.matrix(preds)
-  cats <- sort(unique(outcome))
-  n_cat <- length(cats)
-  n0   <- sum(outcome == cats[2])
-  n1   <- length(outcome) - n0
-  r <- rank(preds[,1])
-  S0 <- sum(as.numeric(r[outcome == cats[2]]))
-  (S0 - n0 * (n0 + 1)/2)/(as.numeric(n0) * as.numeric(n1))
-}
-
-fastAUC <- function(p, y) {
-  x1 = p[y==1]; n1 = length(x1); 
-  x2 = p[y==0]; n2 = length(x2);
-  r = rank(c(x1,x2))  
-  auc = (sum(r[1:n1]) - n1*(n1+1)/2) / n1 / n2
-  return(auc)
-}
+## Functions called within:
 
 # obtain matrix for ciAUC
 auc_mat <- function(ciAUC){
@@ -161,10 +76,7 @@ auc_mat <- function(ciAUC){
   return(ciAUC)
 }
 
-############################################# 
-## obtain nice matrix for each performance ##
-#############################################
-
+## Store other results in a nice table
 results_table <- function(results_folds) {
   # create matrix to store results
   results <- matrix(NA, nrow = 4, ncol = ncol(results_folds), dimnames = list(c("cvmean", "se", "ci_lower", "ci_upper"), c(colnames(results_folds))))
@@ -192,27 +104,28 @@ results_table <- function(results_folds) {
 ## R^2 ##
 #########
 
-pseudo_Rsqrs <- function(p, y){ 
+Rcoxsnell_for_folds <- function(folds, p, df){
   
-  .LL <- function(p, y){
-    sum(y*log(p)+(1-y)*log(1-p))
+  .pseudo_Rsqrs <- function(p, y){ 
+    
+    .LL <- function(p, y){
+      sum(y*log(p)+(1-y)*log(1-p))
+    }
+    
+    LL_fit  <- .LL(p=p, y=y) 
+    LL_null <- .LL(p=mean(y), y=y)
+    
+    cox <- 1-exp(-(LL_fit-LL_null)*2/length(y)) 
+    cox_max <- 1 - exp(2 * length(y) ^ (-1) * LL_null)
+    c("cox"=cox)
+    
   }
-  
-  LL_fit  <- .LL(p=p, y=y) 
-  LL_null <- .LL(p=mean(y), y=y)
-  
-  cox <- 1-exp(-(LL_fit-LL_null)*2/length(y)) 
-  cox_max <- 1 - exp(2 * length(y) ^ (-1) * LL_null)
-  c("cox"=cox)
-  
-}
-
-Rcoxsnell_for_folds <- function(folds, p, SIMxy){
   n.folds <- length(folds)
+  
   Rcoxsnell_folds <- matrix(NA, nrow = n.folds, ncol = 1, dimnames = list(c(), c("R2cox-snell_bias_c")))
   
   for (i in 1:n.folds){
-    Rcoxsnell_folds[i,] <- pseudo_Rsqrs(p = p[[i]], SIMxy = SIMxy[unlist(folds[[i]]),])
+    Rcoxsnell_folds[i,] <- .pseudo_Rsqrs(p = p[[i]], y = df[unlist(folds[[i]]),]$y)
   }
   
   results<- results_table(Rcoxsnell_folds)
@@ -225,14 +138,108 @@ Rcoxsnell_for_folds <- function(folds, p, SIMxy){
 ## Calibration ##
 #################
 
+
+
+
+
+## 10 fold cv
+# write a function to obtain estimates per df, so first try with subscenario 1a
+
+get_10cv_estimands <- function(df, model){
+V <- 10
+####################
+## Splitting data ##
+####################
+  cvFoldsB <- function(Y, V){  #Create Balanced CV folds (stratify by outcome)
+    Y0 <- split(sample(which(Y=="0")), rep(1:V, length=length(which(Y==0))))
+    Y1 <- split(sample(which(Y=="1")), rep(1:V, length=length(which(Y==1))))
+    folds <- vector("list", length=V)
+    for (v in seq(V)) {folds[[v]] <- c(Y0[[v]], Y1[[v]])}		
+    return(folds)
+  }
+  
+  foldsb <- cvFoldsB(Y = df$y, V = V)
+
+#################################################
+## Getting predictions depending on model used ##
+#################################################
+  doFit <- function(V, folds, model){  #Train/test glm for each fold
+      
+    if (model == "OLS") {
+      fit <- glm(y~., data=df[-foldsb[[V]],], family=binomial) #%>%
+      #step(direction = "backward", trace = F) # This should be changeable depending on which thing you're using
+      iv_matrix <- model.matrix(object = fit$formula, data = df[foldsb[[V]],])
+      p <- predict(fit, newdata=df[foldsb[[V]],], type = "response")
+      
+    } else { # If model = Firth (or svm for now)
+      fit <- logistf(y ~ ., data = df[-foldsb[[V]],], flic = T)
+      iv_matrix <- model.matrix(object = fit$formula, data = df[foldsb[[V]],]) #iv matrix of test fold
+      p <- 1 / (1 + exp(-iv_matrix %*% fit$coefficients))
+    }
+    
+    coefs <- coef(fit)
+    results <- list(p, coefs, iv_matrix)
+  
+  }
+  
+  results <- (lapply(seq(V), doFit, folds = foldsb, model = model))  
+  p <- unlist(sapply(results, "[[", 1)) # Get out pred values as a single thing
+  p[unlist(foldsb)] <- p #Re-order pred values
+  
+  p_per_fold <- sapply(results, "[[", 1) # getting the predictions per fold
+  coefs <- (sapply(results, "[[", 2)) # Get out model coefficients
+  iv_matrix <- (sapply(results, "[[", 3)) # get out the test matrices
+  
+  ## Optain estimands ##
+  ciAUC <- ci.cvAUC(predictions=p, labels=df$y, folds=foldsb, confidence=0.95)
+  auc <- auc_mat(ciAUC = ciAUC)
+ 
+  R2 <- Rcoxsnell_for_folds(folds = foldsb, p = p_per_fold, df = df)
+  calibration_results <- calibration_for_folds(folds = foldsb, modelmatrix = mm_full, data = df, coefs = coefs)
+  
+  return(results)
+  }
+
+test <- get_10cv_estimands(df = df, model = model)
+
+######################################################################################
+##########################################OLD#########################################
+######################################################################################
+
+
+fastAUC <- function(p, y) {
+  x1 = p[y==1]; n1 = length(x1); 
+  x2 = p[y==0]; n2 = length(x2);
+  r = rank(c(x1,x2))  
+  auc = (sum(r[1:n1]) - n1*(n1+1)/2) / n1 / n2
+  return(auc)
+}
+
+# obtain matrix for ciAUC
+auc_mat <- function(ciAUC){
+  ciAUC <- as.matrix(unlist(ciAUC))
+  ciAUC <- as.matrix(ciAUC[-5,])
+  rownames(ciAUC) <- c("cvmean", "se", "ci_lower", "ci_upper")
+  colnames(ciAUC) <- ("cstat_bias_c")
+  return(ciAUC)
+}
+
+############################################# 
+## obtain nice matrix for each performance ##
+#############################################
+
+#################
+## Calibration ##
+#################
+
 calibration <- function(lp,data){
   coef(glm(data$y~lp, family = "binomial"))
 }
 
 
 calib <- function(modelmatrix, data, coefs) {
-  phat <- 1/(1+exp(-(modelmatrix%*%coefs))) # risk score of individual patients
-  slope <- c(coef(glm(data$y ~ log(phat/(1-phat)),family="binomial"))[2])
+  phat <- 1/(1+exp(-(iv_matrix[[1]]%*%coefs[,1]))) # risk score of individual patients
+  slope <- c(coef(glm(df$y ~ log(phat/(1-phat)),family="binomial"))[2])
   intercept <- coef(glm(data$y ~ offset(log(phat/(1-phat))),family="binomial"))
   results <- c(intercept, slope)
   names(results) <- c("intercept", "slope")

@@ -13,8 +13,31 @@ source("scripts/estimand functions.R")
 #### Load data #####
 data_files <- list.files(path = scenario_1_data, recursive = T, full.names = F)
 df <- lapply(paste0(scenario_1_data,data_files),readRDS,.GlobalEnv)
+names(df) <- data_files
 s1 <- read_rds(paste0(scenario_1_settings,"s1.Rds"))
+
+## Obtain apparent performance results ##
 system.time(results_app <- get_app_results(scenario = s1, df = df))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ###### try-out svm tuning ######
 # test <- df[[1]]
