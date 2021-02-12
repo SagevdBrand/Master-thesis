@@ -100,7 +100,7 @@ dist_R2_prev <- function(par,pref_R2, pref_prev){
   p <- 1/(1+exp(-dm %*% dgm_par))# SAME THING, JUST SLIGHTLY LESS COMPUTATION
   
   #system.time(y <- rbinom(length(p),1,p))
-  y <-as.numeric(p>runif(length(p))) # SAME THING, JUST SLIGHTLY FASTER
+  y <- as.numeric(p>runif(length(p))) # SAME THING, JUST SLIGHTLY FASTER
   
   # Obtain observed values of c-statistic and 
   # average predicted probability of an event
@@ -174,9 +174,9 @@ checking <- function(par){
   # All predictors are equally strong
   # dgm_par <- c(par[1], rep(par[2], n_pred)) 
   
-  # Obtain values for y based on Bernoulli distribution, with input p
+  # Obtain values for y based on logistic distribution, with input p
   p <- plogis(dm %*% dgm_par)
-  y <- rbinom(length(p),1,p)
+  y <- as.numeric(p>runif(length(p))) 
   
   # Obtain observed values
   #obs_cstat <- c_stat2(preds = p, outcome = y) # obtain c-statistic based on p and y
@@ -195,12 +195,12 @@ checking_val <- function(par){
   # dgm_par_val <- c(par[1], rep(par[2], n_pred)) 
   
   p_val <- plogis(dm_val %*% dgm_par_val)
-  y_val <- rbinom(length(p_val),1,p_val)
+  y_val <- as.numeric(p_val>runif(length(p_val))) 
   
   # Obtain observed values
   #obs_cstat <- c_stat2(preds = p_val, outcome = y_val) # obtain c-statistic based on p and y
   obs_cstat <- fastAUC(p = p_val, y = y_val)
-  obs_prev <- mean(y_val) # THE OBSERVED PREVALENCE IS NOT A FUNCTION OF JUST THE INTERCEPT
+  obs_prev <- mean(y_val) 
   c("cstat" = obs_cstat, "prev" = obs_prev)
 }
 
