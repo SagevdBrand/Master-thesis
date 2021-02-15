@@ -9,8 +9,7 @@ source("scripts/Setup.R")
 source("scripts/Data generation functions.R")
 
 s1 <- read_rds(paste0(scenario_1_settings,"s1.Rds"))
-system.time(s1_data <- generate_data(s1)) ##### ALSO DEFINE VALIDATION SET!
-
+system.time(s1_data <- generate_data(s1, validation = FALSE))
 lapply(lapply(s1_data,'[[', 11), mean) # check whether the prevalence is somewhat okay
 
 
