@@ -9,7 +9,7 @@ scenario_data_path <- "Data/simulation data/"
 
 scenario_1_settings <- "Data/Simulation settings/Scenario 1/"
 scenario_1_data <- "Data/simulation data/scenario 1/"
-
+scenario_1_validation_data <- "Data/validation data/scenario 1/"
 
 # for (i in 1:3){
 # scenario_specific <- paste0(" ", i, "/")

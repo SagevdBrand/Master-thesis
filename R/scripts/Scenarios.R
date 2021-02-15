@@ -3,9 +3,6 @@
 ###############################################
 ### Define scenario's
 
-#### To do:
-## Think of solutions to add sample size and beta coefficient more efficiently
-
 ### Setting up ###
 
 set.seed(123)
@@ -24,10 +21,10 @@ source("scripts/Data generation functions.R")
 AUC1 <- 0.75
 dim1 <- 10
 n1 <- as.factor(c("at", "below"))
-prev1 <- c(0.05, 0.2)
+prev1 <- c(0.05, 0.2, 0.5)
 
 ## Models used:
-models1 <-  as.factor(c("OLS",  "Firth", "SVM"))
+models1 <-  as.factor(c("OLS",  "Firth"))
 
 ## all combinations:
 s1 <- expand.grid(AUC = AUC1, dim = dim1, n_state = n1, prev = prev1, model = models1, KEEP.OUT.ATTRS = F)
@@ -39,30 +36,30 @@ s1 <- expand.grid(AUC = AUC1, dim = dim1, n_state = n1, prev = prev1, model = mo
 
 ## Determine which R2 belongs to each situation:
 R2 <- c(approximate_R2(auc = AUC1, prev = prev1[1])$R2.coxsnell,
-        approximate_R2(auc = AUC1, prev = prev1[2])$R2.coxsnell)
+        approximate_R2(auc = AUC1, prev = prev1[2])$R2.coxsnell, 
+        approximate_R2(auc = AUC1, prev = prev1[3])$R2.coxsnell)
 
 s1 <- s1 %>% mutate(R2 = case_when(prev == prev1[1] ~ R2[1], 
-                                   prev == prev1[2] ~ R2[2]))
+                                   prev == prev1[2] ~ R2[2],
+                                   prev == prev1[3] ~ R2[3]))
 
 ########################
 ## Actual sample size ##
 ########################
 
-at_n_10x_e.2 <- pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = R2[2])$sample_size
-at_n_10x_e.05 <- pmsampsize(type = "b", parameters = 10, prevalence = 0.05, rsquared = R2[1])$sample_size
-
-below_n_10x_e.2 <- ceiling(0.8 * at_n_10x_e.2)
-below_n_10x_e.05<- ceiling(0.8 * at_n_10x_e.05)
-# below_n_32x_e.2<- ceiling(0.8 * at_n_32x_e.2)
-# below_n_60x_e.2<- ceiling(0.8 * at_n_60x_e.2)
+actual_n_1 <- c("at_e_.05" = pmsampsize(type = "b", parameters = 10, prevalence = 0.05, rsquared = R2[1])$sample_size,
+                "at_e_0.2" = pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = R2[2])$sample_size,
+                "at_e_0.5" = pmsampsize(type = "b", parameters = 10, prevalence = 0.5, rsquared = R2[3])$sample_size)
 
 s1 <- s1 %>%
   mutate(
     n = case_when(
-      prev == 0.2 & n_state == "at" ~ at_n_10x_e.2,
-      prev == 0.2 & n_state == "below" ~ below_n_10x_e.2,
-      prev == 0.05 & n_state == "at" ~ at_n_10x_e.05,
-      prev == 0.05 & n_state == "below" ~ below_n_10x_e.05,
+      prev == 0.05 & n_state == "at" ~ actual_n_1[1],
+      prev == 0.05 & n_state == "below" ~ ceiling(0.8 * actual_n_1[1]),
+      prev == 0.2 & n_state == "at" ~ actual_n_1[2],
+      prev == 0.2 & n_state == "below" ~ ceiling(0.8 * actual_n_1[2]),
+      prev == 0.5 & n_state == "at" ~ actual_n_1[3],
+      prev == 0.5 & n_state == "below" ~ ceiling(0.8 * actual_n_1[3]),
       TRUE ~ NA_real_
       )
     )
@@ -70,17 +67,19 @@ s1 <- s1 %>%
 ##################
 ## coefficients ##
 ##################
-
-beta_0.05 <- readRDS(paste0(scenario_1_settings,"Betas/Betas_prev_0.05_halfstrong.Rds"))
-beta_0.2 <- readRDS(paste0(scenario_1_settings,"Betas/Betas_prev_0.2_halfstrong.Rds"))
+beta_0.05 <- optim_beta(prev_scenario = 0.05, R2_scenario = R2[1])
+beta_0.2 <- optim_beta(prev_scenario = 0.2, R2_scenario = R2[2])
+beta_0.5 <- optim_beta(prev_scenario = 0.5, R2_scenario = R2[3])
 
 s1 <- s1 %>% 
   mutate(par1 = case_when(prev == 0.05 ~ beta_0.05[1],
                           prev == 0.2 ~ beta_0.2[1],
+                          prev == 0.5 ~ beta_0.5[1],
                           TRUE ~ NA_real_
   )) %>%
   mutate(par2 = case_when(prev == 0.05 ~ beta_0.05[2],
                           prev == 0.2 ~ beta_0.2[2],
+                          prev == 0.5 ~ beta_0.5[2],
                           TRUE ~ NA_real_))
 
 write_rds(s1, file = paste0(scenario_1_settings, "s1.Rds"))
@@ -98,12 +97,12 @@ write_rds(s1, file = paste0(scenario_1_settings, "s1.Rds"))
 
 ## Data gen mechanism
 AUC2 <- 0.75
-dim2 <- c(6, 32, 60)
+dim2 <- c(5, 32, 60)
 n2 <- as.factor(c("at", "below"))
 prev2 <- 0.2
 
 ## Models used:
-models2 <-  as.factor(c("OLS",  "Firth", "SVM"))
+models2 <-  as.factor(c("OLS",  "Firth"))
 
 ## all combinations:
 s2 <- expand.grid(AUC = AUC2, prev = prev2, dim = dim2, n_state = n2, model = models2, KEEP.OUT.ATTRS = F)
