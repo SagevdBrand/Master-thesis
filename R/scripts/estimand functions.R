@@ -187,12 +187,12 @@ get_cv_estimands <- function(df, model, V){
   
   ## Obtain estimands ##
   ## for ECI
-    .obtain_calout <- function(data, modelmatrix, coefs){
-      phat <- 1/(1+exp(-(modelmatrix%*%coefs)))
-      calout <- loess(data$y ~ log(phat/(1-phat)), data = data)
-      return(calout)
-    }
-    
+    # .obtain_calout <- function(data, modelmatrix, coefs){
+    #   phat <- 1/(1+exp(-(modelmatrix%*%coefs)))
+    #   calout <- loess(data$y ~ log(phat/(1-phat)), data = data)
+    #   return(calout)
+    # }
+    # 
     ## Empty objects to store results
     cal_folds <- matrix(NA, nrow = V, ncol = 2)
     R2_folds <- c()
@@ -202,7 +202,8 @@ get_cv_estimands <- function(df, model, V){
     for (i in 1:V){
       cal_folds[i,] <- calib(modelmatrix = iv_matrix[[i]], data = df[unlist(foldsb[[i]]),], coefs = coefs[,i])
       R2_folds[i] <- pseudo_Rsqrs(p = p_per_fold[[i]], y = df[unlist(foldsb[[i]]),]$y)
-      calout <- .obtain_calout(data = df[unlist(foldsb[[i]]),], modelmatrix = iv_matrix[[i]], coefs = coefs[,i])
+      calout <- loess(y ~ log(p_per_fold[[i]]/(1-p_per_fold[[i]])), data = df[unlist(foldsb[[i]]),])
+      #calout <- .obtain_calout(data = df[unlist(foldsb[[i]]),], modelmatrix = iv_matrix[[i]], coefs = coefs[,i])
       eci_folds[i] <- (mean((p_per_fold[[i]]-fitted(calout))*(p_per_fold[[i]]-fitted(calout))))*(100)
     }
     
