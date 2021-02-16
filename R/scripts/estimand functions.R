@@ -4,6 +4,7 @@
 ### Simulation functions
 ### Estimands
 
+
 ######################################
 ###### Basic estimand functions ######
 ######################################
