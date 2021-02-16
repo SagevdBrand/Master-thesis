@@ -133,12 +133,9 @@ get_app_results <- function(scenario, df) {
 ###### Cross-validation  approaches ######
 ##########################################
 
-## Function called within:
-
-
-
-## 10 fold cv
-# write a function to obtain estimates per df, so first try with subscenario 1a
+####################
+## 10 & 5 fold cv ##
+####################
 
 get_cv_estimands <- function(df, model, V){
 
@@ -163,64 +160,68 @@ get_cv_estimands <- function(df, model, V){
     if (model == "OLS") {
       fit <- glm(y~., data=df[-foldsb[[V]],], family=binomial) #%>%
       #step(direction = "backward", trace = F) # This should be changeable depending on which thing you're using
-      iv_matrix <- model.matrix(object = fit$formula, data = df[foldsb[[V]],])
+      iv_matrix <- model.matrix(object = fit$formula, data = df[foldsb[[V]],]) # model matrix of test fold
       p <- predict(fit, newdata=df[foldsb[[V]],], type = "response")
       
-    } else { # If model = Firth (or svm for now)
+    } else { # If model = Firth
       fit <- logistf(y ~ ., data = df[-foldsb[[V]],], flic = T)
-      iv_matrix <- model.matrix(object = fit$formula, data = df[foldsb[[V]],]) #iv matrix of test fold
+      iv_matrix <- model.matrix(object = fit$formula, data = df[foldsb[[V]],]) # model matrix of test fold
       p <- 1 / (1 + exp(-iv_matrix %*% fit$coefficients))
     }
     
-    coefs <- coef(fit)
-    results <- list(p, coefs, iv_matrix)
+    coefs <- coef(fit) #obtain coefficients of fold
+    results <- list(p, coefs, iv_matrix) # only save predictions, coefficients and model matrix
   
   }
   
-  results <- (lapply(seq(V), .doFit, folds = foldsb, model = model))  
-  p <- unlist(sapply(results, "[[", 1)) # Get out pred values as a single thing
-  p[unlist(foldsb)] <- p #Re-order pred values
+  results <- (lapply(seq(V), .doFit, folds = foldsb, model = model)) # obtain model results for all folds
+  p <- c(unlist(sapply(results, "[[", 1))) # Get out pred values as a single vector
+  p[unlist(foldsb)] <- p #Re-order pred values, so they are in line with y
   
-  p_per_fold <- sapply(results, "[[", 1) # getting the predictions per fold
+  p_per_fold <- lapply(results, "[[", 1) # getting the predictions per fold
   coefs <- (sapply(results, "[[", 2)) # Get out model coefficients
-  iv_matrix <- (sapply(results, "[[", 3)) # get out the test matrices
+  iv_matrix <- lapply(results, "[[", 3) # get out the test matrices
   
-  ## Obtain estimands ##
-  ## for ECI
-    # .obtain_calout <- function(data, modelmatrix, coefs){
-    #   phat <- 1/(1+exp(-(modelmatrix%*%coefs)))
-    #   calout <- loess(data$y ~ log(phat/(1-phat)), data = data)
-    #   return(calout)
-    # }
-    # 
+######################  
+## Obtain estimands ##
+######################
+
     ## Empty objects to store results
-    cal_folds <- matrix(NA, nrow = V, ncol = 2)
+    slope_folds <- c()
+    intercept_folds <- c()
     R2_folds <- c()
     eci_folds <- c()
     
     # For each fold, calculate calibration intercept & slope, R2 and ECI
-    for (i in 1:V){
-      cal_folds[i,] <- calib(modelmatrix = iv_matrix[[i]], data = df[unlist(foldsb[[i]]),], coefs = coefs[,i])
-      R2_folds[i] <- pseudo_Rsqrs(p = p_per_fold[[i]], y = df[unlist(foldsb[[i]]),]$y)
-      calout <- loess(y ~ log(p_per_fold[[i]]/(1-p_per_fold[[i]])), data = df[unlist(foldsb[[i]]),])
-      #calout <- .obtain_calout(data = df[unlist(foldsb[[i]]),], modelmatrix = iv_matrix[[i]], coefs = coefs[,i])
-      eci_folds[i] <- (mean((p_per_fold[[i]]-fitted(calout))*(p_per_fold[[i]]-fitted(calout))))*(100)
+    for (v in 1:V){
+      # for easy reference
+      data <- df[unlist(foldsb[[v]]),]
+      ppf <- p_per_fold[[v]]
+      
+      slope_folds[v] <- c(coef(glm(data$y ~ log(ppf/(1-ppf)),family="binomial"))[2])
+      
+      intercept_folds[v] <- coef(glm(data$y ~ offset(log(ppf/(1-ppf))),family="binomial"))
+      
+      R2_folds[v] <- pseudo_Rsqrs(p = ppf, y = data$y)
+      
+      calout <- loess(y ~ log(ppf/(1-ppf)), data = data)
+      eci_folds[v] <- (mean((ppf-fitted(calout))*(ppf-fitted(calout))))*(100)
     }
     
-    ## AUC
+    ## AUC, function by ledell already gives bias corrected se and ci as well
     auc_results <- as.vector(unlist(ci.cvAUC(predictions=p, labels=df$y, folds=foldsb, confidence=0.95)))[-5]
-    names(auc_results) <- c(paste0("AUC_mean_", V, "fcv" ), paste0("AUC_se_", V, "fcv"), paste0("AUC_ci_lower_", V, "fcv"), paste0("AUC_ci_upper_", V, "fcv"))
+    names(auc_results) <- c(paste0("AUC_mean_", V, "fcv" ), 
+                            paste0("AUC_se_", V, "fcv"), 
+                            paste0("AUC_ci_lower_", V, "fcv"),
+                            paste0("AUC_ci_upper_", V, "fcv"))
     
     ## Get mean and standard error over all other results and store in a single vector:
     ## Calibration
-    means <- apply(cal_folds, 2, mean)
-    se <- apply(cal_folds, 2, function(x) (sd(x)/(sqrt(V) - 1)))
-    
-    calibration_results <-  c(means[1], se[1], means[2], se[2])
-    names(calibration_results) <- c(paste0("calib_int_mean_", V, "fcv" ),
-                                    paste0("calib_int_se_", V, "fcv"),
-                                    paste0("calib_slope_mean_", V, "fcv" ),
-                                    paste0("calib_slope_se_", V, "fcv"))
+    intercept <- c(mean(intercept_folds), (sd(intercept_folds)/(sqrt(V) - 1)))
+    names(intercept) <- c(paste0("calib_int_mean_", V, "fcv" ), paste0("calib_int_se_", V, "fcv"))
+                                    
+    slope <-  c(mean(slope_folds), (sd(slope_folds)/(sqrt(V) - 1)))
+    names(slope) <- c(paste0("calib_slope_mean_", V, "fcv" ), paste0("calib_slope_se_", V, "fcv"))
     
     ## R2 cox snell
     R2 <- c(mean(R2_folds), (sd(R2_folds)/(sqrt(V) - 1)))
@@ -230,16 +231,17 @@ get_cv_estimands <- function(df, model, V){
     eci <- c(mean(eci_folds), (sd(eci_folds)/(sqrt(V) - 1)))
     names(eci) <- c(paste0("eci_mean_", V, "fcv" ), paste0("eci_se_", V, "fcv"))
     
-    results <- c(auc_results, calibration_results, R2, eci)
+    results <- c(auc_results, intercept, slope, R2, eci)
   
   return(results)
   }
 
-
+## Function to apply get_cv_estimands to all datasets in a scenario:
 get_cv_results <- function(scenario, df, V) {
   results_cv <- list() #object to store results
   
   for (i in 1:length(df)) {
+    print(i)
     model <- s1[i, ]$model
     results_cv[[i]] <- get_cv_estimands(df = df[[i]], model = model, V = V)
     

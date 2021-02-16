@@ -20,7 +20,7 @@ system.time(results_app <- get_app_results(scenario = s1, df = df))
 
 ## Obtain cross validation results ##
 system.time(results_10_cv <- get_cv_results(scenario = s1, df = df, V = 10))
-
+system.time(results_5_cv <- get_cv_results(scenario = s1, df = df, V = 5))
 
 
 

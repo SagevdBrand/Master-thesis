@@ -156,7 +156,37 @@ s3$R2 <- R2[2]
 # below_n_10x_e.2 <- ceiling(0.8 * at_n_10x_e.2)
 
 
+########################
+###### Scenario 4 ######
+########################
 
+## Data gen mechanism
+AUC4 <- 0.75
+dim4 <- 30
+n4 <- as.factor(c("60%", "80%", "at (100%)"))
+prev4 <- 0.2
+predictor_effects4 <- c("50% strong 50% noise")
+
+
+## Models combinations:
+models4 <-  as.factor(c("OLS", "Firth"))
+
+## all combinations:
+s4 <- expand.grid(AUC = AUC4, dim = dim4, n = n4,  prevalence = prev4, model = models4, pred_effect = predictor_effects4, KEEP.OUT.ATTRS = F)
+
+#################
+## Expected R2 ##
+#################
+
+s4$R2 <- R2[2]
+
+
+########################
+## Actual sample size ##
+########################
+
+# at_n_10x_e.2 <- pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = R2[2])$sample_size
+# below_n_10x_e.2 <- ceiling(0.8 * at_n_10x_e.2)
 
 
 ###################################
