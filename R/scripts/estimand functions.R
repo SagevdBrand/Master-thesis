@@ -4,6 +4,7 @@
 ### Simulation functions
 ### Estimands
 
+
 ######################################
 ###### Basic estimand functions ######
 ######################################
@@ -70,9 +71,18 @@ eci_bvc <- function(data, modelmatrix, coefs, preds){
   return(eci)
 }
 
+##########
+## MAPE ##
+##########
+
+MAPE <- function(p,iv_matrix, dgm_par){
+  p_true <- exp(iv_matrix%*%dgm_par)/(1+exp(iv_matrix%*%dgm_par))
+  mean(abs(p_true-p))
+}
+
 ###### Apparent performance ######
 ## Depends on which model is used.
-get_app_estimands <- function(df, model) {
+get_app_estimands <- function(df, model, dgm_par) {
   # Fit model depending on scenario
   # And get predicted probabilities
   if (model == "OLS") {
@@ -90,6 +100,7 @@ get_app_estimands <- function(df, model) {
   # Performance measures
   auc_app <- fastAUC(p = p_app, y = df$y)
   R2_app <- pseudo_Rsqrs(p = p_app, y = df$y)
+  MAPE_app <- MAPE(p = p_app, dgm_par = dgm_par, iv_matrix = app_matrix) 
   
   calib_app <-
     calib(
@@ -113,7 +124,8 @@ get_app_estimands <- function(df, model) {
       "calib_int_app" = calib_app['intercept'],
       "calib_slope_app" = calib_app['slope'],
       "R2_cox_snell_app" = R2_app,
-      "ECI_app" = eci_app
+      "ECI_app" = eci_app,
+      "MAPE_app" = MAPE_app
     )
 }
 
@@ -122,7 +134,12 @@ get_app_results <- function(scenario, df) {
   
   for (i in 1:length(df)) {
     model <- s1[i, ]$model
-    results_app[[i]] <- get_app_estimands(df = df[[i]], model = model)
+    dgm_par <- c(s1[i, ]$par1, 
+                 rep(s1[i, ]$par1 * 3, round(0.4 * s1[i, ]$dim)),  # strong
+                 rep(s1[i, ]$par1,     round(0.4 * s1[i, ]$dim)),  # medium
+                 rep(s1[i, ]$par1 * 0, round(0.2 * s1[i, ]$dim)))  # noise
+    
+    results_app[[i]] <- get_app_estimands(df = df[[i]], model = model, dgm_par = dgm_par)
     
     }
   names(results_app) <- c(1:length(df))
@@ -137,7 +154,7 @@ get_app_results <- function(scenario, df) {
 ## 10 & 5 fold cv ##
 ####################
 
-get_cv_estimands <- function(df, model, V){
+get_cv_estimands <- function(df, model, dgm_par, V){
 
 ####################
 ## Splitting data ##
@@ -191,6 +208,7 @@ get_cv_estimands <- function(df, model, V){
     intercept_folds <- c()
     R2_folds <- c()
     eci_folds <- c()
+    MAPE_folds <- c()
     
     # For each fold, calculate calibration intercept & slope, R2 and ECI
     for (v in 1:V){
@@ -206,6 +224,7 @@ get_cv_estimands <- function(df, model, V){
       
       calout <- loess(y ~ log(ppf/(1-ppf)), data = data)
       eci_folds[v] <- (mean((ppf-fitted(calout))*(ppf-fitted(calout))))*(100)
+      MAPE_folds[v] <- MAPE(p = ppf, iv_matrix = iv_matrix[[v]], dgm_par = dgm_par)
     }
     
     ## AUC, function by ledell already gives bias corrected se and ci as well
@@ -231,7 +250,11 @@ get_cv_estimands <- function(df, model, V){
     eci <- c(mean(eci_folds), (sd(eci_folds)/(sqrt(V) - 1)))
     names(eci) <- c(paste0("eci_mean_", V, "fcv" ), paste0("eci_se_", V, "fcv"))
     
-    results <- c(auc_results, intercept, slope, R2, eci)
+    ## MAPE
+    MAPE_results <- c(mean(MAPE_folds), (sd(MAPE_folds)/(sqrt(V) - 1)))
+    names(MAPE_results) <- c(paste0("MAPE_mean_", V, "fcv" ), paste0("MAPE_se_", V, "fcv"))
+    
+    results <- c(auc_results, intercept, slope, R2, eci, MAPE_results)
   
   return(results)
   }
@@ -243,7 +266,12 @@ get_cv_results <- function(scenario, df, V) {
   for (i in 1:length(df)) {
     print(i)
     model <- s1[i, ]$model
-    results_cv[[i]] <- get_cv_estimands(df = df[[i]], model = model, V = V)
+    dgm_par <- c(s1[i, ]$par1, 
+                 rep(s1[i, ]$par1 * 3, round(0.4 * s1[i, ]$dim)),  # strong
+                 rep(s1[i, ]$par1,     round(0.4 * s1[i, ]$dim)),  # medium
+                 rep(s1[i, ]$par1 * 0, round(0.2 * s1[i, ]$dim)))  # noise
+    
+    results_cv[[i]] <- get_cv_estimands(df = df[[i]], model = model, dgm_par = dgm_par, V = V)
     
   }
   names(results_cv) <- c(1:length(df))

@@ -4,7 +4,7 @@
 ### Try simulate data scenario 1 
 
 ######## Setting up #########
-set.seed(123)
+## set.seed(123)
 source("scripts/Setup.R")
 source("scripts/Data generation functions.R")
 
