@@ -45,7 +45,7 @@ s1 <- read_rds(paste0(scenario_1_settings,"s1.Rds"))
 set.seed(123)
 
 # Store seed values
-n_sim <- 2 # how many iterations?
+n_sim <- 1 # how many iterations?
 state <- floor(runif(n_sim, 0, 10000))
 
 for(j in 1:n_sim){
