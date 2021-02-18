@@ -15,11 +15,11 @@ scenario_1_validation_data <- "Data/validation data/scenario 1/"
 s1_output <- "Output/scenario 1/"
 
 
-
-for (i in 1:4){
-scenario_specific <- paste0("scenario ", i, "/")
-dir.create(file.path(paste0("Output/", scenario_specific)), recursive = TRUE)
- }
+# 
+# for (i in 1:4){
+# scenario_specific <- paste0("scenario ", i, "/")
+# dir.create(file.path(paste0("Output/", scenario_specific)), recursive = TRUE)
+#  }
 
 # datasets <- list.dirs(path = "data", recursive = F, full.names = F)
 # data_files <- glue(datasets, ".csv")
