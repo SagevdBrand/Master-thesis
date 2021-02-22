@@ -5,11 +5,14 @@ source("scripts/estimand functions.R")
 library(e1071)
 library(caret)
 library(nnet)
+library(rpart)
+library(randomForest)
+library(kernlab)
 
 s1 <- read_rds(paste0(scenario_1_settings,"s1.Rds"))
 data_files <- list.files(path = scenario_1_data, recursive = T, full.names = F)
 test <- lapply(paste0(scenario_1_data,data_files),readRDS,.GlobalEnv)
-df <- test[[1]]
+df <- test[[3]]
 V = 5
 
 
@@ -30,64 +33,56 @@ V = 5
   ## Testing machine learning code ##
   ###################################
   
-  #####################
-  ## Neural networks ##
-  #####################
+  ###################
+  ## Random Forest ##
+  ###################
+  rf_grid <- expand.grid(.mtry = seq(1, 10, by = 1))
   
-  scaled_df <- as.data.frame(scale(df))
-  
-  # Use tune alone and then get best model
-  fit <- e1071::tune(nnet, y ~., data = scaled_df[-foldsb[[V]],], 
-                     ranges = list(size = 2^(0:3), decay = 2^(0:0.5)), trace = F)
-  
-  p <- predict(fit$best.model, newdata = scaled_df[foldsb[[V]],])
-  fastAUC(p = p, y = df[foldsb[[V]],])
-  
-  # Use best.nnet, not sure how though
-  fit <- e1071::best.nnet(x = scaled_df[-foldsb[[V]],-ncol(scaled_df)], y = scaled_df[-foldsb[[V]], ncol(scaled_df)], size = 1, decay = 0.5, tunecontrol = tune.control(sampling = "cross", random = T))
-  p <- predict(fit, newdata = scaled_df[foldsb[[V]],])
-  fastAUC(p = p, y = df[foldsb[[V]],])
-  
-  # Use caret::train, use tuneLength for random search
-  system.time(fit_length <- train(as.factor(y) ~., data = scaled_df[-foldsb[[V]],], method = 'nnet', trace = F, tuneLength = 15))
-  p <- predict(fit$best.model, newdata = scaled_df[foldsb[[V]],])
-  fastAUC(p = p, y = df[foldsb[[V]],])
+  system.time(train_rf <- caret::train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'rf', tuneGrid = rf_grid, trControl = trainControl(method = "cv")))
+  p_rf <- predict(train_rf$finalModel, newdata = df[foldsb[[V]],], type = "response")
+  fastAUC(p = p_rf, y = df[foldsb[[V]],]$y)
   
   
-  # Use caret::train, predefining a tune grid
-  tunegrid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
-                          decay = seq(from = 0.1, to = 0.5, by = 0.1))
+  ##########
+  ## CART ##
+  ##########
+  rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
   
-  system.time(fit_grid <- train(as.factor(y) ~., data = scaled_df[-foldsb[[V]],], method = 'nnet', trace = F, tuneGrid = tunegrid))
-  p <- predict(fit_grid, newdata = scaled_df[foldsb[[V]],])
-  fastAUC(p = p, y = scaled_df[foldsb[[V]],])
+  system.time(train_rpart <- caret::train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'rpart', tuneGrid = rpart_grid, trControl = trainControl(method = "cv")))
+  p_rpart <- predict(train_rpart$finalModel, newdata = df[foldsb[[V]],], type = "prob")
+  fastAUC(p = p_rpart, y = df[foldsb[[V]],]$y)
   
+ 
   #########
   ## SVM ##
   #########
-  
-  fit <- e1071::tune(svm, y ~., data = df[-foldsb[[V]],], 
-                     ranges = list(size = 2^(0:3), decay = 2^(0:0.5)), trace = F)
-  
-  p <- predict(fit$best.model, newdata = df[foldsb[[V]],])
-  fastAUC(p = p, y = df[foldsb[[V]],])
-  
-  # Use best.svm, not sure how though
-  fit <- e1071::best.svm(x = df[-foldsb[[V]],-ncol(df)], y = df[-foldsb[[V]], ncol(df)], size = 1, decay = 0.5, tunecontrol = tune.control(sampling = "cross", random = T))
-  p <- predict(fit, newdata = df[foldsb[[V]],])
-  fastAUC(p = p, y = df[foldsb[[V]],])
-  
-  # Use caret::train, use tuneLength for random search
-  system.time(fit_length <- train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'svm', trace = F, tuneLength = 15))
-  p <- predict(fit$best.model, newdata = df[foldsb[[V]],])
-  fastAUC(p = p, y = df[foldsb[[V]],])
-  
-  
-  # Use caret::train, predefining a tune grid
-  tunegrid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
-                          decay = seq(from = 0.1, to = 0.5, by = 0.1))
-  
-  system.time(fit_grid <- train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'svm', trace = F, tuneGrid = tunegrid))
-  p <- predict(fit_grid, newdata = df[foldsb[[V]],])
-  fastAUC(p = p, y = df[foldsb[[V]],])
 
+  # Use caret::train, predefining a tune grid
+  svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 10),
+                          .sigma = seq(0.001, 1, length.out = 10))
+  
+  system.time(fit_svm <- caret::train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'svmRadial', tuneGrid = svm_grid, trControl = trainControl(method = "cv")))
+  
+  ##  THIS DOES NOT MAKE SENSE OT ME!! ##
+  p_svm <- kernlab::predict(fit_svm$finalModel, newdata = df[foldsb[[V]],-ncol(df)], type = "response")
+  fastAUC(p = p_svm, y = df[foldsb[[V]],]$y)
+  
+  #####################
+  ## Neural networks ##
+  #####################
+  # PRE PROCESSING!
+  # preProcValues <- preProcess(training, method = c("center", "scale"))
+  # 
+  # trainTransformed <- predict(preProcValues, training)
+  # testTransformed <- predict(preProcValues, test)
+  
+  nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
+                          decay = seq(from = 0.1, to = 2, by = 0.4))
+  
+  system.time(fit_nnet <- caret::train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'nnet', tuneGrid = nnet_grid, trace = F, trControl = trainControl(method = "cv")))
+  p_nnet <- predict(fit_nnet$finalModel, newdata = df[foldsb[[V]],])
+  fastAUC(p = p_nnet, y = df[foldsb[[V]],]$y)
+  
+ 
+ 
+ 
