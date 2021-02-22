@@ -17,5 +17,7 @@ lapply(lapply(s1_data,'[[', 11), mean) # check whether the prevalence is somewha
 for(i in 1:length(s1_data)) {
   ind <- letters[1:length(s1_data)]
   saveRDS(assign(paste0("s1_", i), s1_data[[i]]), file = paste0(scenario_1_data, "s1_data_", ind[i],".Rds")) # add name of file to path
-}
+  rm(list = ls(pattern = paste0("s1_",i)))
+  }
+
 

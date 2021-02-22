@@ -20,14 +20,11 @@ source("scripts/Data generation functions.R")
 ## Data gen mechanism
 AUC1 <- 0.75
 dim1 <- 10
-n1 <- as.factor(c("at", "below"))
+es1 <- c(0.3,0.6,0.9)
 prev1 <- c(0.05, 0.2, 0.5)
-
-## Models used:
-models1 <-  as.factor(c("OLS",  "Firth"))
-
+model1 <- "Firth"
 ## all combinations:
-s1 <- expand.grid(AUC = AUC1, dim = dim1, n_state = n1, prev = prev1, model = models1, KEEP.OUT.ATTRS = F)
+s1 <- expand.grid(AUC = AUC1, dim = dim1, Shrinkage = es1, prev = prev1, model = model1, KEEP.OUT.ATTRS = F)
 
 
 ##################
@@ -46,6 +43,9 @@ s1 <- s1 %>% mutate(R2 = case_when(prev == prev1[1] ~ R2[1],
 ########################
 ## Actual sample size ##
 ########################
+###################################################
+############# EXTEND FOR SHRINKAGE!!! #############
+###################################################
 
 actual_n_1 <- c("at_e_.05" = pmsampsize(type = "b", parameters = 10, prevalence = 0.05, rsquared = R2[1])$sample_size,
                 "at_e_0.2" = pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = R2[2])$sample_size,
@@ -97,15 +97,15 @@ write_rds(s1, file = paste0(scenario_1_settings, "s1.Rds"))
 
 ## Data gen mechanism
 AUC2 <- 0.75
-dim2 <- c(5, 32, 60)
-n2 <- as.factor(c("at", "below"))
+dim2 <- c(6, 30, 60)
+es2 <- c(0.3,0.6,0.9)
 prev2 <- 0.2
 
 ## Models used:
-models2 <-  as.factor(c("OLS",  "Firth"))
+model2 <-  "Firth"
 
 ## all combinations:
-s2 <- expand.grid(AUC = AUC2, prev = prev2, dim = dim2, n_state = n2, model = models2, KEEP.OUT.ATTRS = F)
+s2 <- expand.grid(AUC = AUC2, prev = prev2, dim = dim2, shrinkage = es2, model = models2, KEEP.OUT.ATTRS = F)
 
 #################
 ## Expected R2 ##
