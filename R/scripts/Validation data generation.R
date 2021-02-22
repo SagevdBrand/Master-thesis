@@ -14,6 +14,6 @@ lapply(lapply(s1_val_data,'[[', 11), mean)
 
 for(i in 1:length(s1_val_data)) {
   ind <- letters[1:length(s1_val_data)]
-  saveRDS(assign(paste0("s1_", i), s1_val_data[[i]]), file = paste0(scenario_1_validation_data, "s1_val_data_", ind[i],".Rds")) # add name of file to path
+  saveRDS(assign(paste0("s1_", i), s1_val_data[[i]]), file = paste0(scenario_1_val_data, "s1_val_data_", ind[i],".Rds")) # add name of file to path
 }
 

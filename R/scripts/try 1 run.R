@@ -28,8 +28,8 @@ source("scripts/setup.R")
 source("scripts/estimand functions.R")
 
 ## Load validation data
-val_data_files <- list.files(path = scenario_1_validation_data, recursive = T, full.names = F)
-val_df <- lapply(paste0(scenario_1_validation_data,val_data_files),readRDS,.GlobalEnv)
+val_data_files <- list.files(path = scenario_1_val_data, recursive = T, full.names = F)
+val_df <- lapply(paste0(scenario_1_val_data,val_data_files),readRDS,.GlobalEnv)
 names(val_df) <- val_data_files
 
 ## Load scenario settings
