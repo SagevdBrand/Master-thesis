@@ -76,22 +76,23 @@ eci_bvc <- function(data, modelmatrix, coefs, preds){
 ##########
 
 MAPE <- function(p,iv_matrix, dgm_par){
-  p_true <- exp(iv_matrix%*%dgm_par)/(1+exp(iv_matrix%*%dgm_par))
+  p_true <- 1 / (1 + exp(-iv_matrix %*% dgm_par))
   mean(abs(p_true-p))
 }
 
 ###### Apparent performance ######
 ## Depends on which model is used.
 get_app_estimands <- function(df, model, dgm_par) {
+  
   # Fit model depending on scenario
-  # And get predicted probabilities
+  # And get predicted probabilities and modelmatrix
   if (model == "OLS") {
     fit_app <- glm(y ~ ., family = "binomial", data = df) #%>%
     #step(direction = "backward", trace = F) # This should be changeable depending on which thing you're using
     p_app <- predict(fit_app, type = "response")
     app_matrix <- model.matrix(object = fit_app$formula, data = df)
     
-  } else { # If model = Firth (or svm for now)
+  } else { # If model = Firth 
     fit_app <- logistf(y ~ ., data = df, flic = T)
     app_matrix <- model.matrix(object = fit_app$formula, data = df)
     p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
@@ -135,9 +136,9 @@ get_app_results <- function(scenario, df) {
   for (i in 1:length(df)) {
     model <- s1[i, ]$model
     dgm_par <- c(s1[i, ]$par1, 
-                 rep(s1[i, ]$par1 * 3, round(0.4 * s1[i, ]$dim)),  # strong
-                 rep(s1[i, ]$par1,     round(0.4 * s1[i, ]$dim)),  # medium
-                 rep(s1[i, ]$par1 * 0, round(0.2 * s1[i, ]$dim)))  # noise
+                 rep(s1[i, ]$par2 * 3, round(0.4 * s1[i, ]$dim)),  # strong
+                 rep(s1[i, ]$par2,     round(0.4 * s1[i, ]$dim)),  # medium
+                 rep(s1[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
     
     results_app[[i]] <- get_app_estimands(df = df[[i]], model = model, dgm_par = dgm_par)
     
@@ -186,9 +187,7 @@ get_cv_estimands <- function(df, model, dgm_par, V){
       p <- 1 / (1 + exp(-iv_matrix %*% fit$coefficients))
     }
     
-    coefs <- coef(fit) #obtain coefficients of fold
-    results <- list(p, coefs, iv_matrix) # only save predictions, coefficients and model matrix
-  
+    results <- list(p, iv_matrix)
   }
   
   results <- (lapply(seq(V), .doFit, folds = foldsb, model = model)) # obtain model results for all folds
@@ -196,11 +195,9 @@ get_cv_estimands <- function(df, model, dgm_par, V){
   p[unlist(foldsb)] <- p #Re-order pred values, so they are in line with y
   
   p_per_fold <- lapply(results, "[[", 1) # getting the predictions per fold
-  coefs <- (sapply(results, "[[", 2)) # Get out model coefficients
-  iv_matrix <- lapply(results, "[[", 3) # get out the test matrices
-  
+  iv_matrix <- lapply(results, "[[", 2)
 ######################  
-## Obtain estimands ##
+## Obtain estimands ## #### MAKE A FUNCTION OUT OF THIS?
 ######################
 
     ## Empty objects to store results
@@ -267,9 +264,9 @@ get_cv_results <- function(scenario, df, V) {
     print(i)
     model <- s1[i, ]$model
     dgm_par <- c(s1[i, ]$par1, 
-                 rep(s1[i, ]$par1 * 3, round(0.4 * s1[i, ]$dim)),  # strong
-                 rep(s1[i, ]$par1,     round(0.4 * s1[i, ]$dim)),  # medium
-                 rep(s1[i, ]$par1 * 0, round(0.2 * s1[i, ]$dim)))  # noise
+                 rep(s1[i, ]$par2 * 3, round(0.4 * s1[i, ]$dim)),  # strong
+                 rep(s1[i, ]$par2,     round(0.4 * s1[i, ]$dim)),  # medium
+                 rep(s1[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
     
     results_cv[[i]] <- get_cv_estimands(df = df[[i]], model = model, dgm_par = dgm_par, V = V)
     
