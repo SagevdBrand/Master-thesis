@@ -84,7 +84,7 @@ pseudo_Rsqrs <- function(p, y){
 ## squared differences between the preferred and observed 
 ## values of both the R^2CS and prevalence.
 dist_R2_prev <- function(par,pref_R2, pref_prev){
-  # par is a vector with initial guesses for both
+    # par is a vector with initial guesses for both
   # the intercept and the beta1-3 coefficients.
   # However since beta1-3 have been restricted (half is strong, other half weak)
   # only one value is necessary.
@@ -93,8 +93,8 @@ dist_R2_prev <- function(par,pref_R2, pref_prev){
   # Half of the predictors is strong
   dgm_par <-
     c(par[1], 
-      rep(par[2] * 3, round(0.4 * n_pred)),  # strong
-      rep(par[2], round(0.4 *  n_pred)),  # medium
+      rep(par[2] * 3, round(0.3 * n_pred)),  # strong
+      rep(par[2], round(0.5 *  n_pred)),  # medium
       rep(par[2] * 0, round(0.2 * n_pred))) # noise
 
   # Obtain values for y based on Bernoulli distribution, with input p
@@ -124,11 +124,11 @@ optim_beta <- function(prev_scenario, R2_scenario){
   # With trial and error, it was discovered that the optimization would get
   # stuck at a local minimum.
   if (prev_scenario == 0.05){ 
-    par_i <- c(-3.36, 0.1) 
+    par_i <- c(-3.37, 0.13) 
   } else if (prev_scenario == 0.2) { 
-    par_i <- c(-1.66, 0.11)
+    par_i <- c(-1.66, 0.13)
   } else {
-    par_i <- c(0.01, 0.1)
+    par_i <- c(0.01, 0.13)
     }
 
   # Optimizing the dist_R2_prev to determine the beta coefficients for which the squared distance 
@@ -140,7 +140,8 @@ optim_beta <- function(prev_scenario, R2_scenario){
                        optim(par_i, 
                              dist_R2_prev,
                              pref_R2 = R2_scenario,
-                             pref_prev = prev_scenario),
+                             pref_prev = prev_scenario
+                             ),
                        simplify = F)
   # Computation time is about 1 minute
   
@@ -161,8 +162,8 @@ checking <- function(par){
 
   dgm_par <-
     c(par[1], 
-      rep(par[2] * 3, round(0.4 * n_pred)), 
-      rep(par[2], round(0.4 *  n_pred)), 
+      rep(par[2] * 3, round(0.3 * n_pred)), 
+      rep(par[2], round(0.5 *  n_pred)), 
       rep(par[2] * 0, round(0.2 * n_pred)))
   
   # Obtain values for y based on uniform distribution, with input p
@@ -181,8 +182,8 @@ checking_val <- function(par){
   
   # Half strong
   dgm_par_val <- c(par[1], 
-                   rep(par[2] * 3, round(0.4 * n_pred)), 
-                   rep(par[2], round(0.4 *  n_pred)), 
+                   rep(par[2] * 3, round(0.3 * n_pred)), 
+                   rep(par[2], round(0.5 *  n_pred)), 
                    rep(par[2] * 0, round(0.2 * n_pred)))
   
   # Obtain values for y based on uniform distribution, with input p
@@ -212,22 +213,22 @@ generate_data <- function(scenario, validation = c(TRUE, FALSE)){
     mu <- c(rep(0, s_list$dim))
     
     # create candidate predictors
-    # If it is the validation set, n = always 100000. Otherwise, take n as specified in each scenario
+    # If it is the validation set, n = 20 * 100/prev. Otherwise, take n as specified in each scenario
     if (validation == TRUE) {
-      X <- mvrnorm(n = 100000, mu = mu, Sigma = sigma)
+      X <- mvrnorm(n = 20*(100/s_list$prev), mu = mu, Sigma = sigma)
     }
     else {
       X <-
         mvrnorm(n = s_list$n, mu = mu, Sigma = sigma)
     } 
-    dm <- cbind(1, X) # Putting the above in a data matrix, including intercept
-
+    # Putting the above in a data matrix, including intercept
+    dm <- cbind(1, X)
+    
     dgm_par <- c(s_list$par1, 
-                 rep(s_list$par2 * 3, round(0.4 * s_list$dim)),
-                 rep(s_list$par2, round(0.4 * s_list$dim)),
+                 rep(s_list$par2 * 3, round(0.3 * s_list$dim)),
+                 rep(s_list$par2, round(0.5 * s_list$dim)),
                  rep(0, round(0.2 * s_list$dim))
                  ) 
-    
     
     # Obtain values for y based on Bernoulli distribution, with input p
     p <- 1/(1+exp(-dm %*% dgm_par))

@@ -8,11 +8,6 @@ scenario_setting_path <- "Data/Simulation settings/"
 scenario_data_path <- "Data/simulation data/"
 
 
-### Scenario 1
-scenario_1_settings <- "Data/Simulation settings/Scenario 1/"
-scenario_1_data <- "Data/simulation data/scenario 1/"
-scenario_1_val_data <- "Data/validation data/scenario 1/"
-s1_output <- "Output/scenario 1/"
 
 
 # 
@@ -28,6 +23,12 @@ s1_output <- "Output/scenario 1/"
 ########################
 ###### Scenario 1 ######
 ########################
+
+scenario_1_settings <- "Data/Simulation settings/Scenario 1/"
+scenario_1_data <- "Data/simulation data/scenario 1/"
+scenario_1_val_data <- "Data/validation data/scenario 1/"
+s1_output <- "Output/scenario 1/"
+
 
 ########################
 ###### Scenario 2 ######

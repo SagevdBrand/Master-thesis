@@ -1,20 +1,21 @@
 ##################################
 ##################################
 ##################################
-## get estimands 1 scenario:
+## GET ESTIMANDS SCENARIO 1
 
 ############ TO FIX/DO #################
 
-## [ ] FUNCTION FOR EXTERNAL VALIDATION OF ALL MODELS USED IN SCENARIO
+## [ ] FUNCTION FOR EXTERNAL VALIDATION OF ALL MODELS USED IN SCENARIO - FOR PERFORMANCE MEASURES
 ## [ ] BOOTSTRAP ESTIMAND FUNCTION
 ## [ ] 10X10 CV FUNCTION 
-## [ ] LOOCV FUNCTION or not?
+## [X] LOOCV FUNCTION or not?
 ## [ ] ADD OPTIONS FOR OTHER MODELS
 ## [ ] MAKE SURE IT WORKS WITH MORE OR LESS PREDICTORS
 ## [ ] BUILD IN CHECKS AS SPECIFIED IN PROTOCOL!
 ## [ ] IF ERROR OCCURS, MAKE SURE IT CONTIUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
 ## [X] OUTPUT SEED!!!!
 ## [X] INTEGRATE CREATE DATA FUNCTION SO WE DONT HAVE THE SAME DATA ALL THE TIME :')
+## [ ] CREATE DIFFERENT DGM-PAR IN DIFFERENT STUDIES
 
 ########################################
 
@@ -27,15 +28,13 @@
 source("scripts/setup.R")
 source("scripts/estimand functions.R")
 
+## Load scenario settings
+s1 <- read_rds(paste0(scenario_1_settings,"s1.Rds"))
+
 ## Load validation data
 val_data_files <- list.files(path = scenario_1_val_data, recursive = T, full.names = F)
 val_df <- lapply(paste0(scenario_1_val_data,val_data_files),readRDS,.GlobalEnv)
 names(val_df) <- val_data_files
-
-## Load scenario settings
-s1 <- read_rds(paste0(scenario_1_settings,"s1.Rds"))
-
-## Create output file path
 
 #########################################################
 ############## LET THE SIMULATION COMMENCE ##############
@@ -45,7 +44,7 @@ s1 <- read_rds(paste0(scenario_1_settings,"s1.Rds"))
 set.seed(123)
 
 # Store seed values
-n_sim <- 1 # how many iterations?
+n_sim <- 2 # how many iterations?
 state <- floor(runif(n_sim, 0, 10000)) # Create a vector of seed states
 
 system.time(for(j in 1:n_sim){
@@ -57,20 +56,29 @@ system.time(for(j in 1:n_sim){
   df <- lapply(paste0(scenario_1_data,data_files),readRDS,.GlobalEnv) # Load the data
   names(df) <- data_files # Change the names of each element in the list, to be sure it corresponds to the right scenario
   
-  ## Obtain apparent estimands
+  ## Obtain apparent estimands ##
   results_app <- get_app_results(scenario = s1, df = df)
   
-  ## Obtain internal validation estimands
+  ## Obtain internal validation estimands ##
+  # 10 fold cross-validation
   results_10_cv <- get_cv_results(scenario = s1, df = df, V = 10)
-  results_5_cv <- get_cv_results(scenario = s1, df = df, V = 5)
-  ## Results_10x10_cv here 
-  ## BOOTSTRAP HERE
   
-  ## EXTERNAL VALIDATION
+  # 5 fold cross-validation
+  results_5_cv <- get_cv_results(scenario = s1, df = df, V = 5)
+  
+  # 10X10 fold cross-validation 
+  results_10x10_cv <- get_10x10_results(scenario = s1, df = df, V = 10)
+  
+  # Bootstrap 3 varieties in one go
+  
+  
+  ## Obtain external validation estimands
+  # Exteral validation
+  
 
   ## Make a vector of all results + state
   for(i in 1:length(results_app)){ # For however many scenarios there are within the scenario 
-  results_lists <- list(results_app, results_10_cv, results_5_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+  results_lists <- list(results_app, results_10_cv, results_5_cv, results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
   saveRDS(
     object = assign(paste0("s1_results", i), # create an object with name "s1_results_i
                     c("seed_state" = state[j], #Fill it with the seed state, 
