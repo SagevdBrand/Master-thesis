@@ -20,11 +20,12 @@ source("scripts/Data generation functions.R")
 ## Data gen mechanism
 AUC1 <- 0.75
 dim1 <- 10
-es1 <- c(0.3,0.6,0.9)
+es1 <- c(0.9,0.6,0.3)
 prev1 <- c(0.05, 0.2, 0.5)
 model1 <- "Firth"
+pred_sel1 <- c("none", "<0.05")
 ## all combinations:
-s1 <- expand.grid(AUC = AUC1, dim = dim1, Shrinkage = es1, prev = prev1, model = model1, KEEP.OUT.ATTRS = F)
+s1 <- expand.grid(AUC = AUC1, dim = dim1, shrinkage = es1, prev = prev1, model = model1, pred_selection = pred_sel1, KEEP.OUT.ATTRS = F)
 
 
 ##################
@@ -47,19 +48,28 @@ s1 <- s1 %>% mutate(R2 = case_when(prev == prev1[1] ~ R2[1],
 ############# EXTEND FOR SHRINKAGE!!! #############
 ###################################################
 
-actual_n_1 <- c("at_e_.05" = pmsampsize(type = "b", parameters = 10, prevalence = 0.05, rsquared = R2[1])$sample_size,
-                "at_e_0.2" = pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = R2[2])$sample_size,
-                "at_e_0.5" = pmsampsize(type = "b", parameters = 10, prevalence = 0.5, rsquared = R2[3])$sample_size)
+actual_n_1 <- c("e0.05_s0.9" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[1], rsquared = R2[1])$sample_size,
+                "e0.2_s0.9" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[2], rsquared = R2[2])$sample_size,
+                "e0.5_s0.9" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[3], rsquared = R2[3])$sample_size,
+                "e0.05_s0.6" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[1], rsquared = R2[1], shrinkage = es1[2])$sample_size,
+                "e0.2_s0.6" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[2], rsquared = R2[2], shrinkage = es1[2])$sample_size,
+                "e0.5_s0.6" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[3], rsquared = R2[3], shrinkage = es1[2])$sample_size,
+                "e0.05_s0.3" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[1], rsquared = R2[1], shrinkage = es1[3])$sample_size,
+                "e0.2_s0.3" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[2], rsquared = R2[2], shrinkage = es1[3])$sample_size,
+                "e0.5_s0.3" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[3], rsquared = R2[3], shrinkage = es1[3])$sample_size)
 
 s1 <- s1 %>%
   mutate(
     n = case_when(
-      prev == 0.05 & n_state == "at" ~ actual_n_1[1],
-      prev == 0.05 & n_state == "below" ~ ceiling(0.8 * actual_n_1[1]),
-      prev == 0.2 & n_state == "at" ~ actual_n_1[2],
-      prev == 0.2 & n_state == "below" ~ ceiling(0.8 * actual_n_1[2]),
-      prev == 0.5 & n_state == "at" ~ actual_n_1[3],
-      prev == 0.5 & n_state == "below" ~ ceiling(0.8 * actual_n_1[3]),
+      prev == 0.05 & shrinkage == 0.9 ~ actual_n_1['e0.05_s0.9'],
+      prev == 0.05 & shrinkage == 0.6 ~ actual_n_1['e0.05_s0.6'],
+      prev == 0.05 & shrinkage == 0.3 ~ actual_n_1['e0.05_s0.3'],
+      prev == 0.2 & shrinkage == 0.9 ~ actual_n_1['e0.2_s0.9'],
+      prev == 0.2 & shrinkage == 0.6 ~ actual_n_1['e0.2_s0.6'],
+      prev == 0.2 & shrinkage == 0.3 ~ actual_n_1['e0.2_s0.3'],
+      prev == 0.5 & shrinkage == 0.9 ~ actual_n_1['e0.5_s0.9'],
+      prev == 0.5 & shrinkage == 0.6 ~ actual_n_1['e0.5_s0.6'],
+      prev == 0.5 & shrinkage == 0.3 ~ actual_n_1['e0.5_s0.3'],
       TRUE ~ NA_real_
       )
     )
@@ -67,9 +77,32 @@ s1 <- s1 %>%
 ##################
 ## coefficients ##
 ##################
+
+####################################################################################################
+### Specify settings for coefficients to be developed on ###########################################
+####################################################################################################
+n <- 30000 # setting n to develop betas on.                                                        #
+n_pred <- s1[1,]$dim # For the first and third scenario's at least                                 #
+sigma <- matrix(0.2, ncol = n_pred, nrow = n_pred) # create covariance matrix to be used as input  #
+diag(sigma) <- 1 # set the diagonal to 1                                                           #
+mu <- c(rep(0, n_pred)) # provide a vector of values for mu -> standard normal                     #
+X <- mvrnorm(n = n, mu = mu, Sigma = sigma) # create 3 predictor columns                           #
+dm <- cbind(1, X)                                                                                  #
+                                                                                                   #
+# Validation data:                                                                                 #
+n_val <- 100000 # setting n                                                                        #
+X_val <- mvrnorm(n = n_val, mu = mu, Sigma = sigma) # create 10 predictor columns                  #
+dm_val <- cbind(1, X_val) # Putting the above in a data matrix, including intercept                #
+####################################################################################################
+
 beta_0.05 <- optim_beta(prev_scenario = 0.05, R2_scenario = R2[1])
+checking_val(par = beta_0.05)
+
 beta_0.2 <- optim_beta(prev_scenario = 0.2, R2_scenario = R2[2])
+checking_val(par = beta_0.2)
+
 beta_0.5 <- optim_beta(prev_scenario = 0.5, R2_scenario = R2[3])
+checking_val(par = beta_0.5)
 
 s1 <- s1 %>% 
   mutate(par1 = case_when(prev == 0.05 ~ beta_0.05[1],
@@ -194,7 +227,7 @@ s4$R2 <- R2[2]
 ###################################
 
 # Remove everything except the three scenario matrices
-rm(list=ls()[! ls() %in% c("s1","s2", "s3", "R2")])
+rm(list=ls()[! ls() %in% c("s1","s2", "s3", "R2", "actual_n_1")])
 
 ####################################
 ####################################

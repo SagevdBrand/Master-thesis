@@ -15,8 +15,8 @@ dist_AUC_prev <- function(par, pref_auc, pref_prev){
   # Providing the beta0 and beta1-3 as specified in the par object. 
   dgm_par <-
     c(par[1], 
-      rep(par[2] * 3, round(0.4 * n_pred)),  # strong
-      rep(par[2], round(0.4 *  n_pred)),  # medium
+      rep(par[2] * 3, round(0.3 * n_pred)),  # strong
+      rep(par[2], round(0.5 *  n_pred)),  # medium
       rep(par[2] * 0, round(0.2 * n_pred))) # noise
   
   # Obtain values for y based on Bernoulli distribution, with input p
@@ -44,8 +44,8 @@ dist_R2_prev <- function(par, pref_R2, pref_prev){
   # Providing the beta0 and beta1-3 as specified in the par object. 
   dgm_par <-
     c(par[1], 
-      rep(par[2] * 3, round(0.4 * n_pred)),  # strong
-      rep(par[2], round(0.4 *  n_pred)),  # medium
+      rep(par[2] * 3, round(0.3 * n_pred)),  # strong
+      rep(par[2], round(0.5 *  n_pred)),  # medium
       rep(par[2] * 0, round(0.2 * n_pred))) # noise
   
   # Obtain values for y based on Bernoulli distribution, with input p
@@ -72,8 +72,8 @@ checking <- function(par){
   # 40% of candidate predictors is strong (*3), 40% is medium, and 20% is noise.
   dgm_par <-
     c(par[1], 
-      rep(par[2] * 3, round(0.4 * n_pred)), 
-      rep(par[2], round(0.4 *  n_pred)), 
+      rep(par[2] * 3, round(0.3 * n_pred)), 
+      rep(par[2], round(0.5 *  n_pred)), 
       rep(par[2] * 0, round(0.2 * n_pred)))
   
   # Obtain values for y based on uniform distribtuin, with input p
@@ -93,8 +93,8 @@ checking_val <- function(par){
   # Providing the beta0 and beta1-3 as specified in the par object. 
   dgm_par_val <-
     c(par[1], 
-      rep(par[2] * 3, round(0.4 * n_pred)), 
-      rep(par[2], round(0.4 *  n_pred)), 
+      rep(par[2] * 3, round(0.3 * n_pred)), 
+      rep(par[2], round(0.5 *  n_pred)), 
       rep(par[2] * 0, round(0.2 * n_pred)))
   
   
@@ -108,9 +108,6 @@ checking_val <- function(par){
   obs_prev <- mean(y_val) # THE OBSERVED PREVALENCE IS NOT A FUNCTION OF JUST THE INTERCEPT
   c("cstat" = obs_cstat, "prev" = obs_prev)
 }
-
-
-
 
 ## Development dataset ##
 n <- 30000 # setting n to develop betas on.
@@ -133,26 +130,54 @@ dm_val <- cbind(1, X_val) # Putting the above in a data matrix, including interc
   # par_i are just initial values for the coefficients. 
   
 #### 30 repetitions #####
+##################
+### PREV = .05 ###
+##################
+
 set.seed(123)
 system.time(results <- replicate(n = 30, 
-                       optim(c(0.01, 0.1), 
-                             dist_R2_prev,
-                             pref_R2 = R2[3],
-                             pref_prev = 0.5, 
-                             control = list(maxit = 1000)
-                             ),
-                       simplify = F))
+                                 optim(c(-3.37, 0.13), 
+                                       dist_R2_prev,
+                                       pref_R2 = R2[1],
+                                       pref_prev = 0.05, 
+                                       control = list(maxit = 1000)
+                                 ),
+                                 simplify = F))
 
 results_check <- apply(sapply(results, '[[', 1), 2, checking)
 apply(results_check, 1, summary)
 par <- apply(sapply(results, '[[', 1), 1, median) 
 checking_val(par = par)
 
+##################
+### PREV = 0.2 ###
+##################
+
 set.seed(123)
 system.time(results <- replicate(n = 30, 
-                                 optim(c(-1.66, 0.11), 
-                                       dist_AUC_prev,
-                                       pref_auc = 0.75,
+                                 optim(c(-1.66, 0.13), 
+                                       dist_R2_prev,
+                                       pref_R2 = R2[2],
+                                       pref_prev = 0.2, 
+                                       control = list(maxit = 1000)
+                                 ),
+                                 simplify = F))
+
+results_check <- apply(sapply(results, '[[', 1), 2, checking)
+apply(results_check, 1, summary)
+par <- apply(sapply(results, '[[', 1), 1, median) 
+checking_val(par = par)
+
+
+##################
+### PREV = 0.5 ###
+##################
+
+set.seed(123)
+system.time(results <- replicate(n = 30, 
+                                 optim(c(0.01, 0.13), 
+                                       dist_R2_prev,
+                                       pref_R2 = R2[3],
                                        pref_prev = 0.5, 
                                        control = list(maxit = 1000)
                                  ),
@@ -164,11 +189,11 @@ par <- apply(sapply(results, '[[', 1), 1, median)
 checking_val(par = par)
 
 ## Initial coefficients for event rate at 0.05, AUC = 0.75 (n_pred = 10)
-   ## c(-3.36, 0.1)
+   ## c(-3.37, 0.13)
 ## Initial coefficients for event rate at 0.2, AUC  = 0.75 (n_pred = 10)
-   ## c(-1.66, 0.11)
+   ## c(-1.66, 0.13)
 ## Initial coefficients for event rate at 0.5, AUC  = 0.75 (n_pred = 10)  
-   ## c(0.01, 0.1))
+   ## c(0.01, 0.13))
   
 
 

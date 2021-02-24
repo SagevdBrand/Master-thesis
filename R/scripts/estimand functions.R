@@ -136,8 +136,8 @@ get_app_results <- function(scenario, df) {
   for (i in 1:length(df)) {
     model <- s1[i, ]$model
     dgm_par <- c(s1[i, ]$par1, 
-                 rep(s1[i, ]$par2 * 3, round(0.4 * s1[i, ]$dim)),  # strong
-                 rep(s1[i, ]$par2,     round(0.4 * s1[i, ]$dim)),  # medium
+                 rep(s1[i, ]$par2 * 3, round(0.3 * s1[i, ]$dim)),  # strong
+                 rep(s1[i, ]$par2,     round(0.5 * s1[i, ]$dim)),  # medium
                  rep(s1[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
     
     results_app[[i]] <- get_app_estimands(df = df[[i]], model = model, dgm_par = dgm_par)
@@ -151,15 +151,18 @@ get_app_results <- function(scenario, df) {
 ###### Cross-validation  approaches ######
 ##########################################
 
-####################
-## 10 & 5 fold cv ##
-####################
 
-get_cv_estimands <- function(df, model, dgm_par, V){
+###########################
+## 10, 5 & 10x10 fold cv ##
+###########################
+
+get_cv_estimands <- function(df, model, dgm_par, V, x10 = c(FALSE, TRUE)){
 
 ####################
 ## Splitting data ##
 ####################
+  
+  #### Create folds ####
   .cvFoldsB <- function(Y, V) {  #Create Balanced CV folds (stratify by outcome)
     Y0 <- split(sample(which(Y=="0")), rep(1:V, length=length(which(Y==0))))
     Y1 <- split(sample(which(Y=="1")), rep(1:V, length=length(which(Y==1))))
@@ -174,7 +177,7 @@ get_cv_estimands <- function(df, model, dgm_par, V){
 ## Getting predictions depending on model used ##
 #################################################
   .doFit <- function(V, folds, model){  #Train/test glm for each fold
-      
+    
     if (model == "OLS") {
       fit <- glm(y~., data=df[-foldsb[[V]],], family=binomial) #%>%
       #step(direction = "backward", trace = F) # This should be changeable depending on which thing you're using
@@ -189,15 +192,15 @@ get_cv_estimands <- function(df, model, dgm_par, V){
     
     results <- list(p, iv_matrix)
   }
-  
   results <- (lapply(seq(V), .doFit, folds = foldsb, model = model)) # obtain model results for all folds
   p <- c(unlist(sapply(results, "[[", 1))) # Get out pred values as a single vector
   p[unlist(foldsb)] <- p #Re-order pred values, so they are in line with y
   
   p_per_fold <- lapply(results, "[[", 1) # getting the predictions per fold
   iv_matrix <- lapply(results, "[[", 2)
+  
 ######################  
-## Obtain estimands ## #### MAKE A FUNCTION OUT OF THIS?
+## Obtain estimands ##
 ######################
 
     ## Empty objects to store results
@@ -251,7 +254,21 @@ get_cv_estimands <- function(df, model, dgm_par, V){
     MAPE_results <- c(mean(MAPE_folds), (sd(MAPE_folds)/(sqrt(V) - 1)))
     names(MAPE_results) <- c(paste0("MAPE_mean_", V, "fcv" ), paste0("MAPE_se_", V, "fcv"))
     
-    results <- c(auc_results, intercept, slope, R2, eci, MAPE_results)
+    if (x10 == FALSE){
+      results <- c(auc_results, intercept, slope, R2, eci, MAPE_results)
+    } else {
+      names(intercept_folds) <- c(rep("intercept", length(intercept_folds)))
+      names(slope_folds) <- c(rep("slope", length(slope_folds)))
+      names(R2_folds) <- c(rep("R2", length(R2_folds)))
+      names(eci_folds) <- c(rep("eci", length(eci_folds)))
+      names(MAPE_folds) <- c(rep("MAPE", length(MAPE_folds)))
+      results <- list("auc" = auc_results, 
+                      "intercept" = intercept_folds, 
+                      "slope" = slope_folds, 
+                      "R2" = R2_folds,
+                      "eci" = eci_folds,
+                      "MAPE" = MAPE_folds)
+    }
   
   return(results)
   }
@@ -264,16 +281,79 @@ get_cv_results <- function(scenario, df, V) {
     print(i)
     model <- s1[i, ]$model
     dgm_par <- c(s1[i, ]$par1, 
-                 rep(s1[i, ]$par2 * 3, round(0.4 * s1[i, ]$dim)),  # strong
-                 rep(s1[i, ]$par2,     round(0.4 * s1[i, ]$dim)),  # medium
+                 rep(s1[i, ]$par2 * 3, round(0.3 * s1[i, ]$dim)),  # strong
+                 rep(s1[i, ]$par2,     round(0.5 * s1[i, ]$dim)),  # medium
                  rep(s1[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
     
-    results_cv[[i]] <- get_cv_estimands(df = df[[i]], model = model, dgm_par = dgm_par, V = V)
+    results_cv[[i]] <- get_cv_estimands(df = df[[i]], model = model, dgm_par = dgm_par, V = V, x10 = FALSE)
     
   }
   names(results_cv) <- c(1:length(df))
   return(results_cv)
 }
 
+##############
+## 10x10 cv ##
+##############
+
+get_10x10_results <- function(scenario, df, V){
+  results_cv <- list()
+  
+  for (i in 1:length(df)) {
+    print(i)
+    # Settings for get cv estimands function:
+    model <- s1[i, ]$model
+    data <- df[[i]]
+    dgm_par <- c(s1[i, ]$par1, 
+                 rep(s1[i, ]$par2 * 3, round(0.3 * s1[i, ]$dim)),  # strong
+                 rep(s1[i, ]$par2,     round(0.5 * s1[i, ]$dim)),  # medium
+                 rep(s1[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
+    
+    # obtain the results of each fold separately 10 times and stored for each replication
+    results <- replicate(n = 10, # represents the 10x10 part
+                         expr = get_cv_estimands(df = data, model = model, dgm_par = dgm_par, V = V, x10 = TRUE), 
+                         simplify = F)
+    
+    # obtain mean results for auc:
+    auc_results <- rowMeans(sapply(results, "[[", 1))
+    names(auc_results) <- c(paste0("AUC_mean_", V, "x10fcv" ), 
+                            paste0("AUC_se_", V, "x10fcv"), 
+                            paste0("AUC_ci_lower_", V, "x10fcv"),
+                            paste0("AUC_ci_upper_", V, "x10fcv"))
+    
+    # Get the results as vectors for each estimand:
+    intercept_results <- c(sapply(results, "[[", 2))
+    slope_results <- c(sapply(results, "[[", 3))
+    R2_results <- c(sapply(results, "[[", 4))
+    eci_results <- c(sapply(results, "[[", 5))
+    MAPE_results <- c(sapply(results, "[[", 6))
+    
+    ## Get mean and standard error over all other results and store in a single vector:
+    ## Calibration
+    intercept <- c(mean(intercept_results), (sd(intercept_results)/(sqrt(V) - 1)))
+    names(intercept) <- c(paste0("calib_int_mean_", V, "x10fcv" ), paste0("calib_int_se_", V, "fcv"))
+    
+    slope <-  c(mean(slope_results), (sd(slope_results)/(sqrt(V) - 1)))
+    names(slope) <- c(paste0("calib_slope_mean_", V, "x10fcv" ), paste0("calib_slope_se_", V, "fcv"))
+    
+    ## R2 cox snell
+    R2 <- c(mean(R2_results), (sd(R2_results)/(sqrt(V) - 1)))
+    names(R2) <- c(paste0("R2_mean_", V, "x10fcv" ), paste0("R2_se_", V, "fcv"))
+    
+    ## ECI
+    eci <- c(mean(eci_results), (sd(eci_results)/(sqrt(V) - 1)))
+    names(eci) <- c(paste0("eci_mean_", V, "x10fcv" ), paste0("eci_se_", V, "fcv"))
+    
+    ## MAPE
+    MAPE_results <- c(mean(MAPE_results), (sd(MAPE_results)/(sqrt(V) - 1)))
+    names(MAPE_results) <- c(paste0("MAPE_mean_", V, "x10fcv" ), paste0("MAPE_se_", V, "fcv"))
+    
+    results_cv[[i]] <- c(auc_results, intercept, slope, R2, eci, MAPE_results)
+    
+  }
+  
+  names(results_cv) <- c(1:length(df))
+  return(results_cv)
+}
 
 
