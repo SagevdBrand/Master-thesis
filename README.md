@@ -1,31 +1,41 @@
-# Master-thesis
-*Title: The Battle of Internal Validation within Medical Prediction Models: Bootstrap vs. Cross-Validation*
+# Master thesis internal validation
 
-**Supervisors: Maarten Van Smeden & Ben Van Calster**
+Version 0.1.0
 
-The initial research proposal and a report based on the work done during the first half of the thesis can be found in their respective folders.
-In the R folder the code to run simulations can be found.
+The battle of internal validation The Battle of Internal Validation within Medical Prediction Models: Bootstrap vs. Cross-Validation
 
 
-### To do list:
+## Project organization
 
-**Within scenario definitions**
-Concerning the `Scenarios.R` script:
+```
+.
+├── .gitignore
+├── CITATION.md
+├── LICENSE.md
+├── README.md
+├── requirements.txt
+├── bin                <- Compiled and external code, ignored by git (PG)
+│   └── external       <- Any external source code, ignored by git (RO)
+├── config             <- Configuration files (HW)
+├── data               <- All project data, ignored by git
+│   ├── processed      <- The final, canonical data sets for modeling. (PG)
+│   ├── raw            <- The original, immutable data dump. (RO)
+│   └── temp           <- Intermediate data that has been transformed. (PG)
+├── docs               <- Documentation notebook for users (HW)
+│   ├── manuscript     <- Manuscript source, e.g., LaTeX, Markdown, etc. (HW)
+│   └── reports        <- Other project reports and notebooks (e.g. Jupyter, .Rmd) (HW)
+├── results
+│   ├── figures        <- Figures for the manuscript or reports (PG)
+│   └── output         <- Other output for the manuscript or reports (PG)
+└── src                <- Source code for this project (HW)
 
-- [ ] Come up with solution, maybe a function or something, to get sample size and beta coefficients into scenario matrix
-- [ ] Save scenario matrices once they have been finalized
+```
 
 
-**Within Data generation**
-Concerning the `Data generation scenario 1.R`:
+## License
 
-- [ ] Save the generated data in a folder per sub-scenario
+This project is licensed under the terms of the [MIT License](/LICENSE.md)
 
-Concerning the `Data generation functions.R`:
+## Citation
 
-- [ ] Create a test script for beta optimization
-- [ ] Add options for different predictor effects in beta optimization
-- [ ] Add options for different number of predictors within beta optimization
-- [ ] Add options to sample from different distributions, other than multivariate normal
-- [ ] Check convergence of optimization, especially when changing effect and number of predictors
-- [ ] Add a check for how many events have been sampled in `generate_data` function
+Please [cite this project as described here](/CITATION.md).
