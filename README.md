@@ -6,9 +6,9 @@ The battle of internal validation The Battle of Internal Validation within Medic
 
 
 ## Project organization
-RO = Read only
-PG = Project generated
-HW = Human work
+* RO = Read only
+* PG = Project generated
+* HW = Human work
 
 ```
 .
@@ -21,9 +21,11 @@ HW = Human work
 │   └── external            <- Any external source code, ignored by git (RO)
 ├── config                  <- Configuration files (HW)
 ├── data                    <- All project data, ignored by git
-│   ├── simulation data     <- Folder where the simulated data is temporarily stored for each run per study (PG) 
+│   ├── simulation data     <- Folder where the simulated data is temporarily 
+|   |                          stored for each run per study (PG) 
 │   ├── simulation settings <- The simulation studies as defined in the thesis methods (RO)
-│   └── validation data     <- Folder where the simulated validation data is temporarily stored for each run (PG) 
+│   └── validation data     <- Folder where the simulated validation data is temporarily
+|                              stored for each run (PG) 
 ├── docs                    <- Documentation notebook for users (HW)
 │   ├── manuscript          <- Manuscript source, e.g., LaTeX, Markdown, etc. (HW)
 │   └── reports             
