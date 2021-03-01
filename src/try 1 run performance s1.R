@@ -8,11 +8,11 @@
 ###############################################################################
 
 ## Libraries, file paths and functions
-source("scripts/setup.R")
-source("scripts/estimand functions.R")
+source("./src/setup.R")
+source("./src/estimand functions.R")
 
 ## Load scenario settings
-s1 <- read_rds(paste0(scenario_1_settings,"s1.Rds"))
+s1 <- read_rds(study_1_settings)
 
 ## Load results?
 
