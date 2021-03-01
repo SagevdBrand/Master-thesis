@@ -77,6 +77,8 @@ system.time(for(j in 1:n_sim){
   
   
   ## Obtain external validation estimands
+  
+  
   # Exteral validation
   
 
@@ -94,10 +96,6 @@ system.time(for(j in 1:n_sim){
   } # close saving for loop
 } # close simulation for loop
 )
-
-######################
-## Obtain estimands ##
-######################
 
 
 

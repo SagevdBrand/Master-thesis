@@ -95,6 +95,8 @@ get_app_estimands <- function(df, model, dgm_par, pred_selection) {
     p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
     
   } else if (model == "Firth" & pred_selection == "<0.05") {
+    df <- as.data.frame(df)
+    
     
     model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
     fit_app <- logistf(formula = model_form, data = df, flic = T)
@@ -218,7 +220,7 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     }
   
   folds <- .cvFoldsB(Y = df$y, V = V)
-
+  
   # Getting predictions depending on model used
   .doFit <- function(V, folds, model, pred_selection){ 
     
@@ -233,9 +235,12 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
       dgm_par_folds <- dgm_par
       
       } else if (model == "Firth" & pred_selection == "<0.05") { # If model = Firth , backwards predictor selection
-      
+        
+        df_train <- as.data.frame(df[-folds[[V]],])
+        assign("df_train", df_train, envir = .GlobalEnv)
+       
         model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
-        fit <- logistf(formula = model_form, data = df[-folds[[V]],], flic = T)
+        fit <- logistf(formula = model_form, data = df_train, flic = T)
         fit <- backward(fit, trace = FALSE)
         
         iv_matrix <- model.matrix(object = fit$formula, data = df[folds[[V]],])
@@ -243,13 +248,13 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
         
         # Get the elements of the design generating mechanism that are
         # belonging to the model after backwards elimination
-        dgm_par_folds <-
-          # Always get the first element as this is the intercept
-          dgm_par[c(1,
-                    # Get the numbers within the colnames
-                    na.omit(as.numeric(str_extract_all(colnames(iv_matrix), "[:digit:]"))
-                            # Add one, so it aligns with the dgm vector (the first is the intercept)
-                            + 1))]
+        # Always get the first element as this is the intercept
+        ind <- na.omit(c(1,(as.numeric(str_extract_all(colnames(iv_matrix[,-1]), "(?<=V).*"))
+                                   # Add 1, because the indices of columns exclude the intercept
+                                    + 1)))
+       
+        dgm_par_folds <- dgm_par[ind]
+       
         
       } else {
         
@@ -257,6 +262,7 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
       p <- predict(fit, newdata = df[folds[[V]],] , type = "response")
       iv_matrix <- model.matrix(object = fit$formula, data = df[folds[[V]],])
       dgm_par_folds <- dgm_par
+      
       }
     
     results <- list(p, iv_matrix, dgm_par_folds)
@@ -269,6 +275,7 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
   p_per_fold <- lapply(results, "[[", 1) # getting the predictions per fold
   iv_matrix <- lapply(results, "[[", 2) # iv_matrix per fold
   dgm_par_folds <- lapply(results, "[[", 3) # Dgm_par per fold
+  
   ######################  
   ## Obtain estimands ##
   ######################
@@ -356,14 +363,14 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
 get_cv_results <- function(study, df, V) {
   results_cv <- list() #object to store results
   
-  for (i in 1:length(df)) {
+  for (i in 1:nrow(study)) {
     print(i)
-    model <- s1[i, ]$model
-    pred_selection <- s1[i, ]$pred_selection
-    dgm_par <- c(s1[i, ]$par1, 
-                 rep(s1[i, ]$par2 * 3, round(0.3 * s1[i, ]$dim)),  # strong
-                 rep(s1[i, ]$par2,     round(0.5 * s1[i, ]$dim)),  # weak
-                 rep(s1[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
+    model <- study[i, ]$model
+    pred_selection <- study[i, ]$pred_selection
+    dgm_par <- c(study[i, ]$par1, 
+                 rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)),  # strong
+                 rep(study[i, ]$par2,     round(0.5 * study[i, ]$dim)),  # weak
+                 rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))  # noise
     
     results_cv[[i]] <- get_cv_estimands(df = df[[i]], 
                                         model = model,
@@ -386,13 +393,13 @@ get_10x10_results <- function(study, df, V){
   for (i in 1:length(df)) {
     print(i)
     # Settings for get cv estimands function:
-    model <- s1[i, ]$model
-    pred_selection <- s1[i, ]$pred_selection
+    model <- study[i, ]$model
+    pred_selection <- study[i, ]$pred_selection
     data <- df[[i]]
-    dgm_par <- c(s1[i, ]$par1, 
-                 rep(s1[i, ]$par2 * 3, round(0.3 * s1[i, ]$dim)),  # strong
-                 rep(s1[i, ]$par2,     round(0.5 * s1[i, ]$dim)),  # medium
-                 rep(s1[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
+    dgm_par <- c(study[i, ]$par1, 
+                 rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)),  # strong
+                 rep(study[i, ]$par2,     round(0.5 * study[i, ]$dim)),  # medium
+                 rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))  # noise
     
     # obtain the results of each fold separately 10 times and stored for each replication
     results <- replicate(n = 10, # represents the 10x10 part
@@ -444,5 +451,13 @@ get_10x10_results <- function(study, df, V){
   names(results_cv) <- c(1:length(df))
   return(results_cv)
 }
+
+
+#########################
+## BOOTSTRAP FUNCTIONS ##
+#########################
+
+
+
 
 
