@@ -95,7 +95,7 @@ get_app_estimands <- function(df, model, dgm_par, pred_selection) {
     p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
     
   } else if (model == "Firth" & pred_selection == "<0.05") {
-    df <- as.data.frame(df)
+    assign("df", as.data.frame(df), envir = .GlobalEnv)
     
     
     model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))

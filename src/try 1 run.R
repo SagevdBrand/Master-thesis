@@ -46,10 +46,10 @@ data_files <- list.files(path = study_1_data, recursive = T, full.names = F) # g
 set.seed(123)
 
 # Store seed values
-n_sim <- 1 # how many iterations?
-state <- floor(runif(n_sim, 0, 10000)) # Create a vector of seed states
+n_sim <- 2 # how many iterations?
+state <- c(1:5000) # Create a vector of seed states
 
-system.time(for(j in 1:n_sim){
+system.time({for(j in 1:n_sim){
   set.seed(state[j]) # for each run the next value in the state vector will be chosen (and saved!)
   
   ## Create and load simulation data
@@ -95,7 +95,7 @@ system.time(for(j in 1:n_sim){
   )  # close saveRDS
   } # close saving for loop
 } # close simulation for loop
-)
+  }) #Close timing loop
 
 
 
