@@ -96,10 +96,22 @@ get_app_estimands <- function(df, model, dgm_par, pred_selection) {
     
   } else if (model == "Firth" & pred_selection == "<0.05") {
     
-    fit_app <- logistf(y ~ ., data = df, flic = T)
-    fit_app <- backward(fit_app)
+    model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
+    fit_app <- logistf(formula = model_form, data = df, flic = T)
+    fit_app <- backward(fit_app, trace = FALSE)
+    
     app_matrix <- model.matrix(object = fit_app$formula, data = df)
     p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
+    
+    # Get the elements of the design generating mechanism that are
+    # belonging to the model after backwards elimination
+    dgm_par <-
+      # Always get the first element as this is the intercept
+      dgm_par[c(1,
+                # Get the numbers within the colnames
+                na.omit(as.numeric(str_extract_all(colnames(app_matrix), "[:digit:]"))
+                # Add one, so it aligns with the dgm vector (the first is the intercept)
+                        + 1))]
     
   } else {
     
@@ -205,44 +217,58 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
   
     }
   
-  foldsb <- .cvFoldsB(Y = df$y, V = V)
+  folds <- .cvFoldsB(Y = df$y, V = V)
 
   # Getting predictions depending on model used
-  .doFit <- function(V, folds, model){ 
+  .doFit <- function(V, folds, model, pred_selection){ 
     
     # Train/test glm for each fold
     # Fit model depending on scenario
     # And get predicted probabilities and modelmatrix
     if (model == "Firth" & pred_selection == "none") { # If model = Firth , no predictor selection
       
-      fit <- logistf(y ~ ., data = df, flic = T)
-      iv_matrix <- model.matrix(object = fit$formula, data = df)
+      fit <- logistf(y ~ ., data = df[-folds[[V]],], flic = T)
+      iv_matrix <- model.matrix(object = fit$formula, data = df[folds[[V]],])
       p <- 1 / (1 + exp(-iv_matrix %*% fit$coefficients))
+      dgm_par_folds <- dgm_par
       
       } else if (model == "Firth" & pred_selection == "<0.05") { # If model = Firth , backwards predictor selection
       
-      fit <- logistf(y ~ ., data = df, flic = T) 
-      fit <- backward(fit)
-      iv_matrix <- model.matrix(object = fit$formula, data = df)
-      p <- 1 / (1 + exp(-iv_matrix %*% fit$coefficients))
-    
+        model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
+        fit <- logistf(formula = model_form, data = df[-folds[[V]],], flic = T)
+        fit <- backward(fit, trace = FALSE)
+        
+        iv_matrix <- model.matrix(object = fit$formula, data = df[folds[[V]],])
+        p <- 1 / (1 + exp(-iv_matrix %*% fit$coefficients))
+        
+        # Get the elements of the design generating mechanism that are
+        # belonging to the model after backwards elimination
+        dgm_par_folds <-
+          # Always get the first element as this is the intercept
+          dgm_par[c(1,
+                    # Get the numbers within the colnames
+                    na.omit(as.numeric(str_extract_all(colnames(iv_matrix), "[:digit:]"))
+                            # Add one, so it aligns with the dgm vector (the first is the intercept)
+                            + 1))]
+        
       } else {
         
-      fit <- glm(y ~ ., family = "binomial", data = df)
-      p <- predict(fit, type = "response")
-      iv_matrix <- model.matrix(object = fit$formula, data = df)
-      
+      fit <- glm(y ~ ., family = "binomial", data = df[-folds[[V]],])
+      p <- predict(fit, newdata = df[folds[[V]],] , type = "response")
+      iv_matrix <- model.matrix(object = fit$formula, data = df[folds[[V]],])
+      dgm_par_folds <- dgm_par
       }
     
-    results <- list(p, iv_matrix)
+    results <- list(p, iv_matrix, dgm_par_folds)
   }
-  results <- (lapply(seq(V), .doFit, folds = foldsb, model = model)) # obtain model results for all folds
+  
+  results <- (lapply(seq(V), .doFit, folds = folds, model = model, pred_selection = pred_selection)) # obtain model results for all folds
   p <- c(unlist(sapply(results, "[[", 1))) # Get out pred values as a single vector
-  p[unlist(foldsb)] <- p #Re-order pred values, so they are in line with y
+  p[unlist(folds)] <- p #Re-order pred values, so they are in line with y
   
   p_per_fold <- lapply(results, "[[", 1) # getting the predictions per fold
-  iv_matrix <- lapply(results, "[[", 2)
-  
+  iv_matrix <- lapply(results, "[[", 2) # iv_matrix per fold
+  dgm_par_folds <- lapply(results, "[[", 3) # Dgm_par per fold
   ######################  
   ## Obtain estimands ##
   ######################
@@ -257,8 +283,9 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     # For each fold, calculate calibration intercept & slope, R2, ECI and MAPE
     for (v in 1:V){
       # create object to shorten future code:
-      data <- df[unlist(foldsb[[v]]),]
+      data <- df[unlist(folds[[v]]),]
       ppf <- p_per_fold[[v]]
+      dgm_par_ppf <- dgm_par_folds[[v]]
       
       # Calibration slope for folds
       slope_folds[v] <- c(coef(glm(data$y ~ log(ppf/(1-ppf)), family="binomial"))[2])
@@ -270,11 +297,11 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
       calout <- loess(y ~ log(ppf/(1-ppf)), data = data)
       eci_folds[v] <- (mean((ppf-fitted(calout))*(ppf-fitted(calout))))*(100)
       # MAPE for folds
-      MAPE_folds[v] <- MAPE(p = ppf, iv_matrix = iv_matrix[[v]], dgm_par = dgm_par)
+      MAPE_folds[v] <- MAPE(p = ppf, iv_matrix = iv_matrix[[v]], dgm_par = dgm_par_ppf)
     }
     
     ## AUC, function by ledell already gives bias corrected se and ci as well
-    auc_results <- as.vector(unlist(ci.cvAUC(predictions=p, labels=df$y, folds=foldsb, confidence=0.95)))[-5]
+    auc_results <- as.vector(unlist(ci.cvAUC(predictions=p, labels=df$y, folds=folds, confidence=0.95)))[-5]
     names(auc_results) <- c(paste0("AUC_mean_", V, "fcv" ), 
                             paste0("AUC_se_", V, "fcv"), 
                             paste0("AUC_ci_lower_", V, "fcv"),
