@@ -107,13 +107,13 @@ get_app_estimands <- function(df, model, dgm_par, pred_selection) {
     
     # Get the elements of the design generating mechanism that are
     # belonging to the model after backwards elimination
-    dgm_par <-
-      # Always get the first element as this is the intercept
-      dgm_par[c(1,
-                # Get the numbers within the colnames
-                na.omit(as.numeric(str_extract_all(colnames(app_matrix), "[:digit:]"))
-                # Add one, so it aligns with the dgm vector (the first is the intercept)
-                        + 1))]
+    # Always get the first element as this is the intercept
+    ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(app_matrix), "(?<=V).*"))
+                         # Add 1, because the indices of columns exclude the intercept
+                         + 1)))
+    
+    dgm_par <- dgm_par[ind]
+    
     
   } else {
     
@@ -249,7 +249,7 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
         # Get the elements of the design generating mechanism that are
         # belonging to the model after backwards elimination
         # Always get the first element as this is the intercept
-        ind <- na.omit(c(1,(as.numeric(str_extract_all(colnames(iv_matrix[,-1]), "(?<=V).*"))
+        ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(iv_matrix), "(?<=V).*"))
                                    # Add 1, because the indices of columns exclude the intercept
                                     + 1)))
        
