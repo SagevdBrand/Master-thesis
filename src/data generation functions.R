@@ -197,44 +197,66 @@ checking_val <- function(par){
 ### Generate data script once betas have been found ###
 #######################################################
 
-
 generate_data <- function(scenario, validation = c(TRUE, FALSE)){
   
   s_list <- split(scenario, seq(nrow(scenario))) 
   
   .per_element <- function(s_list){
     
-    sigma <- matrix(0.2, ncol = s_list$dim, nrow = s_list$dim) # create covariance matrix to be used as input
-    diag(sigma) <- 1 # set the diagonal to 1
-    mu <- c(rep(0, s_list$dim))
+    out <- tryCatch(
+      {
+        # This is the code of the function to be evaluated: 
+        
+        # Create covariance matrix to be used as input
+        sigma <- matrix(0.2, ncol = s_list$dim, nrow = s_list$dim) 
+        
+        # set the diagonal to 1
+        diag(sigma) <- 1
+        
+        # Define mu
+        mu <- c(rep(0, s_list$dim))
+        
+        # create candidate predictors
+        # If it is the validation set, n = 20 * 100/prev. Otherwise, take n as specified in each scenario
+        if (validation == TRUE) {
+          X <- mvrnorm(n = 20*(100/s_list$prev), mu = mu, Sigma = sigma)
+        }
+        else {
+          X <-
+            mvrnorm(n = s_list$n, mu = mu, Sigma = sigma)
+        }
+        
+        # Putting the above in a data matrix, including intercept
+        dm <- cbind(1, X)
+        
+        # Adding the data generating parameters as specified in each scenario
+        dgm_par <- c(s_list$par1, 
+                     rep(s_list$par2 * 3, round(0.3 * s_list$dim)),
+                     rep(s_list$par2, round(0.5 * s_list$dim)),
+                     rep(0, round(0.2 * s_list$dim))
+        ) 
+        
+        # Obtain values for y based on Bernoulli distribution, with input p
+        p <- 1/(1+exp(-dm %*% dgm_par))
+        y <- as.numeric(p > runif(length(p)))
+        
+        # Check whether the variance of y is 0 
+        # If it is 0, it means that no events were sampled
+        if(var(y) == 0 ) stop("Error: No events sampled")
+        
+        as.data.frame(cbind(X, y))
+      }, # closing expression to be tested
+      # What happens
+      error = function(e) {
+        message(paste(e))
+        # This should return the error instead of a dataframe
+        return("Error: No events sampled")
+        
+      } # Closing error expression
+      
+    ) # Closing tryCatch function
     
-    # create candidate predictors
-    # If it is the validation set, n = 20 * 100/prev. Otherwise, take n as specified in each scenario
-    if (validation == TRUE) {
-      X <- mvrnorm(n = 20*(100/s_list$prev), mu = mu, Sigma = sigma)
-    }
-    else {
-      X <-
-        mvrnorm(n = s_list$n, mu = mu, Sigma = sigma)
-    } 
-    # Putting the above in a data matrix, including intercept
-    dm <- cbind(1, X)
-    
-    dgm_par <- c(s_list$par1, 
-                 rep(s_list$par2 * 3, round(0.3 * s_list$dim)),
-                 rep(s_list$par2, round(0.5 * s_list$dim)),
-                 rep(0, round(0.2 * s_list$dim))
-                 ) 
-    
-    # Obtain values for y based on Bernoulli distribution, with input p
-    p <- 1/(1+exp(-dm %*% dgm_par))
-    y <- as.numeric(p > runif(length(p)))
-    
-    #######################################################
-    ## BUILT CHECK FOR HOW MANY EVENTS HAVE BEEN SAMPLED ##
-    #######################################################
-    
-    return(as.data.frame(cbind(X, y)))
+    return(out)
   }
   
   # Apply function above
