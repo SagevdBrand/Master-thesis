@@ -86,6 +86,14 @@ MAPE <- function(p,iv_matrix, dgm_par){
 
 get_app_estimands <- function(df, model, dgm_par, pred_selection) {
   
+  # Check whether the data is actually useful
+  if (df == "Error: No events sampled"){
+    # If no events were sampled, then the following will be
+    results <- list("Error: No events sampled" = NA)
+    return(results) 
+    
+  } else {
+    
   # Fit model depending on scenario
   # And get predicted probabilities and modelmatrix
   if (model == "Firth" & pred_selection == "none") {
@@ -153,7 +161,8 @@ get_app_estimands <- function(df, model, dgm_par, pred_selection) {
       "ECI_app" = eci_app,
       "MAPE_app" = MAPE_app
     )
-}
+  } # close else statement
+} # Close function
 
 ################################
 ## Function to obtain results ##
@@ -200,6 +209,15 @@ get_app_results <- function(study, df) {
 
 get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALSE, TRUE)){
 
+  # Check whether the data is actually useful
+  if (df == "Error: No events sampled"){
+    # If no events were sampled, then the following will be
+    results <- list("Error: No events sampled" = NA)
+    return(results) 
+    
+  } else {
+    
+  
   # Create Balanced CV folds (stratify by outcome)
   .cvFoldsB <- function(Y, V) {  
     
@@ -353,11 +371,12 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
                       "R2" = R2_folds,
                       "eci" = eci_folds,
                       "MAPE" = MAPE_folds)
-      }
+      } # Close else statement (when 10k or 5k CV is used)
  
   return(results)
     
-  }
+  } # close else statement (when data is not NA)
+} # Close function
 
 ## Function to apply get_cv_estimands to all datasets in a study:
 get_cv_results <- function(study, df, V) {
@@ -396,6 +415,15 @@ get_10x10_results <- function(study, df, V){
     model <- study[i, ]$model
     pred_selection <- study[i, ]$pred_selection
     data <- df[[i]]
+    
+    # Check whether there are events sampled
+    if (data == "Error: No events sampled"){
+      
+      results_cv[[i]] <- list("Error: No events sampled" = NA)
+      
+    } else {
+      
+    
     dgm_par <- c(study[i, ]$par1, 
                  rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)),  # strong
                  rep(study[i, ]$par2,     round(0.5 * study[i, ]$dim)),  # medium
@@ -446,7 +474,8 @@ get_10x10_results <- function(study, df, V){
     
     results_cv[[i]] <- c(auc_results, intercept, slope, R2, eci, MAPE_results)
     
-  }
+    } # close for loop
+  } # close else loop
   
   names(results_cv) <- c(1:length(df))
   return(results_cv)
