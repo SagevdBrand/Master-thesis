@@ -8,25 +8,37 @@
 ## [ ] FUNCTION FOR EXTERNAL VALIDATION OF ALL MODELS USED IN SCENARIO - FOR PERFORMANCE MEASURES
 ## [ ] BOOTSTRAP ESTIMAND FUNCTION
 ## [ ] ADD OPTIONS FOR OTHER MODELS
-##      [ ] 
+##      [ ] RIDGE -> CODE IS READY, ONLY NEEDS IMPLEMENTATION
+##      [ ] LASSO -> CODE IS READY ONLY NEEDS IMPLEMENTATION
+##      [ ] MACHINE LEARNING -> CODE IS BEING DEVELOPED, BUT WAIT FOR FEEDBACK
 ## [ ] CREATE DIFFERENT DGM-PAR IN DIFFERENT STUDIES
+
+## [x] IMPLEMENT STUDY 1 FOR ESTIMANDS
+## [ ] IMPLEMENT STUDY 2 FOR ESTIMANDS
+## [ ] IMPLEMENT STUDY 3 FOR ESTIMANDS
+## [ ] IMPLEMENT STUDY 4 FOR ESTIMANDS
+
+## [ ] IF ERROR OCCURS, MAKE SURE IT CONTIUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
-##      [X] CHECK FOR EVENTS IN DEVELOPMENT DATASET
-##      [X] RETURN VECTOR OF NA/ERROR AS RESULT
+
 ##      [ ] CHECK FOR EVENTS IN RESAMPLING
 ##      [ ] CHECK FOR VAR(Y) == 0 |SUM(Y) < 8 | N - SUM(Y) < 8  FOR LASSO AND REGRESSION
 ##      [ ] CHECK FOR VAR(LP) == 0
 ##      [ ] RETURN HIGHEST VALUE FOR CALIBRATION SLOPE WITHIN THAT SCENARIO
 ##      [ ] 
 
-## [ ] IF ERROR OCCURS, MAKE SURE IT CONTIUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
 
-## [X] OUTPUT SEED!!!!
+## DONE:
+## [X] CHECK FOR EVENTS IN DEVELOPMENT DATASET
+## [X] RETURN VECTOR OF NA/ERROR AS RESULT
+## [x] 10 & 5 FOLD CV
+## [x] 10X10 FOLD CV
+## [x] PIPELINE FOR EASY GENERATION OF DATA
+## [x] PIPELINE FOR STORING ESTIMAND RESULTS
+## [X] OUTPUT SEED
 ## [X] INTEGRATE CREATE DATA FUNCTION SO WE DONT HAVE THE SAME DATA ALL THE TIME :')
-## [X] 10X10 CV FUNCTION 
 ## [X] LOOCV FUNCTION or not?
 ## [X] MAKE SURE IT WORKS WITH MORE OR LESS PREDICTORS
-
 
 ########################################
 
@@ -57,7 +69,7 @@ data_files <- list.files(path = study_1_data, recursive = T, full.names = F) # g
 set.seed(123)
 
 # Store seed values
-n_sim <- 2 # how many iterations?
+n_sim <- 1 # how many iterations?
 state <- c(1:5000) # Create a vector of seed states
 
 system.time({for(j in 1:n_sim){
@@ -90,23 +102,37 @@ system.time({for(j in 1:n_sim){
   ## Obtain external validation estimands
   
   
-  # Exteral validation
+  # External validation
   
 
-  ## Make a vector of all results + state
-  for(i in 1:length(results_app)){ # For however many scenarios there are within the study 
-  results_lists <- list(results_app, results_10_cv, results_5_cv, results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+  ## Make a list of all results 
+  results_lists <- list("results_app" = results_app,
+                        "results_10_cv" = results_10_cv,
+                        "results_5_cv"  = results_5_cv,
+                        "results_10x10_cv"= results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+  
+  # SAVING THE ESTIMANDS
+  for(i in 1:nrow(s1)){ # For however many scenarios there are within the study 
+  
+  # Save an RDS object in the shape of a vector
   saveRDS(
-    object = assign(paste0("s1_estimands", i), # create an object with name "s1_results_i
-                    c("seed_state" = state[j], #Fill it with the seed state, 
+    # create an object with name "s1_results_i
+    object = assign(paste0("s1_estimands", i), 
+                    # Which contains the seed state, 
+                    c("seed_state" = state[j], 
+                      # and results belonging to the scenario
                       unlist(
-                        lapply(results_lists, "[[", i) # and results belonging to the scenario
-                      ))),
-    file = paste0(s1_estimands, "s1_", i, "_", state[j], ".Rds")
+                        lapply(results_lists, "[[", i) 
+                      ))), # Closes assign()
+    # Save the vector as an Rds file in the correct folder
+    file = paste0(s1_estimands, "s1_scen", i, "_seed", state[j], ".Rds")
   )  # close saveRDS
+    
   } # close saving for loop
+  
 } # close simulation for loop
-  }) #Close timing loop
+  
+  }) # Close timing function
 
 
 
