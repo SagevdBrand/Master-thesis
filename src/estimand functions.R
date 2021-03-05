@@ -87,7 +87,7 @@ MAPE <- function(p,iv_matrix, dgm_par){
 get_app_estimands <- function(df, model, dgm_par, pred_selection) {
   
   # Check whether the data is actually useful
-  if (df == "Error: No events sampled"){
+  if (str_detect(names(df),"Error: No events sampled") == TRUE){
     # If no events were sampled, then the following will be
     results <- list("Error: No events sampled" = NA)
     return(results) 
@@ -210,7 +210,7 @@ get_app_results <- function(study, df) {
 get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALSE, TRUE)){
 
   # Check whether the data is actually useful
-  if (df == "Error: No events sampled"){
+  if (str_detect(names(df),"Error: No events sampled") == TRUE) {
     # If no events were sampled, then the following will be
     results <- list("Error: No events sampled" = NA)
     return(results) 
@@ -238,6 +238,8 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     }
   
   folds <- .cvFoldsB(Y = df$y, V = V)
+  
+  ####### BUILD CHECK FOR EVENTS SAMPLED IN FOLDS ######
   
   # Getting predictions depending on model used
   .doFit <- function(V, folds, model, pred_selection){ 
@@ -417,7 +419,7 @@ get_10x10_results <- function(study, df, V){
     data <- df[[i]]
     
     # Check whether there are events sampled
-    if (data == "Error: No events sampled"){
+    if (str_detect(names(data),"Error: No events sampled") == TRUE){
       
       results_cv[[i]] <- list("Error: No events sampled" = NA)
       

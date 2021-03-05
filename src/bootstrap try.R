@@ -3,12 +3,16 @@
 #########################
 
 ## Create and load simulation data
+
 source("./src/setup.R")
 source("./src/estimand functions.R")
 source("./src/data generation study 1.R") # Generate data, and save temporarily
+data_files <- list.files(path = study_1_data, recursive = T, full.names = F) # get the data names
 names(s1_data) <- data_files # Change the names of each element in the list, to be sure it corresponds to the right scenario
 
-df <- s1_data[[i]]
+# Getting one dataframe
+i <- 1 # or whatever we're interested in1
+df1 <- s1_data[[i]]
 model <- s1[i, ]$model
 pred_selection <- s1[i, ]$pred_selection
 

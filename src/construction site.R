@@ -115,9 +115,14 @@ generate_data_test <- function(scenario, validation = c(TRUE, FALSE)){
       }, # closing expression to be tested
       # What happens
       error = function(e) {
-        message(paste(e))
+        
+        message(e, "\n")
+        
+        # Create an NA object with the error as its name
+        erms <- NA
+        names(erms) <- e
         # This should return an NA list instead of a dataframe
-        return("Error: No events sampled")
+        return(erms)
         
             } # Closing error expression
       
@@ -141,7 +146,7 @@ df <- s1_data[[1]]
 get_app_estimands_test <- function(df, model, dgm_par, pred_selection) {
   
   # Check whether the data is actually useful
-  if (df == "Error: No events sampled"){
+  if (str_detect(names(df),"Error: No events sampled") == TRUE){
     # If no events were sampled, then the following will be
     results <- list("Error: No events sampled" = NA)
     return(results) 
@@ -250,7 +255,7 @@ get_app_results_test <- function(study, df) {
 
   
   ## Obtain apparent estimands ##
-  results_app_test <- get_app_results(study = s1, df = s1_data)
+  results_app_test <- get_app_results_test(study = s1, df = s1_data)
   
   ## Obtain internal validation estimands ##
   # 10 fold cross-validation
@@ -274,7 +279,7 @@ get_app_results_test <- function(study, df) {
       data <- df[[i]]
       
       # Check whether there are events sampled
-      if (data == "Error: No events sampled"){
+      if (str_detect(names(data),"Error: No events sampled") == TRUE){
         
         results_cv[[i]] <- list("Error: No events sampled" = NA)
         
@@ -338,36 +343,18 @@ get_app_results_test <- function(study, df) {
     return(results_cv)
   }
   
-  
-  
-  
   # 10X10 fold cross-validation 
-  results_10x10_cv_test <- get_10x10_results(study = s1, df = s1_data, V = 10)
+  results_10x10_cv_test <- get_10x10_results_test(study = s1, df = s1_data, V = 10)
   
   # Bootstrap 3 varieties in one go
   
+    
   
   ## Obtain external validation estimands
   
   
   # External validation
   
-  
-  ## Make a vector of all results + state
-  for(i in 1:length(results_app)){ # For however many scenarios there are within the study 
-    results_lists <- list(results_app, results_10_cv, results_5_cv, results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
-    saveRDS(
-      object = assign(paste0("s1_estimands", i), # create an object with name "s1_results_i
-                      c("seed_state" = state[j], #Fill it with the seed state, 
-                        unlist(
-                          lapply(results_lists, "[[", i) # and results belonging to the scenario
-                        ))),
-      file = paste0(s1_estimands, "s1_", i, "_", state[j], ".Rds")
-    )  # close saveRDS
-  } # close saving for loop
-
-
-
 
 
   
