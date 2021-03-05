@@ -113,7 +113,17 @@ if (any(str_detect(names(df),"Error: No events sampled") == TRUE)) {
   # Approach by Van Calster et al., 2020     
   fit_boot <- Pen_reg_VC(df = bsamp, alpha = 0) 
   
+  # Original data model matrix and predictions:
   og_p <- predict(fit_boot, as.matrix(df[,-ncol(df)]), s = "lambda.min", type = "response")
+  og_matrix <- model.matrix(object = fit_boot$formula, data = df) ## USE GLMNET UTILS!
+  
+  # In bag bootstrap model matrix and predictions
+  b_p <- predict(fit_boot, as.matrix(bsamp[,-ncol(bsamp)]), s = "lambda.min", type = "response")
+  b_matrix <- model.matrix(object = fit_boot$formula, data = bsamp)
+  
+  # Out of bootstrap sample model matrix and predictions
+  out_p <- predict(fit_boot, as.matrix(df[,-ncol(df)]), s = "lambda.min", type = "response")
+  out_matrix <- model.matrix(object = fit_boot$formula, data = out)
   ## ADD OTHER MATRICES AND PREDICTIONS    
   } else {
     # This is LASSO
