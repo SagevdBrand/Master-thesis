@@ -2,10 +2,8 @@
 /bin
 
 # exclude data from source control by default
-/data/temp
-/data/processed
-/data/raw
-
+/data/simulation data
+/data/validation data
 
 # Session Data files
 .RData
@@ -45,3 +43,6 @@ vignettes/*.pdf
 
 # R history
 .Rhistory
+
+# Ignore estimand results
+results/output/estimands/study1/*.Rds
