@@ -4,6 +4,25 @@
 ### Simulation functions
 ### Estimands
 
+#########################
+#### Model functions ####
+#########################
+# Lasso and Ridge as defined 
+# by Van Calster et al., 2020
+
+Pen_reg_VC <- function(df, alpha = c(0,1)){
+  
+lambda <- c(exp(seq(log(64), log(0.00001), length.out = 250)), 0) # DOUBLE CHECK THIS
+fit <- cv.glmnet(x = as.matrix(df[, -ncol(df)]),
+                     y = factor(df[, ncol(df)]),
+                     family = "binomial",
+                     lambda = lambda,
+                     alpha = alpha
+)
+
+return(fit)
+
+}
 
 ######################################
 ###### Basic estimand functions ######
