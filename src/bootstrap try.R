@@ -130,11 +130,11 @@ if (any(str_detect(names(df),"Error: No events sampled") == TRUE)) {
     fit_boot <- Pen_reg_VC(df = bsamp, alpha = 1) 
     
     ## COPY MATRICES AND PREDICTIONS FROM RIDGE
-  }
+  } # Close last if else statement for models 
   
   
   
-  }
+  
   
   # Performance measures
   auc_ <- fastAUC(p = p_app, y = df$y)
@@ -167,6 +167,8 @@ if (any(str_detect(names(df),"Error: No events sampled") == TRUE)) {
       "MAPE_app" = MAPE_app
     )
 } # close else statement
+
+# } 3 close for loop
 #} # Close function
 
 # Calibration slope for folds
