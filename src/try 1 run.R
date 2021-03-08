@@ -5,10 +5,12 @@
 
 ############ TO FIX/DO #################
 ## [ ] RESULTS IN DATAFRAME:
-##      [ ] ADD SEED
-##      [ ] ADD STUDY SCENARIO
-##      [ ] ADD COLUMN FOR EACH IV/APP/EXT.
-##      [ ] ADD ESTIMANDS
+##      [X] ADD SEED
+##      [X] ADD STUDY SCENARIO
+##      [X] ADD COLUMN FOR EACH IV/APP/EXT.
+##      [X] ADD ESTIMANDS
+##      [X] ADD ERROR MESSAGE COLUMN
+##      [ ] GET RID OF CI AUC
 
 ## [ ] PERFORMANCE MEASURES IN DATAFRAME
 ##      [ ] ADD SEED
@@ -17,7 +19,9 @@
 ##      [ ] ADD PERFORMANCE MEASURE (COMPARED TO EXT.)
 
 ## [ ] FUNCTION FOR EXTERNAL VALIDATION OF ALL MODELS USED IN SCENARIO - FOR PERFORMANCE MEASURES
+
 ## [ ] BOOTSTRAP ESTIMAND FUNCTION
+
 ## [ ] ADD OPTIONS FOR OTHER MODELS
 ##      [ ] RIDGE -> CODE IS READY, ONLY NEEDS IMPLEMENTATION
 ##      [ ] LASSO -> CODE IS READY ONLY NEEDS IMPLEMENTATION
@@ -29,7 +33,7 @@
 ## [ ] IMPLEMENT STUDY 3 FOR ESTIMANDS
 ## [ ] IMPLEMENT STUDY 4 FOR ESTIMANDS
 
-## [ ] IF ERROR OCCURS, MAKE SURE IT CONTIUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
+## [ ] IF ERROR OCCURS, MAKE SURE IT CONTInUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
 
 ##      [ ] CHECK FOR EVENTS IN RESAMPLING
@@ -80,7 +84,7 @@ data_files <- list.files(path = study_1_data, recursive = T, full.names = F) # g
 set.seed(123)
 
 # Store seed values
-n_sim <- 5000 # how many iterations?
+n_sim <- 1 # how many iterations?
 seed_state <- sample(1:50000, n_sim)
 
 system.time({for(j in 1:n_sim){
@@ -115,10 +119,13 @@ system.time({for(j in 1:n_sim){
   
   # External validation
   
-
-  ## Make a list of all results 
+  #################################################
+  ########## Wrangling into nice format ###########
+  #################################################
+  
+  ## Bind all results together 
   results_estimands_s1 <-
-    rbind(results_app, results_10_cv, results_5_cv, results_10x10_cv_test) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+    rbind(results_app, results_10_cv, results_5_cv, results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
   
   ## Filling in missing details:
   results_estimands_s1$iteration <- j
@@ -126,26 +133,10 @@ system.time({for(j in 1:n_sim){
   results_estimands_s1 <- results_estimands_s1 %>% mutate(`expected events` = n * prev)
   
   
-  # SAVING THE ESTIMANDS
-  for(i in 1:nrow(s1)){ # For however many scenarios there are within the study 
+  # Saving estimands
+  saveRDS(results_estimands_s1, file = paste0(s1_estimands, "s1_estimands_seed_", seed_state[j], ".Rds"))
   
-  # Save an RDS object in the shape of a vector
-  saveRDS(
-    # create an object with name "s1_results_i
-    object = assign(paste0("s1_estimands", i), 
-                    # Which contains the seed state, 
-                    c("seed_state" = state[j], 
-                      # and results belonging to the scenario
-                      unlist(
-                        lapply(results_lists, "[[", i) 
-                      ))), # Closes assign()
-    # Save the vector as an Rds file in the correct folder
-    file = paste0(s1_estimands, "s1_scen", i, "_seed", state[j], ".Rds")
-  )  # close saveRDS
-    
-  } # close saving for loop
-  
-} # close simulation for loop
+  } # close simulation for loop
   
   }) # Close timing function
 

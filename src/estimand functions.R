@@ -462,7 +462,7 @@ get_cv_results <- function(study, df, V, studyname) {
 ## 10x10 cv ##
 ##############
 
-get_10x10_results <- function(study, df, V){
+get_10x10_results <- function(study, df, V, studyname){
   # results matrix:
   results_cv <- as.data.frame(matrix(NA, nrow = nrow(study), ncol = length(results_estimands_names), dimnames = list(c(), results_estimands_names)))
   
