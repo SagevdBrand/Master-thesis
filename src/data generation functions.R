@@ -248,9 +248,17 @@ generate_data <- function(scenario, validation = c(TRUE, FALSE)){
       }, # closing expression to be tested
       # What happens
       error = function(e) {
-        message(paste(e))
-        # This should return the error instead of a dataframe
-        return("Error: No events sampled")
+        
+        # Throw an error message:
+        message(e, "\n")
+        
+        # Create an NA object with the error as its name
+        erms <- NA
+        names(erms) <- e
+        
+        # This returns a list with NA
+        return(erms)
+        
         
       } # Closing error expression
       

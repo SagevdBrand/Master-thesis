@@ -105,83 +105,88 @@ MAPE <- function(p,iv_matrix, dgm_par){
 
 get_app_estimands <- function(df, model, dgm_par, pred_selection) {
   
+  
   # Check whether the data is actually useful
-  if (any(str_detect(names(df),"Error: No events sampled") == TRUE)) {
-    # If no events were sampled, then the following will be
-    results <- list("Error: No events sampled" = NA)
+  if (any(str_detect(names(df),"Error: No events sampled") == TRUE)){
+    
+    # If no events were sampled, then the following will be the result:
+    results <- c("Error: No events sampled")
     return(results) 
     
   } else {
     
-  # Fit model depending on scenario
-  # And get predicted probabilities and modelmatrix
-  if (model == "Firth" & pred_selection == "none") {
+    # Fit model depending on scenario
+    # And get predicted probabilities and modelmatrix
+    if (model == "Firth" & pred_selection == "none") {
+      
+      fit_app <- logistf(y ~ ., data = df, flic = T)
+      app_matrix <- model.matrix(object = fit_app$formula, data = df)
+      p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
+      
+    } else if (model == "Firth" & pred_selection == "<0.05") {
+      assign("df", as.data.frame(df), envir = .GlobalEnv)
+      
+      
+      model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
+      fit_app <- logistf(formula = model_form, data = df, flic = T)
+      fit_app <- backward(fit_app, trace = FALSE)
+      
+      app_matrix <- model.matrix(object = fit_app$formula, data = df)
+      p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
+      
+      # Get the elements of the design generating mechanism that are
+      # belonging to the model after backwards elimination
+      # Always get the first element as this is the intercept
+      ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(app_matrix), "(?<=V).*"))
+                           # Add 1, because the indices of columns exclude the intercept
+                           + 1)))
+      
+      dgm_par <- dgm_par[ind]
+      
+      
+    } else {
+      
+      fit_app <- glm(y ~ ., family = "binomial", data = df) 
+      p_app <- predict(fit_app, type = "response")
+      app_matrix <- model.matrix(object = fit_app$formula, data = df)
+      
+    }
     
-    fit_app <- logistf(y ~ ., data = df, flic = T)
-    app_matrix <- model.matrix(object = fit_app$formula, data = df)
-    p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
+    # Performance measures
+    auc_app <- fastAUC(p = p_app, y = df$y)
+    R2_app <- pseudo_Rsqrs(p = p_app, y = df$y)
+    MAPE_app <- MAPE(p = p_app, dgm_par = dgm_par, iv_matrix = app_matrix) 
     
-  } else if (model == "Firth" & pred_selection == "<0.05") {
-    assign("df", as.data.frame(df), envir = .GlobalEnv)
+    calib_app <-
+      calib(
+        modelmatrix = app_matrix,
+        data = df,
+        coefs = fit_app$coefficients
+      )
     
+    eci_app <-
+      eci_bvc(
+        data = df,
+        modelmatrix = app_matrix,
+        coefs = fit_app$coefficients,
+        preds = p_app
+      )
     
-    model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
-    fit_app <- logistf(formula = model_form, data = df, flic = T)
-    fit_app <- backward(fit_app, trace = FALSE)
+    # Save results
+    results <-
+      c("Apparent",
+        auc_app,
+        calib_app['intercept'],
+        calib_app['slope'],
+        R2_app,
+        eci_app,
+        MAPE_app,
+        NA
+      )
     
-    app_matrix <- model.matrix(object = fit_app$formula, data = df)
-    p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
-    
-    # Get the elements of the design generating mechanism that are
-    # belonging to the model after backwards elimination
-    # Always get the first element as this is the intercept
-    ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(app_matrix), "(?<=V).*"))
-                         # Add 1, because the indices of columns exclude the intercept
-                         + 1)))
-    
-    dgm_par <- dgm_par[ind]
-    
-    
-  } else {
-    
-    fit_app <- glm(y ~ ., family = "binomial", data = df) 
-    p_app <- predict(fit_app, type = "response")
-    app_matrix <- model.matrix(object = fit_app$formula, data = df)
-    
-  }
-  
-  # Performance measures
-  auc_app <- fastAUC(p = p_app, y = df$y)
-  R2_app <- pseudo_Rsqrs(p = p_app, y = df$y)
-  MAPE_app <- MAPE(p = p_app, dgm_par = dgm_par, iv_matrix = app_matrix) 
-  
-  calib_app <-
-    calib(
-      modelmatrix = app_matrix,
-      data = df,
-      coefs = fit_app$coefficients
-    )
-  
-  eci_app <-
-    eci_bvc(
-      data = df,
-      modelmatrix = app_matrix,
-      coefs = fit_app$coefficients,
-      preds = p_app
-    )
-  
-  # Save results
-  results <-
-    c(
-      "AUC_app" = auc_app,
-      "calib_int_app" = calib_app['intercept'],
-      "calib_slope_app" = calib_app['slope'],
-      "R2_cox_snell_app" = R2_app,
-      "ECI_app" = eci_app,
-      "MAPE_app" = MAPE_app
-    )
-  } # close else statement
-} # Close function
+  } # End else statement
+} # End function
+
 
 ################################
 ## Function to obtain results ##
@@ -190,14 +195,19 @@ get_app_estimands <- function(df, model, dgm_par, pred_selection) {
 # Given the study, obtain apparent estimands
 # for each scenario
 
-get_app_results <- function(study, df) {
+get_app_results <- function(study, df, studyname) {
   
   # object to store results
-  results_app <- list()
+  results_app <- as.data.frame(matrix(NA, nrow = nrow(study), ncol = length(results_estimands_names), dimnames = list(c(), results_estimands_names)))
+  
+  # Fill in details of the study
+  results_app$study <- studyname
+  # And of each scenario:
+  results_app[, which(colnames(results_app) %in% study_info)] <- study[, which(colnames(study) %in% study_info)]
   
   # For each scenario within the study
   for (i in 1:nrow(study)) {
-    
+    results_app[i, 'scenario'] <- paste0("Scenario ", i)
     # determine which model & pre_selection is specified
     model <- study[i, ]$model
     pred_selection <- study[i, ]$pred_selection
@@ -209,14 +219,20 @@ get_app_results <- function(study, df) {
                  rep(study[i, ]$par2,     round(0.5 * s1[i, ]$dim)),  # weaker
                  rep(study[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
     
-    results_app[[i]] <- get_app_estimands(df = df[[i]], model = model, dgm_par = dgm_par, pred_selection = pred_selection)
+    # Fill the columns with apparent results, no SE!
+    results_app[i, which(colnames(results_app) %in% apparent_col_names)] <-
+      get_app_estimands(
+        df = df[[i]],
+        model = model,
+        dgm_par = dgm_par,
+        pred_selection = pred_selection
+      )
     
-  }
+  } # end for loop
   
-  names(results_app) <- c(1:nrow(study))
   return(results_app)
   
-}
+} # end function
 
 ##########################################
 ###### Cross-validation  approaches ######
@@ -228,10 +244,10 @@ get_app_results <- function(study, df) {
 
 get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALSE, TRUE)){
 
-  # Check whether the development data was okay
   if (any(str_detect(names(df),"Error: No events sampled") == TRUE)){
-    # If no events were sampled, then the following will be
-    results <- list("Error: No events sampled" = NA)
+    
+    # If no events were sampled, then the following will be the result:
+    results <- c("Error: No events sampled")
     return(results) 
     
   } else {
@@ -373,10 +389,17 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     MAPE_results <- c(mean(MAPE_folds), (sd(MAPE_folds)/(sqrt(V) - 1)))
     names(MAPE_results) <- c(paste0("MAPE_mean_", V, "fcv" ), paste0("MAPE_se_", V, "fcv"))
     
+    # If everything went alright this should be NA 
+    
+    ###############################################
+    ## DONT FORGET TO CHECK AFTER ERROR HANDLING ##
+    ###############################################
+    error_info <- NA
+    
     # If the it is anything other than 10x10 cv:
     if (x10 == FALSE){
       
-      results <- c(auc_results, intercept, slope, R2, eci, MAPE_results)
+      results <- c(paste0(V, " fold cross-validation"), auc_results, intercept, slope, R2, eci, MAPE_results, error_info)
     
       } else {
         
@@ -400,10 +423,18 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
 } # Close function
 
 ## Function to apply get_cv_estimands to all datasets in a study:
-get_cv_results <- function(study, df, V) {
-  results_cv <- list() #object to store results
+get_cv_results <- function(study, df, V, studyname) {
+  
+  # results matrix:
+  results_cv <- as.data.frame(matrix(NA, nrow = nrow(study), ncol = length(results_estimands_names), dimnames = list(c(), results_estimands_names)))
+  
+  # Fill in details of the study
+  results_cv$study <- studyname
+  # And of each scenario:
+  results_cv[, which(colnames(results_cv) %in% study_info)] <- study[, which(colnames(study) %in% study_info)]
   
   for (i in 1:nrow(study)) {
+    results_cv[i, 'scenario'] <- paste0("Scenario ", i)
     print(i)
     model <- study[i, ]$model
     pred_selection <- study[i, ]$pred_selection
@@ -412,14 +443,18 @@ get_cv_results <- function(study, df, V) {
                  rep(study[i, ]$par2,     round(0.5 * study[i, ]$dim)),  # weak
                  rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))  # noise
     
-    results_cv[[i]] <- get_cv_estimands(df = df[[i]], 
-                                        model = model,
-                                        dgm_par = dgm_par,
-                                        pred_selection = pred_selection,
-                                        V = V,
-                                        x10 = FALSE)
+    # Paste the results in the correct columns (as defined in iv_colnames)
+    results_cv[i, which(colnames(results_cv) %in% iv_colnames)]  <-
+      get_cv_estimands(
+        df = df[[i]],
+        model = model,
+        dgm_par = dgm_par,
+        pred_selection = pred_selection,
+        V = V,
+        x10 = FALSE
+      )
   }
-  names(results_cv) <- c(1:length(df))
+  
   return(results_cv)
 }
 

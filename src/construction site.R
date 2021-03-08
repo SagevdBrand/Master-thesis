@@ -40,12 +40,6 @@ dgm_par <- c(study[i, ]$par1,
              rep(study[i, ]$par2,     round(0.5 * study[i, ]$dim)),  # weak
              rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))  # noise
 
-get_cv_estimands(df = df, #df[[i]]
-                 model = model,
-                 dgm_par = dgm_par,
-                 pred_selection = pred_selection,
-                 V = V,
-                 x10 = FALSE)
 
 
 ## FIRST CHECK ##
@@ -146,11 +140,11 @@ df <- s1_data[[1]]
 get_app_estimands_test <- function(df, model, dgm_par, pred_selection) {
   
   # Check whether the data is actually useful
-    if (any(str_detect(names(df),"Error: No events sampled") == TRUE)){
+  if (any(str_detect(names(df),"Error: No events sampled") == TRUE)){
     
-    # If no events were sampled, then the following will be
-    results <- list("Error: No events sampled" = NA)
-    return(results) 
+  # If no events were sampled, then the following will be the result:
+  results <- c("Error: No events sampled")
+  return(results) 
     
   } else {
   
@@ -213,27 +207,33 @@ get_app_estimands_test <- function(df, model, dgm_par, pred_selection) {
   
   # Save results
   results <-
-    c(
-      "AUC_app" = auc_app,
-      "calib_int_app" = calib_app['intercept'],
-      "calib_slope_app" = calib_app['slope'],
-      "R2_cox_snell_app" = R2_app,
-      "ECI_app" = eci_app,
-      "MAPE_app" = MAPE_app
+    c("Apparent",
+      auc_app,
+      calib_app['intercept'],
+      calib_app['slope'],
+      R2_app,
+      eci_app,
+      MAPE_app, 
+      NA # Because no error
     )
   
   } # End else statement
   } # End function
 
 
-get_app_results_test <- function(study, df) {
+get_app_results_test <- function(study, df, studyname) {
 
   # object to store results
-  results_app <- list()
+  results_app <- as.data.frame(matrix(NA, nrow = nrow(study), ncol = length(results_estimands_names), dimnames = list(c(), results_estimands_names)))
+  
+  # Fill in details of the study
+  results_app$study <- studyname
+  # And of each scenario:
+  results_app[, which(colnames(results_app) %in% study_info)] <- study[, which(colnames(study) %in% study_info)]
   
   # For each scenario within the study
   for (i in 1:nrow(study)) {
-    
+    results_app[i, 'scenario'] <- paste0("Scenario ", i)
     # determine which model & pre_selection is specified
     model <- study[i, ]$model
     pred_selection <- study[i, ]$pred_selection
@@ -245,27 +245,34 @@ get_app_results_test <- function(study, df) {
                  rep(study[i, ]$par2,     round(0.5 * s1[i, ]$dim)),  # weaker
                  rep(study[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
     
-    results_app[[i]] <- get_app_estimands_test(df = df[[i]], model = model, dgm_par = dgm_par, pred_selection = pred_selection)
+    # Fill the columns with apparent results, no SE!
+    results_app[i, which(colnames(results_app) %in% apparent_col_names)] <-
+      get_app_estimands_test(
+        df = df[[i]],
+        model = model,
+        dgm_par = dgm_par,
+        pred_selection = pred_selection
+      )
     
   } # end for loop
-  
-  names(results_app) <- c(1:nrow(study))
+
   return(results_app)
   
 } # end function
 
   
   ## Obtain apparent estimands ##
-  results_app_test <- get_app_results_test(study = s1, df = s1_data)
-  
+  results_app_test <- get_app_results_test(study = s1, df = s1_data, studyname = "Study 1")
+
   
 get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALSE, TRUE)){
     
     # Check whether the data is actually useful
   if (any(str_detect(names(df),"Error: No events sampled") == TRUE)){
-      # If no events were sampled, then the following will be
-      results <- list("Error: No events sampled" = NA)
-      return(results) 
+    
+    # If no events were sampled, then the following will be the result:
+    results <- c("Error: No events sampled")
+    return(results) 
       
     } else {
       
@@ -406,10 +413,13 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
       MAPE_results <- c(mean(MAPE_folds), (sd(MAPE_folds)/(sqrt(V) - 1)))
       names(MAPE_results) <- c(paste0("MAPE_mean_", V, "fcv" ), paste0("MAPE_se_", V, "fcv"))
       
+      
+      error_info <- NA # If everything went alright this should be NA
+      
       # If the it is anything other than 10x10 cv:
       if (x10 == FALSE){
         
-        results <- c(auc_results, intercept, slope, R2, eci, MAPE_results)
+        results <- c(paste0(V, " fold cross-validation"), auc_results, intercept, slope, R2, eci, MAPE_results, error_info)
         
       } else {
         
@@ -434,10 +444,19 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
 
 
 ## Function to apply get_cv_estimands to all datasets in a study:
-get_cv_results_test <- function(study, df, V) {
-  results_cv <- list() #object to store results
+get_cv_results_test <- function(study, df, V, studyname) {
+  
+  # results matrix:
+  results_cv <- as.data.frame(matrix(NA, nrow = nrow(study), ncol = length(results_estimands_names), dimnames = list(c(), results_estimands_names)))
+  
+  # Fill in details of the study
+  results_cv$study <- studyname
+  # And of each scenario:
+  results_cv[, which(colnames(results_cv) %in% study_info)] <- study[, which(colnames(study) %in% study_info)]
+  
   
   for (i in 1:nrow(study)) {
+    results_cv[i, 'scenario'] <- paste0("Scenario ", i)
     print(i)
     model <- study[i, ]$model
     pred_selection <- study[i, ]$pred_selection
@@ -446,43 +465,58 @@ get_cv_results_test <- function(study, df, V) {
                  rep(study[i, ]$par2,     round(0.5 * study[i, ]$dim)),  # weak
                  rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))  # noise
     
-    results_cv[[i]] <- get_cv_estimands(df = df[[i]], 
-                                        model = model,
-                                        dgm_par = dgm_par,
-                                        pred_selection = pred_selection,
-                                        V = V,
-                                        x10 = FALSE)
+    results_cv[i, which(colnames(results_cv) %in% iv_colnames)]  <-
+      get_cv_estimands_test(
+        df = df[[i]],
+        model = model,
+        dgm_par = dgm_par,
+        pred_selection = pred_selection,
+        V = V,
+        x10 = FALSE
+      )
   }
-  names(results_cv) <- c(1:length(df))
+  
   return(results_cv)
 }
 
   
   ## Obtain internal validation estimands ##
   # 10 fold cross-validation
-  results_10_cv_test <- get_cv_results_test(study = s1, df = s1_data, V = 10)
+  results_10_cv_test <- get_cv_results_test(study = s1, df = s1_data, V = 10, studyname = "Study 1")
   
   # 5 fold cross-validation
-  results_5_cv_test <- get_cv_results_test(study = s1, df = s1_data, V = 5)
+  results_5_cv_test <- get_cv_results_test(study = s1, df = s1_data, V = 5, studyname = "Study 1")
   
   
   
   
-  get_10x10_results_test <- function(study, df, V){
+  get_10x10_results_test <- function(study, df, V, studyname){
     
-    results_cv <- list()
+    # results matrix:
+    results_cv <- as.data.frame(matrix(NA, nrow = nrow(study), ncol = length(results_estimands_names), dimnames = list(c(), results_estimands_names)))
+    
+    # Fill in details of the study
+    results_cv$study <- studyname
+    # And of each scenario:
+    results_cv[, which(colnames(results_cv) %in% study_info)] <- study[, which(colnames(study) %in% study_info)]
     
     for (i in 1:length(df)) {
       print(i)
+      
+      # Add which scenario we are working on:
+      results_cv[i, 'scenario'] <- paste0("Scenario ", i)
+      
       # Settings for get cv estimands function:
       model <- study[i, ]$model
       pred_selection <- study[i, ]$pred_selection
       data <- df[[i]]
       
       # Check whether there are events sampled
-      if (str_detect(names(data),"Error: No events sampled") == TRUE){
+      if (any(str_detect(names(data),"Error: No events sampled") == TRUE)){
         
-        results_cv[[i]] <- list("Error: No events sampled" = NA)
+        # If no events were sampled, then the following will be the result:
+        results <- c("Error: No events sampled")
+        return(results) 
         
       } else {
       
@@ -494,7 +528,7 @@ get_cv_results_test <- function(study, df, V) {
       
       # obtain the results of each fold separately 10 times and stored for each replication
       results <- replicate(n = 10, # represents the 10x10 part
-                           expr = get_cv_estimands(df = data, model = model, 
+                           expr = get_cv_estimands_test(df = data, model = model, 
                                                    dgm_par = dgm_par,
                                                    pred_selection = pred_selection,
                                                    V = V,
@@ -535,17 +569,32 @@ get_cv_results_test <- function(study, df, V) {
       MAPE_results <- c(mean(MAPE_results), (sd(MAPE_results)/(sqrt(V) - 1)))
       names(MAPE_results) <- c(paste0("MAPE_mean_", V, "x10fcv" ), paste0("MAPE_se_", V, "fcv"))
       
-      results_cv[[i]] <- c(auc_results, intercept, slope, R2, eci, MAPE_results)
+      ###############################################
+      ## DONT FORGET TO CHECK AFTER ERROR HANDLING ##
+      ###############################################
+      error_info <- NA
+      
+      ## Fill results matrix:
+      results_cv[i, which(colnames(results_cv) %in% iv_colnames)] <-
+        c(
+          "10x10 fold cross-validation",
+          auc_results,
+          intercept,
+          slope,
+          R2,
+          eci,
+          MAPE_results,
+          error_info
+        )
       
       } # close for loop
       } # close else loop
     
-    names(results_cv) <- c(1:length(df))
     return(results_cv)
   }
   
   # 10X10 fold cross-validation 
-  results_10x10_cv_test <- get_10x10_results_test(study = s1, df = s1_data, V = 10)
+  results_10x10_cv_test <- get_10x10_results_test(study = s1, df = s1_data, V = 10, studyname = "Study 1")
   
   # Bootstrap 3 varieties in one go
   

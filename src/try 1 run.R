@@ -4,6 +4,17 @@
 ## GET ESTIMANDS SCENARIO 1
 
 ############ TO FIX/DO #################
+## [ ] RESULTS IN DATAFRAME:
+##      [ ] ADD SEED
+##      [ ] ADD STUDY SCENARIO
+##      [ ] ADD COLUMN FOR EACH IV/APP/EXT.
+##      [ ] ADD ESTIMANDS
+
+## [ ] PERFORMANCE MEASURES IN DATAFRAME
+##      [ ] ADD SEED
+##      [ ] ADD STUDY SCENARIO
+##      [ ] ADD COLUMN FOR IV/APP.
+##      [ ] ADD PERFORMANCE MEASURE (COMPARED TO EXT.)
 
 ## [ ] FUNCTION FOR EXTERNAL VALIDATION OF ALL MODELS USED IN SCENARIO - FOR PERFORMANCE MEASURES
 ## [ ] BOOTSTRAP ESTIMAND FUNCTION
@@ -69,11 +80,11 @@ data_files <- list.files(path = study_1_data, recursive = T, full.names = F) # g
 set.seed(123)
 
 # Store seed values
-n_sim <- 1 # how many iterations?
-state <- c(1:5000) # Create a vector of seed states
+n_sim <- 5000 # how many iterations?
+seed_state <- sample(1:50000, n_sim)
 
 system.time({for(j in 1:n_sim){
-  set.seed(state[j]) # for each run the next value in the state vector will be chosen (and saved!)
+  set.seed(seed_state[j]) # for each run the next value in the state vector will be chosen (and saved!)
   
   ## Create and load simulation data
   source("./src/data generation study 1.R") # Generate data, and save temporarily
@@ -84,17 +95,17 @@ system.time({for(j in 1:n_sim){
   names(s1_val_data) <- val_data_files
   
   ## Obtain apparent estimands ##
-  results_app <- get_app_results(study = s1, df = s1_data)
+  results_app <- get_app_results(study = s1, df = s1_data, studyname = "Study 1")
   
   ## Obtain internal validation estimands ##
   # 10 fold cross-validation
-  results_10_cv <- get_cv_results(study = s1, df = s1_data, V = 10)
+  results_10_cv <- get_cv_results(study = s1, df = s1_data, V = 10, studyname = "Study 1")
   
   # 5 fold cross-validation
-  results_5_cv <- get_cv_results(study = s1, df = s1_data, V = 5)
+  results_5_cv <- get_cv_results(study = s1, df = s1_data, V = 5, studyname = "Study 1")
   
   # 10X10 fold cross-validation 
-  results_10x10_cv <- get_10x10_results(study = s1, df = s1_data, V = 10)
+  results_10x10_cv <- get_10x10_results(study = s1, df = s1_data, V = 10, studyname = "Study 1")
   
   # Bootstrap 3 varieties in one go
   
@@ -106,10 +117,8 @@ system.time({for(j in 1:n_sim){
   
 
   ## Make a list of all results 
-  results_lists <- list("results_app" = results_app,
-                        "results_10_cv" = results_10_cv,
-                        "results_5_cv"  = results_5_cv,
-                        "results_10x10_cv"= results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+  results_estimands_s1 <-
+    rbind(results_app, results_10_cv, results_5_cv, results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
   
   # SAVING THE ESTIMANDS
   for(i in 1:nrow(s1)){ # For however many scenarios there are within the study 
