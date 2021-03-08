@@ -463,10 +463,20 @@ get_cv_results <- function(study, df, V, studyname) {
 ##############
 
 get_10x10_results <- function(study, df, V){
-  results_cv <- list()
+  # results matrix:
+  results_cv <- as.data.frame(matrix(NA, nrow = nrow(study), ncol = length(results_estimands_names), dimnames = list(c(), results_estimands_names)))
+  
+  # Fill in details of the study
+  results_cv$study <- studyname
+  # And of each scenario:
+  results_cv[, which(colnames(results_cv) %in% study_info)] <- study[, which(colnames(study) %in% study_info)]
   
   for (i in 1:length(df)) {
     print(i)
+    
+    # Add which scenario we are working on:
+    results_cv[i, 'scenario'] <- paste0("Scenario ", i)
+    
     # Settings for get cv estimands function:
     model <- study[i, ]$model
     pred_selection <- study[i, ]$pred_selection
@@ -475,7 +485,9 @@ get_10x10_results <- function(study, df, V){
     # Check whether there are events sampled
     if (any(str_detect(names(data),"Error: No events sampled") == TRUE)){
       
-      results_cv[[i]] <- list("Error: No events sampled" = NA)
+      # If no events were sampled, then the following will be the result:
+      results <- c("Error: No events sampled")
+      return(results) 
       
     } else {
       
@@ -528,12 +540,27 @@ get_10x10_results <- function(study, df, V){
     MAPE_results <- c(mean(MAPE_results), (sd(MAPE_results)/(sqrt(V) - 1)))
     names(MAPE_results) <- c(paste0("MAPE_mean_", V, "x10fcv" ), paste0("MAPE_se_", V, "fcv"))
     
-    results_cv[[i]] <- c(auc_results, intercept, slope, R2, eci, MAPE_results)
+    ###############################################
+    ## DONT FORGET TO CHECK AFTER ERROR HANDLING ##
+    ###############################################
+    error_info <- NA
+    
+    ## Fill results matrix:
+    results_cv[i, which(colnames(results_cv) %in% iv_colnames)] <-
+      c(
+        "10x10 fold cross-validation",
+        auc_results,
+        intercept,
+        slope,
+        R2,
+        eci,
+        MAPE_results,
+        error_info
+      )
     
     } # close for loop
   } # close else loop
   
-  names(results_cv) <- c(1:length(df))
   return(results_cv)
 }
 

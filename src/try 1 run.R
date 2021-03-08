@@ -118,7 +118,13 @@ system.time({for(j in 1:n_sim){
 
   ## Make a list of all results 
   results_estimands_s1 <-
-    rbind(results_app, results_10_cv, results_5_cv, results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+    rbind(results_app, results_10_cv, results_5_cv, results_10x10_cv_test) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+  
+  ## Filling in missing details:
+  results_estimands_s1$iteration <- j
+  results_estimands_s1$seed <- seed_state[j]
+  results_estimands_s1 <- results_estimands_s1 %>% mutate(`expected events` = n * prev)
+  
   
   # SAVING THE ESTIMANDS
   for(i in 1:nrow(s1)){ # For however many scenarios there are within the study 
