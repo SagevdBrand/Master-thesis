@@ -7,6 +7,8 @@
 ## Libraries, file paths and functions
 source("./src/setup.R")
 source("./src/estimand functions.R")
+source("./src/data generation functions.R")
+
 
 ## Load scenario settings
 s1 <- read_rds(study_1_settings)
@@ -50,9 +52,7 @@ dgm_par <- c(study[i, ]$par1,
 
 ######## Setting up #########
 ## set.seed(123)
-source("./src/data generation functions.R")
 
-s1 <- read_rds(study_1_settings)
 
 generate_data_test <- function(scenario, validation = c(TRUE, FALSE)){
   

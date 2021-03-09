@@ -63,6 +63,7 @@ V = 5
   svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 10),
                           .sigma = seq(0.001, 1, length.out = 10))
   
+  # Data are scaled internally!
   system.time(fit_svm <- caret::train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'svmRadial', tuneGrid = svm_grid, trControl = trainControl(method = "cv")))
   
   ##  THIS DOES NOT MAKE SENSE OT ME!! ##
