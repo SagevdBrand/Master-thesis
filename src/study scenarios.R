@@ -13,7 +13,6 @@
 ## Look at simulation protocol to define the final studies and scenarios!
 
 
-
 ### Setting up ###
 set.seed(123)
 
