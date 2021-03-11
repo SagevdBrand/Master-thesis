@@ -30,8 +30,6 @@ results_estimands_names <-
     "approach",
     "auc",
     "auc_se",
-    "auc_ci_lower",
-    "auc_ci_upper",
     "calib_int",
     "calib_int_se",
     "calib_slope",
@@ -57,7 +55,7 @@ apparent_col_names <-
     )
 
 iv_colnames <- 
-  results_estimands_names[12:27]
+  results_estimands_names[12:25]
 
 study_info <- c("dim",
     "shrinkage",

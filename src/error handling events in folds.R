@@ -22,13 +22,14 @@ source("./src/data generation study 1.R")
 # Change the names of each element in the list
 # to be sure it corresponds to the right scenario
 names(s1_data) <- data_files
-df <- s1_data[[1]]
+df <- s1_data[[12]]
 
 #### TESTING SITE FOR ERROR HANDLING
 # Set i and V
-i <- 1
+i <- 12
 V <- 5
 
+study <- s1
 #Preset which model, predictor selection methods and dgm
 model <- study[i, ]$model
 pred_selection <- study[i, ]$pred_selection
@@ -75,46 +76,55 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
     if (any(lapply(seq(V), function(V) var(df[folds[[V]],]$y)) == 0) == TRUE) {
      
       # Find out which fold has no 1:
-      bad_folds <- which(lapply(seq(V), function(V) var(df[folds[[V]],]$y)) == 0)
+      bad_folds_ind <- which(lapply(seq(V), function(V) var(df[folds[[V]],]$y)) == 0)
+      bad_folds <- folds[bad_folds_ind]
       
-      # Remove the folds from the folds:
-      folds <- folds[-c(bad_folds)]
+      # Remove the bad folds from the folds:
+      folds <- folds[-bad_folds_ind]
       V <- V - length(bad_folds)
-      # Turn the data to NA
-      df[-unlist(folds),] <- NA
       
+      # Turn the data to NA
+      df[unlist(bad_folds),] <- NA
+      
+      # And exclude it from the data, keeping row indices intact
+      df <- na.exclude(df)
+     
       # Return informative error message, 
       # adding to any that might have been there before
-      error_info <- paste(error_info, paste0("No events sampled in folds ", paste(bad_folds, collapse = " & ")), sep = " + ")
+      error_info <- paste(error_info, paste0("No events sampled in folds ", paste(bad_folds_ind, collapse = " & ")), sep = " + ")
     
-      }
-    
-    
-    ####### BUILD CHECK FOR EVENTS SAMPLED IN FOLDS ######
+    }
     
     # Getting predictions depending on model used
     .doFit <- function(V, folds, model, pred_selection){ 
+      
+      # Create the training and test folds
+      df_train <- as.data.frame(df[-(which(rownames(df) %in% folds[[V]])),])
+      df_test <-  as.data.frame(df[which(rownames(df) %in% folds[[V]]),])
+      assign("df_train", df_train, envir = .GlobalEnv)
+      assign("df_test", df_test, envir = .GlobalEnv)
       
       # Train/test glm for each fold
       # Fit model depending on scenario
       # And get predicted probabilities and modelmatrix
       if (model == "Firth" & pred_selection == "none") { # If model = Firth , no predictor selection
         
-        fit <- logistf(y ~ ., data = df[-folds[[V]],], flic = T)
-        iv_matrix <- model.matrix(object = fit$formula, data = df[folds[[V]],])
+        # Specifiy model formula (necessary for logistf)
+        model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
+        
+        fit <- logistf(formula = model_form, data = df_train, flic = T)
+        iv_matrix <- model.matrix(object = fit$formula, data = df_test)
         p <- 1 / (1 + exp(-iv_matrix %*% fit$coefficients))
         dgm_par_folds <- dgm_par
         
       } else if (model == "Firth" & pred_selection == "<0.05") { # If model = Firth , backwards predictor selection
         
-        df_train <- as.data.frame(df[-folds[[V]],])
-        assign("df_train", df_train, envir = .GlobalEnv)
-        
         model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
+        
         fit <- logistf(formula = model_form, data = df_train, flic = T)
         fit <- backward(fit, trace = FALSE)
         
-        iv_matrix <- model.matrix(object = fit$formula, data = df[folds[[V]],])
+        iv_matrix <- model.matrix(object = fit$formula, data = df_test)
         p <- 1 / (1 + exp(-iv_matrix %*% fit$coefficients))
         
         # Get the elements of the design generating mechanism that are
@@ -129,9 +139,9 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
         
       } else {
         
-        fit <- glm(y ~ ., family = "binomial", data = df[-folds[[V]],])
-        p <- predict(fit, newdata = df[folds[[V]],] , type = "response")
-        iv_matrix <- model.matrix(object = fit$formula, data = df[folds[[V]],])
+        fit <- glm(y ~ ., family = "binomial", data = df_train)
+        p <- predict(fit, newdata = df_test , type = "response")
+        iv_matrix <- model.matrix(object = fit$formula, data = df_test)
         dgm_par_folds <- dgm_par
         
       }
@@ -141,7 +151,8 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
     
     results <- (lapply(seq(V), .doFit, folds = folds, model = model, pred_selection = pred_selection)) # obtain model results for all folds
     p <- c(unlist(sapply(results, "[[", 1))) # Get out pred values as a single vector
-    p[unlist(folds)] <- p #Re-order pred values, so they are in line with y
+    p[which(rownames(df) %in% unlist(folds))] <- p #Re-order pred values, so they are in line with y
+     
     
     p_per_fold <- lapply(results, "[[", 1) # getting the predictions per fold
     iv_matrix <- lapply(results, "[[", 2) # iv_matrix per fold
@@ -152,6 +163,7 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
     ######################
     
     ## Empty objects to store results
+    auc_folds <- c()
     slope_folds <- c()
     intercept_folds <- c()
     R2_folds <- c()
@@ -161,10 +173,12 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
     # For each fold, calculate calibration intercept & slope, R2, ECI and MAPE
     for (v in 1:V){
       # create object to shorten future code:
-      data <- df[unlist(folds[[v]]),]
+      data <- df[unlist(which(rownames(df) %in% folds[[v]])),]
       ppf <- p_per_fold[[v]]
       dgm_par_ppf <- dgm_par_folds[[v]]
       
+      # AUC for folds:
+      auc_folds[v] <- fastAUC(p = ppf, y = data$y)
       # Calibration slope for folds
       slope_folds[v] <- c(coef(glm(data$y ~ log(ppf/(1-ppf)), family="binomial"))[2])
       # Calibration intercept for folds
@@ -178,33 +192,18 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
       MAPE_folds[v] <- MAPE(p = ppf, iv_matrix = iv_matrix[[v]], dgm_par = dgm_par_ppf)
     }
     
-    ## AUC, function by ledell already gives bias corrected se and ci as well
-    auc_results <- as.vector(unlist(ci.cvAUC(predictions=p, labels=df$y, folds=folds, confidence=0.95)))[-5]
-    names(auc_results) <- c(paste0("AUC_mean_", V, "fcv" ), 
-                            paste0("AUC_se_", V, "fcv"), 
-                            paste0("AUC_ci_lower_", V, "fcv"),
-                            paste0("AUC_ci_upper_", V, "fcv"))
-    
-    ## Get mean and standard error over all other results and store in a single vector:
+    ## Get mean and standard error over all results and store in a single vector:
+    ## AUC
+    auc_results <- c(mean(auc_folds), (sd(auc_folds)/(sqrt(V) - 1)))
     ## Calibration
     intercept <- c(mean(intercept_folds), (sd(intercept_folds)/(sqrt(V) - 1)))
-    names(intercept) <- c(paste0("calib_int_mean_", V, "fcv" ), paste0("calib_int_se_", V, "fcv"))
-    
     slope <-  c(mean(slope_folds), (sd(slope_folds)/(sqrt(V) - 1)))
-    names(slope) <- c(paste0("calib_slope_mean_", V, "fcv" ), paste0("calib_slope_se_", V, "fcv"))
-    
     ## R2 cox snell
     R2 <- c(mean(R2_folds), (sd(R2_folds)/(sqrt(V) - 1)))
-    names(R2) <- c(paste0("R2_mean_", V, "fcv" ), paste0("R2_se_", V, "fcv"))
-    
     ## ECI
     eci <- c(mean(eci_folds), (sd(eci_folds)/(sqrt(V) - 1)))
-    names(eci) <- c(paste0("eci_mean_", V, "fcv" ), paste0("eci_se_", V, "fcv"))
-    
     ## MAPE
     MAPE_results <- c(mean(MAPE_folds), (sd(MAPE_folds)/(sqrt(V) - 1)))
-    names(MAPE_results) <- c(paste0("MAPE_mean_", V, "fcv" ), paste0("MAPE_se_", V, "fcv"))
-    
     
     # If the it is anything other than 10x10 cv:
     if (x10 == FALSE){
@@ -214,17 +213,19 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
     } else {
       
       # If it is 10x10 cv, only keep the raw results of each fold and name them:  
+      names(auc_folds) <- c(rep("auc", length(auc_folds)))
       names(intercept_folds) <- c(rep("intercept", length(intercept_folds)))
       names(slope_folds) <- c(rep("slope", length(slope_folds)))
       names(R2_folds) <- c(rep("R2", length(R2_folds)))
       names(eci_folds) <- c(rep("eci", length(eci_folds)))
       names(MAPE_folds) <- c(rep("MAPE", length(MAPE_folds)))
-      results <- list("auc" = auc_results, 
+      results <- list("auc" = auc_folds, 
                       "intercept" = intercept_folds, 
                       "slope" = slope_folds, 
                       "R2" = R2_folds,
                       "eci" = eci_folds,
-                      "MAPE" = MAPE_folds)
+                      "MAPE" = MAPE_folds,
+                      error_info)
     } # Close else statement (when 10k or 5k CV is used)
     
     return(results)
@@ -251,7 +252,7 @@ get_cv_results_test <- function(study, df, V, studyname) {
     results_cv[i, 'scenario'] <- paste0("Scenario ", i)
     
     # Check for each scenario whether there are events sampled
-    if (str_detect(names(df[[i]]),"Error: No events sampled") == TRUE){
+    if (any(str_detect(names(df[[i]]),"Error: No events sampled") == TRUE)){
       
       # If no events were sampled, then the following will be the result:
       results_cv[i, 'error_info'] <- c("Error: No events sampled")
@@ -339,14 +340,8 @@ get_10x10_results_test <- function(study, df, V, studyname){
                                                         x10 = TRUE), 
                            simplify = F)
       
-      # obtain mean results for auc:
-      auc_results <- rowMeans(sapply(results, "[[", 1))
-      names(auc_results) <- c(paste0("AUC_mean_", V, "x10fcv" ), 
-                              paste0("AUC_se_", V, "x10fcv"), 
-                              paste0("AUC_ci_lower_", V, "x10fcv"),
-                              paste0("AUC_ci_upper_", V, "x10fcv"))
-      
       # Get the results as vectors for each estimand:
+      auc_results <- c(sapply(results, "[[", 1))
       intercept_results <- c(sapply(results, "[[", 2))
       slope_results <- c(sapply(results, "[[", 3))
       R2_results <- c(sapply(results, "[[", 4))
@@ -354,29 +349,24 @@ get_10x10_results_test <- function(study, df, V, studyname){
       MAPE_results <- c(sapply(results, "[[", 6))
       
       ## Get mean and standard error over all other results and store in a single vector:
+      auc_results <- c(mean(auc_results), (sd(auc_results)/(sqrt(V) - 1)))
+      
       ## Calibration
       intercept <- c(mean(intercept_results), (sd(intercept_results)/(sqrt(V) - 1)))
-      names(intercept) <- c(paste0("calib_int_mean_", V, "x10fcv" ), paste0("calib_int_se_", V, "fcv"))
-      
       slope <-  c(mean(slope_results), (sd(slope_results)/(sqrt(V) - 1)))
-      names(slope) <- c(paste0("calib_slope_mean_", V, "x10fcv" ), paste0("calib_slope_se_", V, "fcv"))
       
       ## R2 cox snell
       R2 <- c(mean(R2_results), (sd(R2_results)/(sqrt(V) - 1)))
-      names(R2) <- c(paste0("R2_mean_", V, "x10fcv" ), paste0("R2_se_", V, "fcv"))
-      
+
       ## ECI
       eci <- c(mean(eci_results), (sd(eci_results)/(sqrt(V) - 1)))
-      names(eci) <- c(paste0("eci_mean_", V, "x10fcv" ), paste0("eci_se_", V, "fcv"))
       
       ## MAPE
       MAPE_results <- c(mean(MAPE_results), (sd(MAPE_results)/(sqrt(V) - 1)))
-      names(MAPE_results) <- c(paste0("MAPE_mean_", V, "x10fcv" ), paste0("MAPE_se_", V, "fcv"))
       
-      ###############################################
-      ## DONT FORGET TO CHECK AFTER ERROR HANDLING ##
-      ###############################################
-      error_info <- NA
+      # Taking care of error messages returned for each repetition. 
+      error_info <- paste(c(sapply(results, "[[", 7)), collapse = " + ")
+      error_info <- str_remove_all(error_info, "NA \\+ |NA | \\+ NA")
       
       ## Fill results matrix:
       results_cv[i, which(colnames(results_cv) %in% iv_colnames)] <-
@@ -398,4 +388,5 @@ get_10x10_results_test <- function(study, df, V, studyname){
 }
 
 # 10X10 fold cross-validation 
-results_10x10_cv_test <- get_10x10_results_test(study = s1, df = s1_data, V = 10, studyname = "Study 1")
+results_10x10_cv_test <- get_10x10_results_test(study = s1[c(1:5),], df = s1_data[c(1:5)], V = 10, studyname = "Study 1")
+
