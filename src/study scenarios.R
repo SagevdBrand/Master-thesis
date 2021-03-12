@@ -62,7 +62,7 @@ s1 <- s1 %>% mutate(R2 = case_when(prev == prev1[1] ~ R2[1],
                                    prev == prev1[3] ~ R2[3]))
 
 ### Study scenario sample size ###
-
+test <- pmsampsize(type = "b", parameters = 10, prevalence = prev1[2], rsquared = R2[2], shrinkage = es1[2])$results_table[1,1]
 # Calculate sample size 
 # Using pmsampsize package
 n_1 <- c("e0.05_s0.9" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[1], rsquared = R2[1])$sample_size,
