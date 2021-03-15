@@ -27,6 +27,7 @@ results_estimands_names <-
     "pred_selection",
     "n",
     "expected events",
+    "observed events",
     "approach",
     "auc",
     "auc_se",
@@ -34,6 +35,8 @@ results_estimands_names <-
     "calib_int_se",
     "calib_slope",
     "calib_slope_se",
+    "Tjur",
+    "Tjur_se",
     "R2_CS",
     "R2_CS_se",
     "eci",
@@ -48,6 +51,7 @@ apparent_col_names <-
     "auc",
     "calib_int",
     "calib_slope",
+    "Tjur",
     "R2_CS",
     "eci",
     "mape",
@@ -55,7 +59,7 @@ apparent_col_names <-
     )
 
 iv_colnames <- 
-  results_estimands_names[12:25]
+  results_estimands_names[13:28]
 
 study_info <- c("dim",
     "shrinkage",

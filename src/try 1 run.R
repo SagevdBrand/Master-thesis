@@ -26,19 +26,22 @@
 ## [ ] CREATE DIFFERENT DGM-PAR IN DIFFERENT STUDIES
 
 
-## [ ] IF ERROR OCCURS, MAKE SURE IT CONTInUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
+## [ ] IF ERROR OCCURS, MAKE SURE IT CONTINUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
 
-##      [ ] CHECK FOR VAR(Y) == 0 |SUM(Y) < 8 | N - SUM(Y) < 8  FOR LASSO AND RIDGE REGRESSION
+##      [X] CHECK FOR VAR(Y) == 0 |SUM(Y) < 8 | N - SUM(Y) < 8  FOR LASSO AND RIDGE REGRESSION
 ##      [X] CHECK FOR VAR(LP) == 0 in BE:
 ##            [ ] RETURN HIGHEST VALUE FOR CALIBRATION SLOPE WITHIN THAT SCENARIO
-##      [ ] CHECK FOR VAR(LP) == 0 in LASSO:
+##      [X] CHECK FOR VAR(LP) == 0 in LASSO:
 ##            [ ] RETURN HIGHEST VALUE FOR CALIBRATION SLOPE WITHIN THAT SCENARIO
+
 
 
 ## [ ] FIX SPAN ISSUES WITH LOESS
 
 ## DONE:
+## [X] ADD OBSERVED NUMBER OF EVENTS
+## [X] ADD TJUR (MAKE SURE RESULTS ARE STILL IN RIGHT COLUMNS)
 ## [X] CHECK FOR VAR(LP) == 0
 ## [X] RESULTS IN DATAFRAME:
 ##      [X] ADD SEED
@@ -135,7 +138,7 @@ system.time({for(j in 1:n_sim){
   results_estimands_s1$iteration <- j
   results_estimands_s1$seed <- seed_state[j]
   results_estimands_s1 <- results_estimands_s1 %>% mutate(`expected events` = n * prev)
-  
+  results_estimands_s1$`observed events` <- 
   
   # Saving estimands
   saveRDS(results_estimands_s1, file = paste0(s1_estimands, "s1_estimands_seed_", seed_state[j], ".Rds"))
