@@ -15,8 +15,6 @@
 ##      [ ] ADD COLUMN FOR IV/APP.
 ##      [ ] ADD PERFORMANCE MEASURE (COMPARED TO EXT.)
 
-## [ ] FUNCTION FOR EXTERNAL VALIDATION OF ALL MODELS USED IN SCENARIO - FOR PERFORMANCE MEASURES
-
 ## [ ] BOOTSTRAP ESTIMAND FUNCTION
 
 ## [ ] ADD OPTIONS FOR OTHER MODELS
@@ -25,11 +23,7 @@
 ##      [ ] MACHINE LEARNING -> CODE IS BEING DEVELOPED, BUT WAIT FOR FEEDBACK
 ## [ ] CREATE DIFFERENT DGM-PAR IN DIFFERENT STUDIES
 
-
-## [ ] IF ERROR OCCURS, MAKE SURE IT CONTINUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
-
-##      [X] CHECK FOR VAR(Y) == 0 |SUM(Y) < 8 | N - SUM(Y) < 8  FOR LASSO AND RIDGE REGRESSION
 ##      [X] CHECK FOR VAR(LP) == 0 in BE:
 ##            [ ] RETURN HIGHEST VALUE FOR CALIBRATION SLOPE WITHIN THAT SCENARIO
 ##      [X] CHECK FOR VAR(LP) == 0 in LASSO:
@@ -40,6 +34,8 @@
 ## [ ] FIX SPAN ISSUES WITH LOESS
 
 ## DONE:
+## [X] IF ERROR OCCURS, MAKE SURE IT CONTINUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
+## [X] CHECK FOR VAR(Y) == 0 |SUM(Y) < 8 | N - SUM(Y) < 8  FOR LASSO AND RIDGE REGRESSION
 ## [X] ADD OBSERVED NUMBER OF EVENTS
 ## [X] ADD TJUR (MAKE SURE RESULTS ARE STILL IN RIGHT COLUMNS)
 ## [X] CHECK FOR VAR(LP) == 0
@@ -61,6 +57,7 @@
 ## [X] INTEGRATE CREATE DATA FUNCTION SO WE DONT HAVE THE SAME DATA ALL THE TIME :')
 ## [X] LOOCV FUNCTION or not?
 ## [X] MAKE SURE IT WORKS WITH MORE OR LESS PREDICTORS
+## [X] FUNCTION FOR EXTERNAL VALIDATION OF ALL MODELS USED IN SCENARIO
 
 ########################################
 
@@ -105,8 +102,8 @@ system.time({for(j in 1:n_sim){
   source("./src/validation data generation study 1.R") # Generate data, and save temporarily
   names(s1_val_data) <- val_data_files
   
-  ## Obtain apparent estimands ##
-  results_app <- get_app_results(study = s1, df = s1_data, studyname = "Study 1")
+  ## Obtain apparent and external estimands ##
+  results_app_ext <- get_app_ext_results(study = s1, df = s1_data, df_val = s1_val_data, studyname = "Study 1")
   
   ## Obtain internal validation estimands ##
   # 10 fold cross-validation
@@ -119,12 +116,7 @@ system.time({for(j in 1:n_sim){
   results_10x10_cv <- get_10x10_results(study = s1, df = s1_data, V = 10, studyname = "Study 1")
   
   # Bootstrap 3 varieties in one go
-  
-  
-  ## Obtain external validation estimands
-  
-  
-  # External validation
+
   
   #################################################
   ########## Wrangling into nice format ###########
@@ -132,7 +124,7 @@ system.time({for(j in 1:n_sim){
   
   ## Bind all results together 
   results_estimands_s1 <-
-    rbind(results_app, results_10_cv, results_5_cv, results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+    rbind(results_app_ext, results_10_cv, results_5_cv, results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
   
   ## Filling in missing details:
   results_estimands_s1$iteration <- j
