@@ -38,7 +38,20 @@ dgm_par <- c(study[i, ]$par1,
              rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))  # noise
 
 #################################################################################################
+######## Handling errors/warnings #########
+## from https://stackoverflow.com/questions/3903157/how-can-i-check-whether-a-function-call-results-in-a-warning
 
+ErrorsWarnings <- function(expr) {
+  
+  W <- NULL
+  
+  w_handler <- function(w){
+    W <<- w
+    invokeRestart("muffleWarning")
+  }
+  
+  list(value = withCallingHandlers(tryCatch(expr, error = function(e) e), warning = w_handler), warning = W)
+} 
 
 get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALSE, TRUE)){
   
@@ -46,6 +59,7 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
   error_info <- NA
   original_V <- V
   
+  errors_warnings <- ErrorsWarnings({
     # Create Balanced CV folds (stratify by outcome)
     .cvFoldsB <- function(Y, V) {  
       
@@ -86,7 +100,7 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
      
       # Return informative error message, 
       # adding to any that might have been there before
-      error_info <- paste(error_info, paste0("No events sampled in folds ", paste(bad_folds_ind, collapse = " & ")), sep = " + ")
+      error_info <- paste(toString(error_info), paste0("No events sampled in folds ", paste(bad_folds_ind, collapse = " & ")), sep = " + ")
     
     } # Close error handling folds without events 
       # (should not happen because of stratified folds, but just to be sure)
@@ -120,8 +134,9 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
         fit <- logistf(formula = model_form, data = df_train, flic = T)
         fit <- backward(fit, trace = FALSE)
         
-        if ((var(fit$linear.predictors) == 0) == TRUE) {
-          error_info <- paste(error_info, paste0("No predictors selected -> no calibration slope"), sep = " + ")
+        if (var(fit$linear.predictors) == 0) {
+          
+          error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
         }
         
         iv_matrix <- model.matrix(object = fit$formula, data = df_test)
@@ -138,30 +153,40 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
         dgm_par_folds <- dgm_par[ind]
         
       # If using ML   
-      } else if (model == "OLS") {
+      } else if (model == "ML") {
         
         fit <- glm(y ~ ., family = "binomial", data = df_train)
+        
+        # Check for separation
+        if(any(sqrt(diag(summary(fit)$cov.unscaled)*summary(fit)$dispersion) > 70)){
+          error_info <- paste(toString(error_info), paste0("Data separation has occured"), sep = " + ")
+          }
+        
         p <- as.matrix(predict(fit, newdata = df_test , type = "response"))
         iv_matrix <- model.matrix(object = fit$formula, data = df_test)
         dgm_par_folds <- dgm_par
       
-      # If the model is LASSO  
-      } else if (model == "LASSO") {
+      # If the model is Lasso  
+      } else if (model == "Lasso") {
        
         # Make sure that there are at least 8 events or no-events:
-        if ((sum(df_train$y) <= 8) == TRUE){
+        if ((sum(df_train$y) > 7 | sum(1-df_train$y) > 7) == FALSE){
+          
           fit <-  Pen_reg_VC(df = df_train, alpha = 0, nfolds = nrow(df_train))
-          error_info <- paste(error_info, paste0("too little events for tuning -> LOOCV"), sep = " + ")
-        } else {
+          error_info <- paste(toString(error_info), paste0("too few (non-)events for tuning -> LOOCV"), sep = " + ")
+        
+          } else {
+          
           fit <-  Pen_reg_VC(df = df_train, alpha = 0, nfolds = 10)
-        } # close error handling 
+        
+          } # close error handling 
         
         ## Check whether predictors have been selected
         # Create linear predictor
         lp <- predict(fit, newdata = df_train, s = "lambda.min") 
         
-        if ((var(lp) == 0) == TRUE) {
-          error_info <- paste(error_info, paste0("No predictors selected -> no calibration slope"), sep = " + ")
+        if (var(lp) == 0) {
+          error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
         }
         
         p <- predict(fit, newdata = df_test, s = "lambda.min", type = "response")
@@ -191,11 +216,13 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
     } else if (model == "Ridge") {
       
       # Make sure that there are at least 8 events or no-events:
-      if ((sum(df_train$y) <= 8) == TRUE){
+      if ((sum(df_train$y) <= 8 | sum(1-df_train$y) <= 8) == TRUE){
         fit <-  Pen_reg_VC(df = df_train, alpha = 0, nfolds = nrow(df_train))
-        error_info <- paste(error_info, paste0("too little events for tuning -> LOOCV"), sep = " + ")
-      } else {
-        fit <-  Pen_reg_VC(df = df_train, alpha = 0, nfolds = 10)
+        error_info <- paste(toString(error_info), paste0("too few (non-)events for tuning -> LOOCV"), sep = " + ")
+      
+        } else {
+        
+          fit <-  Pen_reg_VC(df = df_train, alpha = 0, nfolds = 10)
       } # close error handling 
       
       # Get the predictions 
@@ -263,7 +290,8 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
       # MAPE for folds
       MAPE_folds[v] <- MAPE(p = ppf, iv_matrix = iv_matrix[[v]], dgm_par = dgm_par_ppf)
     }
-    
+
+  
     ## Get mean and standard error over all results and store in a single vector:
     ## AUC
     auc_results <- c(mean(auc_folds), (sd(auc_folds)/(sqrt(V))))
@@ -279,6 +307,23 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
     ## MAPE
     MAPE_results <- c(mean(MAPE_folds), (sd(MAPE_folds)/(sqrt(V))))
     
+    
+  }) # Close ErrorsWarnings
+  
+  # If there are warnings, paste those in the error_info
+  if (!is.null(errors_warnings$warning)) {
+  
+    error_info <- paste(toString(error_info), toString(errors_warnings$warning), sep = " + ")
+  
+  }  
+  # If there are error messages print this in the error_info
+  if ("message" %in% errors_warnings$value) {
+    
+    error_info <- paste(toString(error_info), toString(test$value$message), sep = " + ")
+    
+  }
+  
+  
     # If the it is anything other than 10x10 cv:
     if (x10 == FALSE){
       
@@ -303,7 +348,7 @@ get_cv_estimands_test <- function(df, model, dgm_par, pred_selection, V, x10 = c
                       "MAPE" = MAPE_folds,
                       error_info)
     } # Close else statement (when 10k or 5k CV is used)
-    
+  
     return(results)
     
 } # Close function

@@ -29,20 +29,29 @@ V = 5
     return(folds)
   }
   
-  foldsb <- cvFoldsB(Y = df$y, V = V)
+  folds <- cvFoldsB(Y = df$y, V = V)
   
   ###################################
   ## Testing machine learning code ##
   ###################################
+machine_learning <- function(folds, V){
+  
+  df_train <- as.data.frame(df[-(which(rownames(df) %in% folds[[V]])),])
+  df_test <-  as.data.frame(df[which(rownames(df) %in% folds[[V]]),])
   
   ###################
   ## Random Forest ##
   ###################
-  rf_grid <- expand.grid(.mtry = seq(1, 10, by = 1))
+  rf_grid <- expand.grid(.mtry = seq(1, ncol(df_train)-1, by = 1))
   
-  system.time(train_rf <- caret::train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'rf', tuneGrid = rf_grid, trControl = trainControl(method = "cv")))
-  p_rf <- predict(train_rf$finalModel, newdata = df[foldsb[[V]],], type = "response")
-  fastAUC(p = p_rf, y = df[foldsb[[V]],]$y)
+  system.time(train_rf <- caret::train(as.factor(y) ~.,
+                                       data = df_train, 
+                                       method = 'rf',
+                                       tuneGrid = rf_grid,
+                                       trControl = trainControl(method = "cv")
+                                       ))
+  p_rf <- predict(train_rf$finalModel, newdata = df_test, type = "response")
+  print(fastAUC(p = p_rf, y = df_test$y))
   
   
   ##########
@@ -50,9 +59,14 @@ V = 5
   ##########
   rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
   
-  system.time(train_rpart <- caret::train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'rpart', tuneGrid = rpart_grid, trControl = trainControl(method = "cv")))
-  p_rpart <- predict(train_rpart$finalModel, newdata = df[foldsb[[V]],], type = "prob")
-  fastAUC(p = p_rpart, y = df[foldsb[[V]],]$y)
+  system.time(train_rpart <- caret::train(as.factor(y) ~.,
+                                          data = df_train,
+                                          method = 'rpart',
+                                          tuneGrid = rpart_grid,
+                                          trControl = trainControl(method = "cv")))
+  
+  p_rpart <- predict(train_rpart$finalModel, newdata = df_test, type = "prob")
+  print(fastAUC(p = p_rpart, y = df_test$y))
   
  
   #########
@@ -64,11 +78,16 @@ V = 5
                           .sigma = seq(0.001, 1, length.out = 10))
   
   # Data are scaled internally!
-  system.time(fit_svm <- caret::train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'svmRadial', tuneGrid = svm_grid, trControl = trainControl(method = "cv")))
+  system.time(fit_svm <- caret::train(as.factor(y) ~., 
+                                      data = df_train,
+                                      method = 'svmRadial',
+                                      tuneGrid = svm_grid,
+                                      trControl = trainControl(method = "cv"),
+                                      preProcess = c("center", "scale")))
   
   ##  THIS DOES NOT MAKE SENSE OT ME!! ##
-  p_svm <- kernlab::predict(fit_svm$finalModel, newdata = df[foldsb[[V]],-ncol(df)], type = "response")
-  fastAUC(p = p_svm, y = df[foldsb[[V]],]$y)
+  p_svm <- kernlab::predict(fit_svm$finalModel, newdata = df_test[,-ncol(df)], type = "response")
+  print(fastAUC(p = p_svm, y = df_test$y))
   
   #####################
   ## Neural networks ##
@@ -82,10 +101,21 @@ V = 5
   nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
                           decay = seq(from = 0.1, to = 2, by = 0.4))
   
-  system.time(fit_nnet <- caret::train(as.factor(y) ~., data = df[-foldsb[[V]],], method = 'nnet', tuneGrid = nnet_grid, trace = F, trControl = trainControl(method = "cv")))
-  p_nnet <- predict(fit_nnet$finalModel, newdata = df[foldsb[[V]],])
-  fastAUC(p = p_nnet, y = df[foldsb[[V]],]$y)
+  system.time(fit_nnet <- caret::train(as.factor(y) ~., 
+                                       data = df_train, 
+                                       method = 'nnet', 
+                                       tuneGrid = nnet_grid, 
+                                       trace = F, 
+                                       trControl = trainControl(method = "cv"),
+                                       preProcess = c("center", "scale")))
   
- 
+  p_nnet <- predict(fit_nnet$finalModel, newdata = df_test)
+  print(fastAUC(p = p_nnet, y = df_test$y))
+  
+
+}
+
+results <- system.time(lapply(seq(V), machine_learning, folds = folds))
+
  
  
