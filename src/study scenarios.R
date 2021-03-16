@@ -26,7 +26,7 @@ source("./src/data generation functions.R")
 # Settings that do not depend on calculations
 AUC1 <- 0.75
 dim1 <- 10
-es1 <- c(0.9,0.6,0.3)
+n_setting1 <- c("n/2", "n", "n*2")
 prev1 <- c(0.05, 0.2, 0.5)
 model1 <- "Firth"
 pred_sel1 <- c("none", "<0.05")
@@ -36,7 +36,7 @@ s1 <-
   expand.grid(
     AUC = AUC1,
     dim = dim1,
-    shrinkage = es1,
+    n_setting = n_setting1,
     prev = prev1,
     model = model1,
     pred_selection = pred_sel1,
@@ -61,45 +61,39 @@ s1 <- s1 %>% mutate(R2 = case_when(prev == prev1[1] ~ R2[1],
                                    prev == prev1[2] ~ R2[2],
                                    prev == prev1[3] ~ R2[3]))
 
-### Study scenario sample size ###
-test <- pmsampsize(type = "b", parameters = 10, prevalence = prev1[2], rsquared = R2[2], shrinkage = es1[2])$results_table[1,1]
 # Calculate sample size 
 # Using pmsampsize package
-n_1 <- c("e0.05_s0.9" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[1], rsquared = R2[1])$sample_size,
-                "e0.2_s0.9" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[2], rsquared = R2[2])$sample_size,
-                "e0.5_s0.9" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[3], rsquared = R2[3])$sample_size,
-                "e0.05_s0.6" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[1], rsquared = R2[1], shrinkage = es1[2])$sample_size,
-                "e0.2_s0.6" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[2], rsquared = R2[2], shrinkage = es1[2])$sample_size,
-                "e0.5_s0.6" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[3], rsquared = R2[3], shrinkage = es1[2])$sample_size,
-                "e0.05_s0.3" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[1], rsquared = R2[1], shrinkage = es1[3])$sample_size,
-                "e0.2_s0.3" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[2], rsquared = R2[2], shrinkage = es1[3])$sample_size,
-                "e0.5_s0.3" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[3], rsquared = R2[3], shrinkage = es1[3])$sample_size)
-
+n_1 <- c("e0.05" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[1], rsquared = R2[1])$sample_size,
+                "e0.2" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[2], rsquared = R2[2])$sample_size,
+                "e0.5" = pmsampsize(type = "b", parameters = 10, prevalence = prev1[3], rsquared = R2[3])$sample_size
+         )
+                
 # Bind the n to the study scenarios
 s1 <- s1 %>%
   mutate(
-    n = case_when(
-      prev == 0.05 & shrinkage == 0.9 ~ n_1['e0.05_s0.9'],
-      prev == 0.05 & shrinkage == 0.6 ~ n_1['e0.05_s0.6'],
-      prev == 0.05 & shrinkage == 0.3 ~ n_1['e0.05_s0.3'],
-      prev == 0.2 & shrinkage == 0.9 ~ n_1['e0.2_s0.9'],
-      prev == 0.2 & shrinkage == 0.6 ~ n_1['e0.2_s0.6'],
-      prev == 0.2 & shrinkage == 0.3 ~ n_1['e0.2_s0.3'],
-      prev == 0.5 & shrinkage == 0.9 ~ n_1['e0.5_s0.9'],
-      prev == 0.5 & shrinkage == 0.6 ~ n_1['e0.5_s0.6'],
-      prev == 0.5 & shrinkage == 0.3 ~ n_1['e0.5_s0.3'],
+    n = ceiling(case_when(
+      prev == 0.05 & n_setting1 == "n/2" ~ n_1["e0.05"]/2,
+      prev == 0.05 & n_setting1 == "n" ~ n_1["e0.05"],
+      prev == 0.05 & n_setting1 == "n*2" ~ n_1["e0.05"]*2,
+      prev == 0.2 & n_setting1 == "n/2" ~ n_1["e0.2"]/2,
+      prev == 0.2 & n_setting1 == "n" ~ n_1["e0.2"],
+      prev == 0.2 & n_setting1 == "n*2" ~ n_1["e0.2"]*2,
+      prev == 0.5 & n_setting1 == "n/2" ~ n_1["e0.5"]/2,
+      prev == 0.5 & n_setting1 == "n" ~ n_1["e0.5"],
+      prev == 0.5 & n_setting1 == "n*2" ~ n_1["e0.5"]*2,
       TRUE ~ NA_real_
       )
     )
+    )
 
-# Remove attributes of 'n'
+# Remove attributes of "n"
 attr(s1$n, "ATT") <- NULL
 
 ### Coefficients ###
 
 ## Development data for coefficients
 # setting n to develop betas on. 
-n <- 30000 #                                                        
+n <- 30000                                                       
 
 # For study 1, the number of candidate
 # predictors is the same across all scenarios.
@@ -160,14 +154,24 @@ write_rds(s1, file = study_1_settings)
 ## Data gen mechanism
 AUC2 <- 0.75
 dim2 <- c(6, 30, 60)
-es2 <- c(0.3,0.6,0.9)
+n_setting2 <- c("n/2", "n", "n*2")
 prev2 <- 0.2
+model2 <- "Firth"
+pred_sel2 <- c("none", "<0.05")
+noise_2 <- c("50%", "0")
 
 ## Models used:
 model2 <-  "Firth"
 
 ## all combinations:
-s2 <- expand.grid(AUC = AUC2, prev = prev2, dim = dim2, shrinkage = es2, model = models2, KEEP.OUT.ATTRS = F)
+s2 <- expand.grid(AUC = AUC2, 
+                  prev = prev2, 
+                  dim = dim2,
+                  n_setting = n_setting2, 
+                  noise = noise_2, 
+                  model = model2, 
+                  pred_sel = pred_sel2, 
+                  KEEP.OUT.ATTRS = F)
 
 #################
 ## Expected R2 ##
@@ -179,12 +183,32 @@ s2$R2 <- R2[2]
 ## Actual sample size ##
 ########################
 
-# at_n_10x_e.2 <- pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = R2[2])$sample_size
-# at_n_32x_e.2 <- pmsampsize(type = "b", parameters = 33, prevalence = 0.2, rsquared = R2[2])$sample_size
-# at_n_60x_e.2 <- pmsampsize(type = "b", parameters = 60, prevalence = 0.2, rsquared = R2[2])$sample_size
-# below_n_10x_e.2 <- ceiling(0.8 * at_n_10x_e.2)
-# below_n_32x_e.2 <- ceiling(0.8 * at_n_32x_e.2)
-# below_n_60x_e.2 <- ceiling(0.8 * at_n_60x_e.2)
+n_2 <- c("dim_6" = pmsampsize(type = "b", parameters = 6, prevalence = prev2, rsquared = R2[2])$sample_size,
+         "dim_30" = pmsampsize(type = "b", parameters = 30, prevalence = prev2, rsquared = R2[2])$sample_size,
+         "dim_60" = pmsampsize(type = "b", parameters = 60, prevalence = prev2, rsquared = R2[2])$sample_size
+         )
+         
+
+s2 <- s2 %>%
+  mutate(
+    n = ceiling(case_when(
+      n_setting1 == "n/2" & dim == 6 ~ n_1["dim_6"]/2,
+      n_setting1 == "n"   & dim == 6 ~ n_1["dim_6"],
+      n_setting1 == "n*2" & dim == 6 ~ n_1["dim_6"]*2,
+      n_setting1 == "n/2" & dim == 30 ~ n_1["dim_30"]/2,
+      n_setting1 == "n"   & dim == 30 ~ n_1["dim_30"],
+      n_setting1 == "n*2" & dim == 30 ~ n_1["dim_30"]*2,
+      n_setting1 == "n/2" & dim == 60 ~ n_1["dim_60"]/2,
+      n_setting1 == "n"   & dim == 60 ~ n_1["dim_60"],
+      n_setting1 == "n*2" & dim == 60 ~ n_1["dim_60"]*2,
+      TRUE ~ NA_real_
+    )
+    )
+  )
+
+
+# Remove attributes of "n"
+attr(s2$n, "ATT") <- NULL
 
 
 #####################
@@ -193,15 +217,13 @@ s2$R2 <- R2[2]
 
 ## Data gen mechanism
 AUC3 <- 0.75
-dim3 <- 10
-n3 <- as.factor(c("at", "below"))
+dim3 <- 30
+n_setting3 <- c("n/2", "n", "n*2")
 prev3 <- 0.2
-
-## Models combinations:
-models3 <-  as.factor(c("OLS", "Ridge", "Firth", "LASSO", "Elastic Net", "SVM", "ANN", "RF"))
+models3 <- c("ML", "Firth", "Ridge", "Lasso", "CART", "ANN", "SVM", "RF")
 
 ## all combinations:
-s3 <- expand.grid(AUC = AUC3, prev = prev3, dim = dim3, n_state = n3, model = models3, KEEP.OUT.ATTRS = F)
+s3 <- expand.grid(AUC = AUC3, prev = prev3, dim = dim3, n_settings = n_setting3, model = models3, KEEP.OUT.ATTRS = F)
 
 #################
 ## Expected R2 ##

@@ -9,6 +9,9 @@
 ## [ ] IMPLEMENT STUDY 3 FOR ESTIMANDS
 ## [ ] IMPLEMENT STUDY 4 FOR ESTIMANDS
 
+## [ ] OBTAIN DATA FOR STUDY 2
+## [ ] OBTAIN DATA FOR STUDY 3
+
 ## [ ] PERFORMANCE MEASURES IN DATAFRAME
 ##      [ ] ADD SEED
 ##      [ ] ADD STUDY SCENARIO
@@ -18,9 +21,8 @@
 ## [ ] BOOTSTRAP ESTIMAND FUNCTION
 
 ## [ ] ADD OPTIONS FOR OTHER MODELS
-##      [ ] RIDGE -> CODE IS READY, ONLY NEEDS IMPLEMENTATION
-##      [ ] LASSO -> CODE IS READY ONLY NEEDS IMPLEMENTATION
-##      [ ] MACHINE LEARNING -> CODE IS BEING DEVELOPED, BUT WAIT FOR FEEDBACK
+##      [ ] MACHINE LEARNING -> CODE IS BEING DEVELOPED
+
 ## [ ] CREATE DIFFERENT DGM-PAR IN DIFFERENT STUDIES
 
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
@@ -28,13 +30,18 @@
 ##            [ ] RETURN HIGHEST VALUE FOR CALIBRATION SLOPE WITHIN THAT SCENARIO
 ##      [X] CHECK FOR VAR(LP) == 0 in LASSO:
 ##            [ ] RETURN HIGHEST VALUE FOR CALIBRATION SLOPE WITHIN THAT SCENARIO
+##      [ ] CHECK FOR CONVERGENCE ISSURES 
 
-
-
-## [ ] FIX SPAN ISSUES WITH LOESS
+## [ ] FIX SPAN ISSUES WITH LOESS -> MAKE SPAN WIDER
 
 ## DONE:
-## [X] IF ERROR OCCURS, MAKE SURE IT CONTINUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
+## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
+##      [X] IF ERROR OCCURS, MAKE SURE IT CONTINUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
+##      [x] cHECK FOR SEPARATION ISSUES
+##            [x] FOR ML
+## [X] RIDGE -> CODE IS READY, ONLY NEEDS IMPLEMENTATION
+## [X] LASSO -> CODE IS READY ONLY NEEDS IMPLEMENTATION
+
 ## [X] CHECK FOR VAR(Y) == 0 |SUM(Y) < 8 | N - SUM(Y) < 8  FOR LASSO AND RIDGE REGRESSION
 ## [X] ADD OBSERVED NUMBER OF EVENTS
 ## [X] ADD TJUR (MAKE SURE RESULTS ARE STILL IN RIGHT COLUMNS)
@@ -77,7 +84,7 @@ s1 <- read_rds(study_1_settings)
 source("./src/validation data generation study 1.R") # Have it run at least once, so that there are files in the folder.
 val_data_files <- list.files(path = study_1_val_data, recursive = T, full.names = F)
 
-source("./src/validation data generation study 1.R") # Have it run at least once, so that there are files in the folder.
+source("./src/data generation study 1.R") # Have it run at least once, so that there are files in the folder.
 data_files <- list.files(path = study_1_data, recursive = T, full.names = F) # get the data names
 
 #########################################################
@@ -130,7 +137,7 @@ system.time({for(j in 1:n_sim){
   results_estimands_s1$iteration <- j
   results_estimands_s1$seed <- seed_state[j]
   results_estimands_s1 <- results_estimands_s1 %>% mutate(`expected events` = n * prev)
-  results_estimands_s1$`observed events` <- 
+  
   
   # Saving estimands
   saveRDS(results_estimands_s1, file = paste0(s1_estimands, "s1_estimands_seed_", seed_state[j], ".Rds"))
