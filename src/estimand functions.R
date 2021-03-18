@@ -733,7 +733,7 @@ get_cv_results <- function(study, df, V, studyname) {
       # noise contribution, and therefore dgm settings
       if (study[i, ]$noise == "default"){
         dgm_par <-
-          c(study[i, ]$par11, 
+          c(study[i, ]$par1, 
             rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)), 
             rep(study[i, ]$par2, round(0.5 *  study[i, ]$dim)), 
             rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))
@@ -812,7 +812,7 @@ get_10x10_results <- function(study, df, V, studyname){
       # noise contribution, and therefore dgm settings
       if (study[i, ]$noise == "default"){
         dgm_par <-
-          c(study[i, ]$par11, 
+          c(study[i, ]$par1, 
             rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)), 
             rep(study[i, ]$par2, round(0.5 *  study[i, ]$dim)), 
             rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))
