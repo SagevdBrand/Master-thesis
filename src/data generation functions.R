@@ -81,24 +81,39 @@ pseudo_Rsqrs <- function(p, y){
 ## Defining a function to get the sum of 
 ## squared differences between the preferred and observed 
 ## values of both the R^2CS and prevalence.
-dist_R2_prev <- function(par,pref_R2, pref_prev){
+dist_R2_prev <- function(par,pref_R2, pref_prev, noise_contrib = c("default_dgm","none", "half"), n_pred){
   # par is a vector with initial guesses for both
   # the intercept and the beta1-3 coefficients.
-  # However since beta1-3 have been restricted (half is strong, other half weak)
+  # However since beta1-3 have been restricted
   # only one value is necessary.
-  
+  if(noise_contrib == "default"){
+    dgm_par <-
+      c(par[1], 
+        rep(par[2] * 3, round(0.3 * n_pred)), 
+        rep(par[2], round(0.5 *  n_pred)), 
+        rep(par[2] * 0, round(0.2 * n_pred)))
+  }
   # Providing the beta0 and beta1-3 as specified in the par object. 
-  # Half of the predictors is strong
-  dgm_par <-
-    c(par[1], 
-      rep(par[2] * 3, round(0.3 * n_pred)),  # strong
-      rep(par[2], round(0.5 *  n_pred)),  # medium
-      rep(par[2] * 0, round(0.2 * n_pred))) # noise
-
+  if (noise_contrib == "half"){
+    dgm_par <-
+      c(par[1], 
+        rep(par[2] * 3, round(1/6 * n_pred)), # strong
+        rep(par[2], round(2/6 *  n_pred)),    # weak
+        rep(par[2] * 0, round(3/6 * n_pred))) # noise
+  } 
+  
+  if (noise_contrib == "none"){
+    dgm_par <-
+      c(par[1], 
+        rep(par[2] * 3, round(1/6 * n_pred)), # strong
+        rep(par[2], round(5/6 *  n_pred))     # weak
+      )
+  }
+  
   # Obtain values for y based on Bernoulli distribution, with input p
   p <- 1/(1+exp(-dm %*% dgm_par))
   y <- as.numeric(p > runif(length(p))) 
-
+  
   # Obtain observed values of R2 and 
   # average predicted probability of an event
   
@@ -115,7 +130,7 @@ dist_R2_prev <- function(par,pref_R2, pref_prev){
 ###############################
 
 # function to optimize beta coefficients
-optim_beta <- function(prev_scenario, R2_scenario){
+optim_beta <- function(prev_scenario, R2_scenario, noise_contrib = c("default", "none", "half"), n_pred){
   
   # depending on predictor effects and the prevalence, start with different initial coefficients
   # With trial and error, it was discovered that the optimization would get
@@ -126,8 +141,8 @@ optim_beta <- function(prev_scenario, R2_scenario){
     par_i <- c(-1.66, 0.13)
   } else {
     par_i <- c(0.01, 0.13)
-    }
-
+  }
+  
   # Optimizing the dist_R2_prev to determine the beta coefficients for which the squared distance 
   # between the observed and preferred values of R2 and prevalence are minimal. 
   # par_i are just initial values for the coefficients. 
@@ -135,10 +150,11 @@ optim_beta <- function(prev_scenario, R2_scenario){
   #### 20 repetitions #####
   results <- replicate(n = 20, 
                        optim(par_i, 
-                             dist_R2_prev,
+                             dist_R2_prev_s2,
                              pref_R2 = R2_scenario,
-                             pref_prev = prev_scenario
-                             ),
+                             pref_prev = prev_scenario,
+                             noise_contrib = noise_contrib
+                       ),
                        simplify = F)
   # Computation time is about 1 minute
   
@@ -155,13 +171,31 @@ optim_beta <- function(prev_scenario, R2_scenario){
 
 ## To check whether the coefficients as given by optim()
 ## return the desired C-stat and Prevalence
-checking <- function(par){
-
-  dgm_par <-
-    c(par[1], 
-      rep(par[2] * 3, round(0.3 * n_pred)), 
-      rep(par[2], round(0.5 *  n_pred)), 
-      rep(par[2] * 0, round(0.2 * n_pred)))
+checking <- function(par, noise_contrib = c("default","none", "half"), n_pred){
+  
+  if(noise_contrib == "default"){
+    dgm_par <-
+      c(par[1], 
+        rep(par[2] * 3, round(0.3 * n_pred)), 
+        rep(par[2], round(0.5 *  n_pred)), 
+        rep(par[2] * 0, round(0.2 * n_pred)))
+  }
+  
+  if (noise_contrib == "half"){
+    dgm_par <-
+      c(par[1], 
+        rep(par[2] * 3, round(1/6 * n_pred)), # strong
+        rep(par[2], round(2/6 *  n_pred)),    # weak
+        rep(par[2] * 0, round(3/6 * n_pred))) # noise
+  } 
+  
+  if (noise_contrib == "none"){
+    dgm_par <-
+      c(par[1], 
+        rep(par[2] * 3, round(1/6 * n_pred)), # strong
+        rep(par[2], round(5/6 *  n_pred))     # weak
+      )
+  }
   
   # Obtain values for y based on uniform distribution, with input p
   p <- 1/(1+exp(-dm %*% dgm_par))
@@ -174,14 +208,31 @@ checking <- function(par){
 }
 
 # Same idea as the checking function, however, using the validation data:
-checking_val <- function(par){
+checking_val <- function(par, noise_contrib = c("default", "none", "half"), n_pred){
   
-  # Half strong
-  dgm_par_val <- c(par[1], 
-                   rep(par[2] * 3, round(0.3 * n_pred)), 
-                   rep(par[2], round(0.5 *  n_pred)), 
-                   rep(par[2] * 0, round(0.2 * n_pred)))
+  if(noise_contrib == "default"){
+    dgm_par_val <-
+      c(par[1], 
+        rep(par[2] * 3, round(0.3 * n_pred)), 
+        rep(par[2], round(0.5 *  n_pred)), 
+        rep(par[2] * 0, round(0.2 * n_pred)))
+  }
   
+  if (noise_contrib == "half"){
+    dgm_par_val <-
+      c(par[1], 
+        rep(par[2] * 3, round(1/6 * n_pred)), # strong
+        rep(par[2], round(2/6 *  n_pred)),    # weak
+        rep(par[2] * 0, round(3/6 * n_pred))) # noise
+  } 
+  
+  if (noise_contrib == "none"){
+    dgm_par_val <-
+      c(par[1], 
+        rep(par[2] * 3, round(1/6 * n_pred)), # strong
+        rep(par[2], round(5/6 *  n_pred))     # weak
+      )
+  }
   # Obtain values for y based on uniform distribution, with input p
   p_val <- 1/(1+exp(-dm_val %*% dgm_par_val))
   y_val <- as.numeric(p_val > runif(length(p_val)))
@@ -229,12 +280,31 @@ generate_data <- function(scenario, validation = c(TRUE, FALSE)){
         # Putting the above in a data matrix, including intercept
         dm <- cbind(1, X)
         
-        # Adding the data generating parameters as specified in each scenario
-        dgm_par <- c(s_list$par1, 
-                     rep(s_list$par2 * 3, round(0.3 * s_list$dim)),
-                     rep(s_list$par2, round(0.5 * s_list$dim)),
-                     rep(0, round(0.2 * s_list$dim))
-        ) 
+        # Obtain dgm, depending on the dimensionality,
+        # noise contribution, and therefor dgm settings
+        if (s_list$noise == "default"){
+          dgm_par <-
+            c(s_list$par1, 
+              rep(s_list$par2 * 3, round(0.3 * s_list$dim)), 
+              rep(s_list$par2, round(0.5 *  s_list$dim)), 
+              rep(s_list$par2 * 0, round(0.2 * s_list$dim)))
+        }
+        
+        if (s_list$noise == "half"){
+          dgm_par <-
+            c(s_list$par1, 
+              rep(s_list$par2 * 3, round(1/6 * s_list$dim)), # strong
+              rep(s_list$par2, round(2/6 *  s_list$dim)),    # weak
+              rep(s_list$par2 * 0, round(3/6 * s_list$dim))) # noise
+        } 
+        
+        if (s_list$noise == "none"){
+          dgm_par <-
+            c(s_list$par1, 
+              rep(s_list$par2 * 3, round(1/6 * s_list$dim)), # strong
+              rep(s_list$par2, round(5/6 *  s_list$dim))     # weak
+            )
+        }
         
         # Obtain values for y based on Bernoulli distribution, with input p
         p <- 1/(1+exp(-dm %*% dgm_par))
@@ -272,6 +342,8 @@ generate_data <- function(scenario, validation = c(TRUE, FALSE)){
   return(data_in_lists)
   
 }
+
+
 
 ####################################
 ####################################

@@ -7,10 +7,6 @@
 ## [x] IMPLEMENT STUDY 1 FOR ESTIMANDS
 ## [ ] IMPLEMENT STUDY 2 FOR ESTIMANDS
 ## [ ] IMPLEMENT STUDY 3 FOR ESTIMANDS
-## [ ] IMPLEMENT STUDY 4 FOR ESTIMANDS
-
-## [ ] OBTAIN DATA FOR STUDY 2
-## [ ] OBTAIN DATA FOR STUDY 3
 
 ## [ ] PERFORMANCE MEASURES IN DATAFRAME
 ##      [ ] ADD SEED
@@ -23,22 +19,25 @@
 ## [ ] ADD OPTIONS FOR OTHER MODELS
 ##      [ ] MACHINE LEARNING -> CODE IS BEING DEVELOPED
 
-## [ ] CREATE DIFFERENT DGM-PAR IN DIFFERENT STUDIES
-
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
 ##      [X] CHECK FOR VAR(LP) == 0 in BE:
 ##            [ ] RETURN HIGHEST VALUE FOR CALIBRATION SLOPE WITHIN THAT SCENARIO
 ##      [X] CHECK FOR VAR(LP) == 0 in LASSO:
 ##            [ ] RETURN HIGHEST VALUE FOR CALIBRATION SLOPE WITHIN THAT SCENARIO
-##      [ ] CHECK FOR CONVERGENCE ISSURES 
 
-## [ ] FIX SPAN ISSUES WITH LOESS -> MAKE SPAN WIDER
 
 ## DONE:
+## [X] CREATE DIFFERENT DGM-PAR IN DIFFERENT STUDIES
+## [X] FIX SPAN ISSUES WITH LOESS -> MAKE SPAN WIDER
+## [X] OBTAIN DATA FOR STUDY 2
+## [X] OBTAIN DATA FOR STUDY 3
+## [x] ADD MAPE 
+## [x] ADD RMSPE
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
 ##      [X] IF ERROR OCCURS, MAKE SURE IT CONTINUES AND JUST RETURNS AN ERROR WITHIN THE RESULTS VECTOR
 ##      [x] cHECK FOR SEPARATION ISSUES
 ##            [x] FOR ML
+##      [X] CHECK FOR CONVERGENCE ISSUES 
 ## [X] RIDGE -> CODE IS READY, ONLY NEEDS IMPLEMENTATION
 ## [X] LASSO -> CODE IS READY ONLY NEEDS IMPLEMENTATION
 
@@ -74,18 +73,10 @@
 ############################################################################
 
 ## Libraries, file paths and functions
-source("./src/setup.R")
+source("./src/study scenarios.R")
 source("./src/estimand functions.R")
-
-## Load scenario settings
-s1 <- read_rds(study_1_settings)
-
-## Load validation data
-source("./src/validation data generation study 1.R") # Have it run at least once, so that there are files in the folder.
-val_data_files <- list.files(path = study_1_val_data, recursive = T, full.names = F)
-
-source("./src/data generation study 1.R") # Have it run at least once, so that there are files in the folder.
-data_files <- list.files(path = study_1_data, recursive = T, full.names = F) # get the data names
+source("./src/data generation functions.R")
+source("./src/setup.R")
 
 #########################################################
 ############## LET THE SIMULATION COMMENCE ##############
@@ -102,25 +93,34 @@ system.time({for(j in 1:n_sim){
   set.seed(seed_state[j]) # for each run the next value in the state vector will be chosen (and saved!)
   
   ## Create and load simulation data
-  source("./src/data generation study 1.R") # Generate data, and save temporarily
-  names(s1_data) <- data_files # Change the names of each element in the list, to be sure it corresponds to the right scenario
-  
+  s1_data <- generate_data(s1, validation = FALSE)
+  s2_data <- generate_data(s2, validation = FALSE)
+  s3_data <- generate_data(s3, validation = FALSE)
   ## Create and load validation data
-  source("./src/validation data generation study 1.R") # Generate data, and save temporarily
-  names(s1_val_data) <- val_data_files
+  ## Create and load simulation data
+  s1_val_data <- generate_data(s1, validation = TRUE)
+  s2_val_data <- generate_data(s2, validation = TRUE)
+  s3_val_data <- generate_data(s3, validation = TRUE)
   
   ## Obtain apparent and external estimands ##
-  results_app_ext <- get_app_ext_results(study = s1, df = s1_data, df_val = s1_val_data, studyname = "Study 1")
-  
+  results_app_ext_s1 <- get_app_ext_results(study = s1[1:3,], df = s1_data[1:3], df_val = s1_val_data[1:3], studyname = "Study 1")
+  results_app_ext_s2 <- get_app_ext_results(study = s2[1:3,], df = s2_data[1:3], df_val = s2_val_data[1:3], studyname = "Study 2")
+  results_app_ext_s3 <- get_app_ext_results(study = s3[1:3,], df = s3_data[1:3], df_val = s3_val_data[1:3], studyname = "Study 3")
   ## Obtain internal validation estimands ##
   # 10 fold cross-validation
-  results_10_cv <- get_cv_results(study = s1, df = s1_data, V = 10, studyname = "Study 1")
+  results_10_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 10, studyname = "Study 1")
+  results_10_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 10, studyname = "Study 2")
+  results_10_cv_s3 <- get_cv_results(study = s3[1:3,], df = s3_data[1:3], V = 10, studyname = "Study 3")
   
   # 5 fold cross-validation
-  results_5_cv <- get_cv_results(study = s1, df = s1_data, V = 5, studyname = "Study 1")
+  results_5_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 5, studyname = "Study 1")
+  results_5_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 5, studyname = "Study 2")
+  results_5_cv_s3 <- get_cv_results(study = s3[1:3,], df = s3_data[1:3], V = 5, studyname = "Study 3")
   
   # 10X10 fold cross-validation 
-  results_10x10_cv <- get_10x10_results(study = s1, df = s1_data, V = 10, studyname = "Study 1")
+  results_10x10_cv_s1 <- get_10x10_results(study = s1[1:3,], df = s1_data[1:3], V = 10, studyname = "Study 1")
+  results_10x10_cv_s2 <- get_10x10_results(study = s2[1:3,], df = s2_data[1:3], V = 10, studyname = "Study 2")
+  results_10x10_cv_s3 <- get_10x10_results(study = s3[1:3,], df = s3_data[1:3], V = 10, studyname = "Study 3")
   
   # Bootstrap 3 varieties in one go
 

@@ -2,22 +2,9 @@
 ###############################################
 ###############################################
 ### Define studies
-
-
-#######################################################################################################################
-#######################################################################################################################
-############################################### WORK IN PROGRESS ######################################################
-#######################################################################################################################
-#######################################################################################################################
+source("./src/setup.R")
 
 ## Look at simulation protocol to define the final studies and scenarios!
-
-
-### Setting up ###
-set.seed(123)
-
-source("./src/setup.R")
-source("./src/data generation functions.R")
 
 #####################
 ###### Study 1 ######
@@ -30,6 +17,7 @@ n_setting1 <- c("n/2", "n", "n*2")
 prev1 <- c(0.05, 0.2, 0.5)
 model1 <- "Firth"
 pred_sel1 <- c("none", "<0.05")
+noise_1 <- c("default")
 
 ## all combinations:
 s1 <-
@@ -37,6 +25,7 @@ s1 <-
     AUC = AUC1,
     dim = dim1,
     n_setting = n_setting1,
+    noise = noise_1,
     prev = prev1,
     model = model1,
     pred_selection = pred_sel1,
@@ -52,9 +41,9 @@ s1 <-
 # This can then be used to determine the minimal sample size needed 
 # and to optimize beta coefficients.
 
-R2 <- c(approximate_R2(auc = AUC1, prev = prev1[1])$R2.coxsnell,
-        approximate_R2(auc = AUC1, prev = prev1[2])$R2.coxsnell, 
-        approximate_R2(auc = AUC1, prev = prev1[3])$R2.coxsnell)
+# Within the testing site optimization script,
+# The following values were obtained:
+R2 <- c(0.04131983, 0.12658143, 0.18407039) 
 
 # Add the respective value of R2 depending on prev
 s1 <- s1 %>% mutate(R2 = case_when(prev == prev1[1] ~ R2[1], 
@@ -89,46 +78,21 @@ s1 <- s1 %>%
 # Remove attributes of "n"
 attr(s1$n, "ATT") <- NULL
 
+####################
 ### Coefficients ###
+####################
+### Using the testing site optimization script
+## The following values for the parameters were 
+## found during optimization:
 
-## Development data for coefficients
-# setting n to develop betas on. 
-n <- 30000                                                       
-
-# For study 1, the number of candidate
-# predictors is the same across all scenarios.
-n_pred <- s1[1,]$dim
-
-# create covariance matrix to be used as input
-# Correlation between predictors is set to 0.2.
-sigma <- matrix(0.2, ncol = n_pred, nrow = n_pred)
-diag(sigma) <- 1 # set the diagonal to 1                                                          
-mu <- c(rep(0, n_pred)) # provide a vector of values for mu -> standard normal                  
-X <- mvrnorm(n = n, mu = mu, Sigma = sigma) # create predictor columns                        
-
-# Model matrix (or data matrix, dm)
-dm <- cbind(1, X)                                                                               
-                                                                                                
-## Validation data for coefficients                                                                              
-# setting n  
-n_val <- 100000                                                                    
-X_val <- mvrnorm(n = n_val, mu = mu, Sigma = sigma)
-
-# Putting the above in a data matrix, including intercept 
-dm_val <- cbind(1, X_val)            
-
-## Obtain regression coefficients
 # Prevalence at 0.05 and AUC at 0.75
-beta_0.05 <- optim_beta(prev_scenario = 0.05, R2_scenario= R2[1])
-checking_val(par = beta_0.05)
+beta_0.05 <- c(-3.3705418, 0.1222722)
 
 # Prevalence at 0.2 and AUC at 0.75
-beta_0.2 <- optim_beta(prev_scenario = 0.2, R2_scenario = R2[2])
-checking_val(par = beta_0.2)
+beta_0.2 <- c(-1.6740826, 0.1280781)
 
 # Prevalence at 0.5 and AUC at 0.75
-beta_0.5 <- optim_beta(prev_scenario = 0.5, R2_scenario = R2[3])
-checking_val(par = beta_0.5)
+beta_0.5 <- c(0.01403259, 0.13144766)
 
 ## Bind parameters to study 1 matrix
 # par1 represents intercept
@@ -158,10 +122,7 @@ n_setting2 <- c("n/2", "n", "n*2")
 prev2 <- 0.2
 model2 <- "Firth"
 pred_sel2 <- c("none", "<0.05")
-noise_2 <- c("50%", "0")
-
-## Models used:
-model2 <-  "Firth"
+noise_2 <- c("none", "half")
 
 ## all combinations:
 s2 <- expand.grid(AUC = AUC2, 
@@ -170,7 +131,7 @@ s2 <- expand.grid(AUC = AUC2,
                   n_setting = n_setting2, 
                   noise = noise_2, 
                   model = model2, 
-                  pred_sel = pred_sel2, 
+                  pred_selection = pred_sel2, 
                   KEEP.OUT.ATTRS = F)
 
 #################
@@ -192,15 +153,15 @@ n_2 <- c("dim_6" = pmsampsize(type = "b", parameters = 6, prevalence = prev2, rs
 s2 <- s2 %>%
   mutate(
     n = ceiling(case_when(
-      n_setting1 == "n/2" & dim == 6 ~ n_1["dim_6"]/2,
-      n_setting1 == "n"   & dim == 6 ~ n_1["dim_6"],
-      n_setting1 == "n*2" & dim == 6 ~ n_1["dim_6"]*2,
-      n_setting1 == "n/2" & dim == 30 ~ n_1["dim_30"]/2,
-      n_setting1 == "n"   & dim == 30 ~ n_1["dim_30"],
-      n_setting1 == "n*2" & dim == 30 ~ n_1["dim_30"]*2,
-      n_setting1 == "n/2" & dim == 60 ~ n_1["dim_60"]/2,
-      n_setting1 == "n"   & dim == 60 ~ n_1["dim_60"],
-      n_setting1 == "n*2" & dim == 60 ~ n_1["dim_60"]*2,
+      n_setting == "n/2" & dim == 6 ~ n_2["dim_6"]/2,
+      n_setting == "n"   & dim == 6 ~ n_2["dim_6"],
+      n_setting == "n*2" & dim == 6 ~ n_2["dim_6"]*2,
+      n_setting == "n/2" & dim == 30 ~ n_2["dim_30"]/2,
+      n_setting == "n"   & dim == 30 ~ n_2["dim_30"],
+      n_setting == "n*2" & dim == 30 ~ n_2["dim_30"]*2,
+      n_setting == "n/2" & dim == 60 ~ n_2["dim_60"]/2,
+      n_setting == "n"   & dim == 60 ~ n_2["dim_60"],
+      n_setting == "n*2" & dim == 60 ~ n_2["dim_60"]*2,
       TRUE ~ NA_real_
     )
     )
@@ -209,6 +170,52 @@ s2 <- s2 %>%
 
 # Remove attributes of "n"
 attr(s2$n, "ATT") <- NULL
+
+####################
+### Coefficients ###
+####################
+### Using the testing site optimization script
+## The following values for the parameters were 
+## found during optimization:
+
+# 6 candidate predictors, with half noise:
+beta_6_half <- c(-1.671603, 0.27602491)
+# 30 candidate predictors, with half noise:
+beta_30_half <- c(-1.623487, 0.07781071)
+# 60 candidate predictors, with half noise:
+beta_60_half <- c(-1.657480, -0.04277436)
+
+
+# 6 candidate predictors, with no noise:
+beta_6_none <- c(-1.670588, 0.20894297)
+# 6 candidate predictors, with no noise:
+beta_30_none <- c(-1.667019,  -0.05344094)
+# 6 candidate predictors, with no noise:
+beta_60_none <- c(-1.652066, 0.02734855)
+
+## Bind parameters to study 1 matrix
+# par1 represents intercept
+# par2 represents regression coefficients
+s2 <- s2 %>% 
+  mutate(par1 = case_when(dim == 6 & noise == "half" ~ beta_6_half[1],
+                          dim == 30 & noise == "half" ~ beta_30_half[1],
+                          dim == 60 & noise == "half" ~ beta_60_half[1],
+                          dim == 6 & noise == "none" ~ beta_6_none[1],
+                          dim == 30 & noise == "none" ~ beta_30_none[1],
+                          dim == 60 & noise == "none" ~ beta_60_none[1],
+                          TRUE ~ NA_real_
+  )) %>%
+  mutate(par2 = case_when(dim == 6 & noise == "half" ~ beta_6_half[2],
+                          dim == 30 & noise == "half" ~ beta_30_half[2],
+                          dim == 60 & noise == "half" ~ beta_60_half[2],
+                          dim == 6 & noise == "none" ~ beta_6_none[2],
+                          dim == 30 & noise == "none" ~ beta_30_none[2],
+                          dim == 60 & noise == "none" ~ beta_60_none[2],
+                          TRUE ~ NA_real_
+  ))
+
+### Save the study scenarios in the settings folder
+write_rds(s2, file = study_2_settings)
 
 
 #####################
@@ -219,11 +226,20 @@ attr(s2$n, "ATT") <- NULL
 AUC3 <- 0.75
 dim3 <- 30
 n_setting3 <- c("n/2", "n", "n*2")
+noise_3 <- c("default")
 prev3 <- 0.2
+pred_sel3 <- c("none")
 models3 <- c("ML", "Firth", "Ridge", "Lasso", "CART", "ANN", "SVM", "RF")
 
 ## all combinations:
-s3 <- expand.grid(AUC = AUC3, prev = prev3, dim = dim3, n_settings = n_setting3, model = models3, KEEP.OUT.ATTRS = F)
+s3 <- expand.grid(AUC = AUC3, 
+                  prev = prev3, 
+                  dim = dim3, 
+                  noise = noise_3,
+                  pred_selection = pred_sel3,
+                  n_setting = n_setting3, 
+                  model = models3, 
+                  KEEP.OUT.ATTRS = F)
 
 #################
 ## Expected R2 ##
@@ -231,69 +247,43 @@ s3 <- expand.grid(AUC = AUC3, prev = prev3, dim = dim3, n_settings = n_setting3,
 
 s3$R2 <- R2[2]
 
-
 ########################
 ## Actual sample size ##
 ########################
-
-# at_n_10x_e.2 <- pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = R2[2])$sample_size
-# below_n_10x_e.2 <- ceiling(0.8 * at_n_10x_e.2)
+n_3 <- pmsampsize(type = "b", parameters = 30, prevalence = 0.2, rsquared = R2[2])$sample_size
 
 
-#####################
-###### Study 4 ######
-#####################
+s3 <- s3 %>%
+  mutate(
+    n = ceiling(case_when(
+      n_setting == "n/2" ~ n_3/2,
+      n_setting == "n" ~ n_3,
+      n_setting == "n*2" ~ n_3*2,
+      TRUE ~ NA_real_
+    )
+    )
+  )
 
-## Data gen mechanism
-AUC4 <- 0.75
-dim4 <- 30
-n4 <- as.factor(c("60%", "80%", "at (100%)"))
-prev4 <- 0.2
-predictor_effects4 <- c("50% strong 50% noise")
+####################
+### Coefficients ###
+####################
+### Using the testing site optimization script
+## The following values for the parameters were 
+## found during optimization:
+beta_30 <- c(-1.64950299, -0.04977404)
 
-
-## Models combinations:
-models4 <-  as.factor(c("OLS", "Firth"))
-
-## all combinations:
-s4 <- expand.grid(AUC = AUC4, dim = dim4, n = n4,  prevalence = prev4, model = models4, pred_effect = predictor_effects4, KEEP.OUT.ATTRS = F)
-
-#################
-## Expected R2 ##
-#################
-
-s4$R2 <- R2[2]
+s3$par1 <- beta_30[1]
+s3$par2 <- beta_30[2]
 
 
-########################
-## Actual sample size ##
-########################
-
-# at_n_10x_e.2 <- pmsampsize(type = "b", parameters = 10, prevalence = 0.2, rsquared = R2[2])$sample_size
-# below_n_10x_e.2 <- ceiling(0.8 * at_n_10x_e.2)
-
-
-###################################
-## Rounding the script to an end ##
-###################################
+### Save the study scenarios in the settings folder
+write_rds(s3, file = study_3_settings)
 
 # Remove everything except the three study matrices
-rm(list=ls()[! ls() %in% c("s1","s2", "s3", "R2", "actual_n_1")])
+rm(list=ls()[! ls() %in% c("s1","s2", "s3")])
 
 ####################################
 ####################################
 ####################################
 ## END SCRIPT
-
-
-# # If more changes, for example:
-# AUC <- c(0.6, 0.75, 0.9)
-# prevalence <- c(0.05, 0.2)
-# test <-  expand.grid(AUC = AUC, prevalence = prevalence)
-# 
-# test$R2 <- 0
-# for (i in 1:nrow(test)){
-#   test[i,3] <- approximate_R2(auc = test[i,1], prev = test[i,2])$R2.coxsnell
-# }
-
 

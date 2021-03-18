@@ -121,13 +121,18 @@ eci_bvc <- function(data, modelmatrix, coefs, preds){
   return(eci)
 }
 
-##########
-## MAPE ##
-##########
+##################
+## MAPE & rMSPE ##
+##################
 
-MAPE <- function(p,iv_matrix, dgm_par){
+MAPE_rMSPE <- function(p,iv_matrix, dgm_par){
   p_true <- 1 / (1 + exp(-iv_matrix %*% dgm_par))
-  mean(abs(p_true-p))
+  
+  mape <- mean(abs(p_true-p))
+  rmspe <- sqrt(mean((p_true-p)^2))
+  
+  results <-  c("MAPE" = mape, "rMSPE" = rmspe)
+  return(results)
 }
 
 ##################################
@@ -205,7 +210,7 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
       # Obtain apparent results
       auc_app <- fastAUC(p = p_app, y = df$y)
       R2_app <- pseudo_Rsqrs(p = p_app, y = df$y)
-      MAPE_app <- MAPE(p = p_app, dgm_par = dgm_par_app, iv_matrix = app_matrix) 
+      MAPE_rMSPE_app <- MAPE_rMSPE(p = p_app, dgm_par = dgm_par_app, iv_matrix = app_matrix) 
       tjur_app <- tjur(p = p_app, y = df$y)
       
       calib_app <- calib(modelmatrix = app_matrix,
@@ -220,7 +225,7 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
       # obtain external results
       auc_ext <- fastAUC(p = p_ext, y = df_val$y)
       R2_ext <- pseudo_Rsqrs(p = p_ext, y = df_val$y)
-      MAPE_ext <- MAPE(p = p_ext, dgm_par = dgm_par_app, iv_matrix = ext_matrix) 
+      MAPE_rMSPE_ext <- MAPE_rMSPE(p = p_ext, dgm_par = dgm_par_app, iv_matrix = ext_matrix) 
       tjur_ext <- tjur(p = p_ext, y = df_val$y)
       
       calib_ext <- calib(modelmatrix = ext_matrix,
@@ -257,7 +262,8 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
         tjur_app,
         R2_app,
         eci_app,
-        MAPE_app,
+        MAPE_rMSPE_app['MAPE'],
+        MAPE_rMSPE_app['rMSPE'],
         error_info
       ),
       c("External",
@@ -267,7 +273,8 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
         tjur_ext,
         R2_ext,
         eci_ext,
-        MAPE_ext,
+        MAPE_rMSPE_ext['MAPE'],
+        MAPE_rMSPE_ext['rMSPE'],
         error_info
       )
     )
@@ -323,12 +330,31 @@ get_app_ext_results <- function(study, df, df_val, studyname) {
       model <- study[i, ]$model
       pred_selection <- study[i, ]$pred_selection
       
-      # What do the model parameters look like in the
-      # Data generating mechanism?
-      dgm_par <- c(study[i, ]$par1, 
-                   rep(study[i, ]$par2 * 3, round(0.3 * s1[i, ]$dim)),  # strong
-                   rep(study[i, ]$par2,     round(0.5 * s1[i, ]$dim)),  # weaker
-                   rep(study[i, ]$par2 * 0, round(0.2 * s1[i, ]$dim)))  # noise
+      # Obtain dgm, depending on the dimensionality,
+      # noise contribution, and therefore dgm settings
+      if (study[i, ]$noise == "default"){
+        dgm_par <-
+          c(study[i, ]$par1, 
+            rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)), 
+            rep(study[i, ]$par2, round(0.5 *  study[i, ]$dim)), 
+            rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))
+      }
+      
+      if (study[i, ]$noise == "half"){
+        dgm_par <-
+          c(study[i, ]$par1, 
+            rep(study[i, ]$par2 * 3, round(1/6 * study[i, ]$dim)), # strong
+            rep(study[i, ]$par2, round(2/6 *  study[i, ]$dim)),    # weak
+            rep(study[i, ]$par2 * 0, round(3/6 * study[i, ]$dim))) # noise
+      } 
+      
+      if (study[i, ]$noise == "none"){
+        dgm_par <-
+          c(study[i, ]$par1, 
+            rep(study[i, ]$par2 * 3, round(1/6 * study[i, ]$dim)), # strong
+            rep(study[i, ]$par2, round(5/6 *  study[i, ]$dim))     # weak
+          )
+      }
       
       
       # Fill the columns with apparent results, no SE!
@@ -576,7 +602,8 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     tjur_folds <- c()
     R2_folds <- c()
     eci_folds <- c()
-    MAPE_folds <- c()
+    mape_folds <- c()
+    rmspe_folds <- c()
     
     # For each fold, calculate calibration intercept & slope, R2, ECI and MAPE
     for (v in 1:V){
@@ -584,6 +611,7 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
       data <- df[unlist(which(rownames(df) %in% folds[[v]])),]
       ppf <- p_per_fold[[v]]
       dgm_par_ppf <- dgm_par_folds[[v]]
+      ppf_true <- 1 / (1 + exp(-iv_matrix[[v]] %*% dgm_par_ppf))
       
       # AUC for folds:
       auc_folds[v] <- fastAUC(p = ppf, y = data$y)
@@ -599,7 +627,9 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
       calout <- loess(y ~ log(ppf/(1-ppf)), data = data)
       eci_folds[v] <- (mean((ppf-fitted(calout))*(ppf-fitted(calout))))*(100)
       # MAPE for folds
-      MAPE_folds[v] <- MAPE(p = ppf, iv_matrix = iv_matrix[[v]], dgm_par = dgm_par_ppf)
+      mape_folds[v] <- mean(abs(ppf_true-ppf))
+      # rMSPE for folds
+      rmspe_folds[v] <- sqrt(mean((ppf_true-ppf)^2))
     }
     
     
@@ -616,8 +646,9 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     ## ECI
     eci <- c(mean(eci_folds), (sd(eci_folds)/(sqrt(V))))
     ## MAPE
-    MAPE_results <- c(mean(MAPE_folds), (sd(MAPE_folds)/(sqrt(V))))
-    
+    MAPE_results <- c(mean(mape_folds), (sd(mape_folds)/(sqrt(V))))
+    ## rMSPE
+    rMSPE_results <-  c(mean(rmspe_folds), (sd(rmspe_folds)/(sqrt(V))))
     
   }) # Close ErrorsWarnings
   
@@ -638,7 +669,7 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
   # If the it is anything other than 10x10 cv:
   if (x10 == FALSE){
     
-    results <- c(paste0(original_V, " fold cross-validation"), auc_results, intercept, slope, tjur_results, R2, eci, MAPE_results, error_info)
+    results <- c(paste0(original_V, " fold cross-validation"), auc_results, intercept, slope, tjur_results, R2, eci, MAPE_results, rMSPE_results, error_info)
     
   } else {
     
@@ -649,14 +680,16 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     names(tjur_folds) <- c(rep("Tjur", length(tjur_folds)))
     names(R2_folds) <- c(rep("R2", length(R2_folds)))
     names(eci_folds) <- c(rep("eci", length(eci_folds)))
-    names(MAPE_folds) <- c(rep("MAPE", length(MAPE_folds)))
+    names(mape_folds) <- c(rep("MAPE", length(mape_folds)))
+    names(rmspe_folds) <- c(rep("rMSPE", length(rmspe_folds)))
     results <- list("auc" = auc_folds, 
                     "intercept" = intercept_folds, 
                     "slope" = slope_folds, 
                     "Tjur" = tjur_folds,
                     "R2" = R2_folds,
                     "eci" = eci_folds,
-                    "MAPE" = MAPE_folds,
+                    "MAPE" = mape_folds,
+                    "rMSPE" = rmspe_folds,
                     error_info)
   } # Close else statement (when 10k or 5k CV is used)
   
@@ -695,10 +728,32 @@ get_cv_results <- function(study, df, V, studyname) {
       # Else, go along with obtaining the results
       model <- study[i, ]$model
       pred_selection <- study[i, ]$pred_selection
-      dgm_par <- c(study[i, ]$par1, 
-                   rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)),  # strong
-                   rep(study[i, ]$par2,     round(0.5 * study[i, ]$dim)),  # weak
-                   rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))  # noise
+      
+      # Obtain dgm, depending on the dimensionality,
+      # noise contribution, and therefore dgm settings
+      if (study[i, ]$noise == "default"){
+        dgm_par <-
+          c(study[i, ]$par11, 
+            rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)), 
+            rep(study[i, ]$par2, round(0.5 *  study[i, ]$dim)), 
+            rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))
+      }
+      
+      if (study[i, ]$noise == "half"){
+        dgm_par <-
+          c(study[i, ]$par1, 
+            rep(study[i, ]$par2 * 3, round(1/6 * study[i, ]$dim)), # strong
+            rep(study[i, ]$par2, round(2/6 *  study[i, ]$dim)),    # weak
+            rep(study[i, ]$par2 * 0, round(3/6 * study[i, ]$dim))) # noise
+      } 
+      
+      if (study[i, ]$noise == "none"){
+        dgm_par <-
+          c(study[i, ]$par1, 
+            rep(study[i, ]$par2 * 3, round(1/6 * study[i, ]$dim)), # strong
+            rep(study[i, ]$par2, round(5/6 *  study[i, ]$dim))     # weak
+          )
+      }
       
       
       results_cv[i, which(colnames(results_cv) %in% iv_colnames)]  <-
@@ -710,6 +765,7 @@ get_cv_results <- function(study, df, V, studyname) {
           V = V,
           x10 = FALSE
         )
+      
     } # close else statement
   } # close for loop
   return(results_cv)
@@ -751,10 +807,32 @@ get_10x10_results <- function(study, df, V, studyname){
     } else {
       
       results_cv[i, 'observed events'] <- sum(data$y)
-      dgm_par <- c(study[i, ]$par1, 
-                   rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)),  # strong
-                   rep(study[i, ]$par2,     round(0.5 * study[i, ]$dim)),  # medium
-                   rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))  # noise
+      
+      # Obtain dgm, depending on the dimensionality,
+      # noise contribution, and therefore dgm settings
+      if (study[i, ]$noise == "default"){
+        dgm_par <-
+          c(study[i, ]$par11, 
+            rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)), 
+            rep(study[i, ]$par2, round(0.5 *  study[i, ]$dim)), 
+            rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))
+      }
+      
+      if (study[i, ]$noise == "half"){
+        dgm_par <-
+          c(study[i, ]$par1, 
+            rep(study[i, ]$par2 * 3, round(1/6 * study[i, ]$dim)), # strong
+            rep(study[i, ]$par2, round(2/6 *  study[i, ]$dim)),    # weak
+            rep(study[i, ]$par2 * 0, round(3/6 * study[i, ]$dim))) # noise
+      } 
+      
+      if (study[i, ]$noise == "none"){
+        dgm_par <-
+          c(study[i, ]$par1, 
+            rep(study[i, ]$par2 * 3, round(1/6 * study[i, ]$dim)), # strong
+            rep(study[i, ]$par2, round(5/6 *  study[i, ]$dim))     # weak
+          )
+      }
       
       # obtain the results of each fold separately 10 times and stored for each replication
       results <- replicate(n = 10, # represents the 10x10 part
@@ -774,6 +852,7 @@ get_10x10_results <- function(study, df, V, studyname){
       R2_results <- c(sapply(results, "[[", 5))
       eci_results <- c(sapply(results, "[[", 6))
       MAPE_results <- c(sapply(results, "[[", 7))
+      rMSPE_results <- c(sapply(results, "[[", 8))
       
       ## Get mean and standard error over all other results and store in a single vector:
       auc_results <- c(mean(auc_results), (sd(auc_results)/(sqrt(V))))
@@ -794,8 +873,11 @@ get_10x10_results <- function(study, df, V, studyname){
       ## MAPE
       MAPE_results <- c(mean(MAPE_results), (sd(MAPE_results)/(sqrt(V))))
       
+      ## rMSPE
+      rMSPE_results <- c(mean(rMSPE_results), (sd(rMSPE_results)/(sqrt(V))))
+      
       # Taking care of error messages returned for each repetition. 
-      error_info <- paste(c(sapply(results, "[[", 8)), collapse = " + ")
+      error_info <- paste(c(sapply(results, "[[", 9)), collapse = " + ")
       error_info <- str_remove_all(error_info, "NA \\+ |NA | \\+ NA")
       
       ## Fill results matrix:
@@ -809,6 +891,7 @@ get_10x10_results <- function(study, df, V, studyname){
           R2,
           eci,
           MAPE_results,
+          rMSPE_results,
           error_info
         )
       
