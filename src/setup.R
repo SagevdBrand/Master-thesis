@@ -7,8 +7,8 @@ source("./src/libraries.R")
 #####################
 
 setting_path <- "./data/simulation settings/"
-data_path <- "./data/simulation data/"
 val_data_path <- "./data/validation data/"
+estimands_path <- "./results/output/estimands/"
 
 #######################################
 ## Results names for estimand matrix ##
@@ -20,7 +20,6 @@ results_estimands_names <-
     "study",
     "scenario",
     "dim",
-    "shrinkage",
     "prev",
     "model",
     "pred_selection",
@@ -82,7 +81,6 @@ iv_colnames <- c(
 )
 
 study_info <- c("dim",
-    "shrinkage",
     "prev",
     "model",
     "pred_selection",
@@ -93,9 +91,7 @@ study_info <- c("dim",
 #####################
 
 study_1_settings <- "./data/simulation settings/s1.Rds"
-study_1_data <- "./data/simulation data/study 1/"
 study_1_val_data <- "./data/validation data/study 1/"
-s1_estimands <- "./results/output/estimands/study 1/"
 s1_performance <- "./results/output/performance/study 1/"
 s1_figures <- "./results/figures/study 1/"
 
@@ -145,9 +141,7 @@ val_data_files_s1 <- c(
 ###### study 2 ######
 #####################
 study_2_settings <- "./data/simulation settings/s2.Rds"
-study_2_data <- "./data/simulation data/study 2/"
 study_2_val_data <- "./data/validation data/study 2/"
-s2_estimands <- "./results/output/estimands/study 2/"
 s2_performance <- "./results/output/performance/study 2/"
 s2_figures <- "./results/figures/study 2/"
 
@@ -155,9 +149,7 @@ s2_figures <- "./results/figures/study 2/"
 ###### study 3 ######
 #####################
 study_3_settings <- "./data/simulation settings/s3.Rds"
-study_3_data <- "./data/simulation data/study 3/"
 study_3_val_data <- "./data/validation data/study 3/"
-s3_estimands <- "./results/output/estimands/study 3/"
 s3_performance <- "./results/output/performance/study 3/"
 s3_figures <- "./results/figures/study 3/"
 
