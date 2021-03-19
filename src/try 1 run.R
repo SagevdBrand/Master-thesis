@@ -5,7 +5,7 @@
 
 ############ TO FIX/DO #################
 ## [x] IMPLEMENT STUDY 1 FOR ESTIMANDS
-## [ ] IMPLEMENT STUDY 2 FOR ESTIMANDS
+## [X] IMPLEMENT STUDY 2 FOR ESTIMANDS
 ## [ ] IMPLEMENT STUDY 3 FOR ESTIMANDS
 
 ## [ ] PERFORMANCE MEASURES IN DATAFRAME
@@ -18,6 +18,10 @@
 
 ## [ ] ADD OPTIONS FOR OTHER MODELS
 ##      [ ] MACHINE LEARNING -> CODE IS BEING DEVELOPED
+##          [X] RF
+##          [ ] SVM
+##          [X] CART
+##          [ ] ANN
 
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
 ##      [X] CHECK FOR VAR(LP) == 0 in BE:
@@ -78,6 +82,11 @@ source("./src/estimand functions.R")
 source("./src/data generation functions.R")
 source("./src/setup.R")
 
+## Obtain validation data
+s1_val_data <- readRDS(paste0(study_1_val_data,"s1_val_data.Rds"))
+s2_val_data <- readRDS(paste0(study_2_val_data,"s2_val_data.Rds"))
+s3_val_data <- readRDS(paste0(study_3_val_data,"s3_val_data.Rds"))
+
 #########################################################
 ############## LET THE SIMULATION COMMENCE ##############
 #########################################################
@@ -96,31 +105,27 @@ system.time({for(j in 1:n_sim){
   s1_data <- generate_data(s1, validation = FALSE)
   s2_data <- generate_data(s2, validation = FALSE)
   s3_data <- generate_data(s3, validation = FALSE)
-  ## Create and load validation data
-  ## Create and load simulation data
-  s1_val_data <- generate_data(s1, validation = TRUE)
-  s2_val_data <- generate_data(s2, validation = TRUE)
-  s3_val_data <- generate_data(s3, validation = TRUE)
-  
+
   ## Obtain apparent and external estimands ##
   results_app_ext_s1 <- get_app_ext_results(study = s1[1:3,], df = s1_data[1:3], df_val = s1_val_data[1:3], studyname = "Study 1")
   results_app_ext_s2 <- get_app_ext_results(study = s2[1:3,], df = s2_data[1:3], df_val = s2_val_data[1:3], studyname = "Study 2")
-  results_app_ext_s3 <- get_app_ext_results(study = s3[1:3,], df = s3_data[1:3], df_val = s3_val_data[1:3], studyname = "Study 3")
+  results_app_ext_s3 <- get_app_ext_results(study = s3[c(13,22),], df = s3_data[c(13,22)], df_val = s3_val_data[c(13,22)], studyname = "Study 3")
+  
   ## Obtain internal validation estimands ##
   # 10 fold cross-validation
   results_10_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 10, studyname = "Study 1")
   results_10_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 10, studyname = "Study 2")
-  results_10_cv_s3 <- get_cv_results(study = s3[1:3,], df = s3_data[1:3], V = 10, studyname = "Study 3")
+  results_10_cv_s3 <- get_cv_results(study = s3[c(13,22),], df = s3_data[c(13,22)], V = 10, studyname = "Study 3")
   
   # 5 fold cross-validation
   results_5_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 5, studyname = "Study 1")
   results_5_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 5, studyname = "Study 2")
-  results_5_cv_s3 <- get_cv_results(study = s3[1:3,], df = s3_data[1:3], V = 5, studyname = "Study 3")
+  results_5_cv_s3 <- get_cv_results(study = s3[c(13,22),], df = s3_data[c(13,22)], V = 5, studyname = "Study 3")
   
   # 10X10 fold cross-validation 
   results_10x10_cv_s1 <- get_10x10_results(study = s1[1:3,], df = s1_data[1:3], V = 10, studyname = "Study 1")
-  results_10x10_cv_s2 <- get_10x10_results(study = s2[1:3,], df = s2_data[1:3], V = 10, studyname = "Study 2")
-  results_10x10_cv_s3 <- get_10x10_results(study = s3[1:3,], df = s3_data[1:3], V = 10, studyname = "Study 3")
+  results_10x10_cv_s2 <- get_10x10_results(study = s2[1,], df = s2_data[1], V = 10, studyname = "Study 2")
+  results_10x10_cv_s3 <- get_10x10_results(study = s3[c(13,22),], df = s3_data[c(13,22)], V = 10, studyname = "Study 3")
   
   # Bootstrap 3 varieties in one go
 
@@ -130,17 +135,29 @@ system.time({for(j in 1:n_sim){
   #################################################
   
   ## Bind all results together 
-  results_estimands_s1 <-
-    rbind(results_app_ext, results_10_cv, results_5_cv, results_10x10_cv) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+  results_estimands <-
+    rbind(results_app_ext_s1,
+          results_app_ext_s2,
+          results_app_ext_s3,
+          results_10_cv_s1,
+          results_10_cv_s2,
+          results_10_cv_s3,
+          results_5_cv_s1,
+          results_5_cv_s2,
+          results_5_cv_s3,
+          results_10x10_cv_s1,
+          results_10x10_cv_s2,
+          results_10x10_cv_s3
+          ) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
   
   ## Filling in missing details:
-  results_estimands_s1$iteration <- j
-  results_estimands_s1$seed <- seed_state[j]
-  results_estimands_s1 <- results_estimands_s1 %>% mutate(`expected events` = n * prev)
+  results_estimands$iteration <- j
+  results_estimands$seed <- seed_state[j]
+  results_estimands <- results_estimands %>% mutate(`expected events` = n * prev)
   
   
   # Saving estimands
-  saveRDS(results_estimands_s1, file = paste0(s1_estimands, "s1_estimands_seed_", seed_state[j], ".Rds"))
+  saveRDS(results_estimands, file = paste0(estimands_path, "estimands_seed_", seed_state[j], ".Rds"))
   
   } # close simulation for loop
   

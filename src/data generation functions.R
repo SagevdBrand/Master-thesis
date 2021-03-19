@@ -270,7 +270,7 @@ generate_data <- function(scenario, validation = c(TRUE, FALSE)){
         # create candidate predictors
         # If it is the validation set, n = 20 * 100/prev. Otherwise, take n as specified in each scenario
         if (validation == TRUE) {
-          X <- mvrnorm(n = 20*(100/s_list$prev), mu = mu, Sigma = sigma)
+          X <- mvrnorm(n =100000, mu = mu, Sigma = sigma)
         }
         else {
           X <-

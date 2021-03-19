@@ -126,13 +126,14 @@ noise_2 <- c("none", "half")
 
 ## all combinations:
 s2 <- expand.grid(AUC = AUC2, 
-                  prev = prev2, 
                   dim = dim2,
                   n_setting = n_setting2, 
                   noise = noise_2, 
+                  prev = prev2, 
                   model = model2, 
                   pred_selection = pred_sel2, 
                   KEEP.OUT.ATTRS = F)
+
 
 #################
 ## Expected R2 ##
@@ -232,13 +233,13 @@ pred_sel3 <- c("none")
 models3 <- c("ML", "Firth", "Ridge", "Lasso", "CART", "ANN", "SVM", "RF")
 
 ## all combinations:
-s3 <- expand.grid(AUC = AUC3, 
-                  prev = prev3, 
-                  dim = dim3, 
+s3 <- expand.grid(AUC = AUC3,
+                  dim = dim3,
+                  n_setting = n_setting3,
                   noise = noise_3,
+                  prev = prev3, 
+                  model = models3,
                   pred_selection = pred_sel3,
-                  n_setting = n_setting3, 
-                  model = models3, 
                   KEEP.OUT.ATTRS = F)
 
 #################
