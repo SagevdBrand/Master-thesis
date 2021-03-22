@@ -12,6 +12,8 @@ library(randomForest)
 library(kernlab)
 
 s1 <- read_rds(study_1_settings)
+s3 <- read_rds(study_3_settings)
+
 s1_data <- generate_data(s1, validation = FALSE)
 df <- s1_data[[4]]
 V = 5
@@ -52,41 +54,36 @@ dgm_par <-
                           .sigma = seq(0.001, 1, length.out = 10))
   
 
-  sink(fit <- caret::train(as.factor(y) ~.,
+  invisible(capture.output(fit <- caret::train(as.factor(y) ~.,
                       data = df_train,
                       method = 'svmRadial',
                       tuneGrid = svm_grid,
                       trControl = trainControl(method = "cv"),
                       prob.model = TRUE
-                      ), type = "message")
+                  )))
 
+  p <- predict(fit$finalModel, newdata = df_test[,-ncol(df)], type = "prob")[,2]
 
-  p_svm <- predict(fit$finalModel, newdata = df_test[,-ncol(df)], type = "prob")[,2]
-  
-  
-  print(fastAUC(p = p_svm, y = df_test$y))
-  coefs <- as.matrix(fit_app$coefnames)
-  rownames(coefs) <- fit_app$coefnames
+  coefs <- as.matrix(fit$coefnames)
+  rownames(coefs) <- fit$coefnames
   # Then use the names of the coefficients to get the model matrix:
   df_test_X <- df_test[colnames(df_test) %in% rownames(coefs)]
   # Make model matrix by binding a column of 1 to the above
   iv_matrix <- as.matrix(cbind("(Intercept)" = 1, df_test_X))
-  
-  
-  p_app <- predict(fit$finalModel, newdata = df, type = "prob")[,2]
+
   p_true <- 1 / (1 + exp(-iv_matrix %*% dgm_par))
   
-  svm_auc <- fastAUC(p = p_svm, y = df_test$y)
-  svm_slope <- c(coef(glm(df_test$y ~ log(p_svm/(1 - p_svm)), family="binomial"))[2])
-  rpart_intercept <- coef(glm(df_test$y ~ offset(log(p/(1-p))), family="binomial"))
-  rpart_tjur<- tjur(p = p, y = df_test$y)
-  rpart_R2 <- pseudo_Rsqrs(p = p, y = df_test$y)
+  svm_auc <- fastAUC(p = p, y = df_test$y)
+  svm_slope <- c(coef(glm(df_test$y ~ log(p/(1 - p)), family="binomial"))[2])
+  svm_intercept <- coef(glm(df_test$y ~ offset(log(p/(1-p))), family="binomial"))
+  svm_tjur<- tjur(p = p, y = df_test$y)
+  svm_R2 <- pseudo_Rsqrs(p = p, y = df_test$y)
   calout <- loess(y ~ log(p/(1-p)), data = df_test, span = 5)
-  rpart_eci <- (mean((p-fitted(calout))*(p-fitted(calout))))*(100)
+  svm_eci <- (mean((p-fitted(calout))*(p-fitted(calout))))*(100)
   # MAPE for folds
-  rpart_mape <- mean(abs(p_true-p))
+  svm_mape <- mean(abs(p_true-p))
   # rMSPE for folds
-  rpart_rmspe <- sqrt(mean((p_true-p)^2))
+  svm_rmspe <- sqrt(mean((p_true-p)^2))
   
   
   
@@ -103,16 +100,37 @@ dgm_par <-
   nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
                           decay = seq(from = 0.1, to = 2, by = 0.4))
   
-  system.time(fit_nnet <- caret::train(as.factor(y) ~., 
-                                       data = df_train, 
-                                       method = 'nnet', 
-                                       tuneGrid = nnet_grid, 
-                                       trace = F, 
-                                       trControl = trainControl(method = "cv"),
-                                       preProcess = c("center", "scale")))
+  fit <- caret::train(as.factor(y) ~.,
+                      data = df_train, 
+                      method = 'nnet', 
+                      tuneGrid = nnet_grid, 
+                      trace = F, 
+                      trControl = trainControl(method = "cv"),
+                      preProcess = c("center", "scale"))
   
-  p_nnet <- predict(fit_nnet$finalModel, newdata = df_test)
-  print(fastAUC(p = p_nnet, y = df_test$y))
+
+  p <- predict(fit$finalModel, newdata = df_test, method = "prob")
+  coefs <- as.matrix(fit$coefnames)
+  rownames(coefs) <- fit$coefnames
+  # Then use the names of the coefficients to get the model matrix:
+  df_test_X <- df_test[colnames(df_test) %in% rownames(coefs)]
+  # Make model matrix by binding a column of 1 to the above
+  iv_matrix <- as.matrix(cbind("(Intercept)" = 1, df_test_X))
+  
+  p_true <- 1 / (1 + exp(-iv_matrix %*% dgm_par))
+  
+  nnet_auc <- fastAUC(p = p, y = df_test$y)
+  nnet_slope <- c(coef(glm(df_test$y ~ log(p/(1 - p)), family="binomial"))[2])
+  nnet_intercept <- coef(glm(df_test$y ~ offset(log(p/(1-p))), family="binomial"))
+  nnet_tjur<- tjur(p = p, y = df_test$y)
+  nnet_R2 <- pseudo_Rsqrs(p = p, y = df_test$y)
+  calout <- loess(y ~ log(p/(1-p)), data = df_test, span = 5)
+  nnet_eci <- (mean((p-fitted(calout))*(p-fitted(calout))))*(100)
+  # MAPE for folds
+  nnet_mape <- mean(abs(p_true-p))
+  # rMSPE for folds
+  nnet_rmspe <- sqrt(mean((p_true-p)^2))
+  
 
 
 ###################
@@ -164,21 +182,42 @@ fit_app <- caret::train(as.factor(y) ~.,
                         data = df,
                         method = 'rpart',
                         tuneGrid = rpart_grid,
+                        maximize = FALSE,
+                        parms = list(split = "information"),
                         trControl = trainControl(method = "cv"))
-
 
 coefs <- as.matrix(fit_app$coefnames)
 rownames(coefs) <- fit_app$coefnames
+
+# Check whether there were more than 1 splits
+if (nrow(fit_app$finalModel$cptable) == 1) {
+  ind <-which(fit_app$results$Accuracy != max(fit_app$results$Accuracy))
+  best_tune <- fit_app$results[ind,] %>% slice(which.max(Accuracy)) %>% .$cp
+  model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
+  
+  fit_app <- caret::train(as.factor(y) ~.,
+                          data = df,
+                          method = 'rpart',
+                          parms = list(split = "information"),
+                          control = rpart.control(cp = best_tune),
+                          trControl = trainControl(method = "none")
+                         )
+  
+  
+  coefs <- colnames(df)[!colnames(df)%in%"y"]
+  rownames(coefs) <- fit_app$coefnames
+}
+
 # Then use the names of the coefficients to get the model matrix:
-df_test_X <- df_test[colnames(df_test) %in% rownames(coefs)]
+df_app_X <- df[colnames(df) %in% rownames(coefs)]
 # Make model matrix by binding a column of 1 to the above
-iv_matrix <- as.matrix(cbind("(Intercept)" = 1, df_test_X))
+app_matrix <- as.matrix(cbind("(Intercept)" = 1, df_app_X))
 
 
-p_app <- predict(fit$finalModel, newdata = df, type = "prob")[,2]
-p_true <- 1 / (1 + exp(-iv_matrix %*% dgm_par))
+p_app <- predict(fit_app$finalModel, newdata = df, type = "prob")[,2]
+p_true <- 1 / (1 + exp(-app_matrix %*% dgm_par))
 
-rpart_auc <- fastAUC(p = p, y = df_test$y)
+rpart_auc <- fastAUC(p = p_app, y = df$y)
 rpart_slope <- c(coef(glm(df_test$y ~ log(p/(1 - p)), family="binomial"))[2])
 rpart_intercept <- coef(glm(df_test$y ~ offset(log(p/(1-p))), family="binomial"))
 rpart_tjur<- tjur(p = p, y = df_test$y)

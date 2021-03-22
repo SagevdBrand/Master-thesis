@@ -10,9 +10,9 @@ s2_val_data <- generate_data(s2, validation = TRUE)
 s3_val_data <- generate_data(s3, validation = TRUE)
 
 ## Save results
-saveRDS(s1_val_data, paste0(study_1_val_data,"s1_val_data.Rds"))
-saveRDS(s2_val_data, paste0(study_2_val_data,"s2_val_data.Rds"))
-saveRDS(s3_val_data, paste0(study_3_val_data,"s3_val_data.Rds"))
+saveRDS(s1_val_data, study_1_val_data)
+saveRDS(s2_val_data, study_2_val_data)
+saveRDS(s3_val_data, study_3_val_data)
 
 
 ######################################

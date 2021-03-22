@@ -16,12 +16,6 @@
 
 ## [ ] BOOTSTRAP ESTIMAND FUNCTION
 
-## [ ] ADD OPTIONS FOR OTHER MODELS
-##      [ ] MACHINE LEARNING -> CODE IS BEING DEVELOPED
-##          [X] RF
-##          [ ] SVM
-##          [X] CART
-##          [ ] ANN
 
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
 ##      [X] CHECK FOR VAR(LP) == 0 in BE:
@@ -29,8 +23,15 @@
 ##      [X] CHECK FOR VAR(LP) == 0 in LASSO:
 ##            [ ] RETURN HIGHEST VALUE FOR CALIBRATION SLOPE WITHIN THAT SCENARIO
 
+## [ ] BUILD ERROR HANDLING FOR SIMULATION RUNS!!
 
 ## DONE:
+## [X] ADD OPTIONS FOR OTHER MODELS
+##      [X] MACHINE LEARNING -> CODE IS BEING DEVELOPED
+##          [X] RF
+##          [X] SVM
+##          [X] CART
+##          [X] ANN
 ## [X] CREATE DIFFERENT DGM-PAR IN DIFFERENT STUDIES
 ## [X] FIX SPAN ISSUES WITH LOESS -> MAKE SPAN WIDER
 ## [X] OBTAIN DATA FOR STUDY 2
@@ -77,15 +78,19 @@
 ############################################################################
 
 ## Libraries, file paths and functions
-source("./src/study scenarios.R")
+source("./src/setup.R")
 source("./src/estimand functions.R")
 source("./src/data generation functions.R")
-source("./src/setup.R")
+
+## Obtain scenario settings
+s1 <- readRDS(study_1_settings)
+s2 <- readRDS(study_2_settings)
+s3 <- readRDS(study_3_settings)
 
 ## Obtain validation data
-s1_val_data <- readRDS(paste0(study_1_val_data,"s1_val_data.Rds"))
-s2_val_data <- readRDS(paste0(study_2_val_data,"s2_val_data.Rds"))
-s3_val_data <- readRDS(paste0(study_3_val_data,"s3_val_data.Rds"))
+s1_val_data <- readRDS(study_1_val_data)
+s2_val_data <- readRDS(study_2_val_data)
+s3_val_data <- readRDS(study_3_val_data)
 
 #########################################################
 ############## LET THE SIMULATION COMMENCE ##############
@@ -107,25 +112,25 @@ system.time({for(j in 1:n_sim){
   s3_data <- generate_data(s3, validation = FALSE)
 
   ## Obtain apparent and external estimands ##
-  results_app_ext_s1 <- get_app_ext_results(study = s1[1:3,], df = s1_data[1:3], df_val = s1_val_data[1:3], studyname = "Study 1")
-  results_app_ext_s2 <- get_app_ext_results(study = s2[1:3,], df = s2_data[1:3], df_val = s2_val_data[1:3], studyname = "Study 2")
-  results_app_ext_s3 <- get_app_ext_results(study = s3[c(13,22),], df = s3_data[c(13,22)], df_val = s3_val_data[c(13,22)], studyname = "Study 3")
-  
+  results_app_ext_s1 <- get_app_ext_results(study = s1[c(1,4),], df = s1_data[c(1,4)], df_val = s1_val_data[c(1,4)], studyname = "study_1")
+  results_app_ext_s2 <- get_app_ext_results(study = s2[1:3,], df = s2_data[1:3], df_val = s2_val_data[1:3], studyname = "study_2")
+  results_app_ext_s3 <- get_app_ext_results(study = s3[c(7,10,13,16,19,22),], df = s3_data[c(7,10,13,16,19,22)], df_val = s3_val_data[c(7,10,13,16,19,22)], studyname = "study_3")
+
   ## Obtain internal validation estimands ##
   # 10 fold cross-validation
-  results_10_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 10, studyname = "Study 1")
-  results_10_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 10, studyname = "Study 2")
-  results_10_cv_s3 <- get_cv_results(study = s3[c(13,22),], df = s3_data[c(13,22)], V = 10, studyname = "Study 3")
+  results_10_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 10, studyname = "study_1")
+  results_10_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 10, studyname = "study_2")
+  results_10_cv_s3 <- get_cv_results(study = s3[c(7,10,13,16,19,22),], df = s3_data[c(7,10,13,16,19,22)], V = 10, studyname = "study_3")
   
   # 5 fold cross-validation
-  results_5_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 5, studyname = "Study 1")
-  results_5_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 5, studyname = "Study 2")
-  results_5_cv_s3 <- get_cv_results(study = s3[c(13,22),], df = s3_data[c(13,22)], V = 5, studyname = "Study 3")
+  results_5_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 5, studyname = "study_1")
+  results_5_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 5, studyname = "study_2")
+  results_5_cv_s3 <- get_cv_results(study = s3[c(7,10,13,16,19,22),], df = s3_data[c(7,10,13,16,19,22)], V = 5, studyname = "study_3")
   
   # 10X10 fold cross-validation 
   results_10x10_cv_s1 <- get_10x10_results(study = s1[1:3,], df = s1_data[1:3], V = 10, studyname = "Study 1")
   results_10x10_cv_s2 <- get_10x10_results(study = s2[1,], df = s2_data[1], V = 10, studyname = "Study 2")
-  results_10x10_cv_s3 <- get_10x10_results(study = s3[c(13,22),], df = s3_data[c(13,22)], V = 10, studyname = "Study 3")
+  results_10x10_cv_s3 <- get_10x10_results(study = s3[c(7,10,13,16,19,22),], df = s3_data[c(7,10,13,16,19,22)], V = 10, studyname = "Study 3")
   
   # Bootstrap 3 varieties in one go
 
