@@ -47,7 +47,8 @@ results_estimands_names <-
   )
 
 apparent_col_names <-
-  c("approach",
+  c(
+    "approach",
     "auc",
     "calib_int",
     "calib_slope",
@@ -58,6 +59,18 @@ apparent_col_names <-
     "rmspe",
     "error_info"
     )
+
+estimands_names <- 
+  c(
+    "auc",
+    "calib_int",
+    "calib_slope",
+    "Tjur",
+    "R2_CS",
+    "eci",
+    "mape",
+    "rmspe"
+  )
 
 iv_colnames <- c(
   "approach",
@@ -91,7 +104,7 @@ study_info <- c("dim",
 #####################
 
 study_1_settings <- "./data/simulation settings/s1.Rds"
-study_1_val_data <- "./data/validation data/study 1/"
+study_1_val_data <- "./data/validation data/study 1/s1_val_data.Rds"
 s1_performance <- "./results/output/performance/study 1/"
 s1_figures <- "./results/figures/study 1/"
 
@@ -141,7 +154,7 @@ val_data_files_s1 <- c(
 ###### study 2 ######
 #####################
 study_2_settings <- "./data/simulation settings/s2.Rds"
-study_2_val_data <- "./data/validation data/study 2/"
+study_2_val_data <- "./data/validation data/study 2/s2_val_data.Rds"
 s2_performance <- "./results/output/performance/study 2/"
 s2_figures <- "./results/figures/study 2/"
 
@@ -149,7 +162,7 @@ s2_figures <- "./results/figures/study 2/"
 ###### study 3 ######
 #####################
 study_3_settings <- "./data/simulation settings/s3.Rds"
-study_3_val_data <- "./data/validation data/study 3/"
+study_3_val_data <- "./data/validation data/study 3/s3_val_data.Rds"
 s3_performance <- "./results/output/performance/study 3/"
 s3_figures <- "./results/figures/study 3/"
 
