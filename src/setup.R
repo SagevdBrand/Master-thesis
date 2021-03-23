@@ -72,6 +72,18 @@ estimands_names <-
     "rmspe"
   )
 
+estimands_se_names <- 
+  c(
+    "auc_se",
+    "calib_int_se",
+    "calib_slope_se",
+    "Tjur_se",
+    "R2_CS_se",
+    "eci_se",
+    "mape_se",
+    "rmspe_se"
+  )
+
 iv_colnames <- c(
   "approach",
   "auc",
@@ -108,6 +120,7 @@ study_1_val_data <- "./data/validation data/study 1/s1_val_data.Rds"
 s1_performance <- "./results/output/performance/study 1/"
 s1_figures <- "./results/figures/study 1/"
 
+# For testing/programming purposes
 data_files_s1 <- c(
   "s1_data_a.Rds",
   "s1_data_b.Rds",

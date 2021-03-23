@@ -1,16 +1,21 @@
 #########################
 ## BOOTSTRAP FUNCTIONS ##
 #########################
-## Create and load simulation data
+
+########
+## [ ] WHAT TO DO IF VALUES BECOME NEGATIVE? LIKE R^2? BECAUSE THE OPTIMISM IS TOO GREAT FOR EXAMPLE?
+
+
+
 source("./src/setup.R")
 source("./src/estimand functions.R")
 source("./src/data generation functions.R")
 
 study <- readRDS(study_1_settings)
-data <- generate_data(study, validation = FALSE)
+s1_data <- generate_data(study, validation = FALSE)
 
 # Getting one dataframe
-i <- 4 # or whatever we're interested in1
+i <- 1 # or whatever we're interested in1
 df <- data[[i]]
 model <- study[i, ]$model
 pred_selection <- study[i, ]$pred_selection
@@ -23,9 +28,26 @@ dgm_par <- c(study[i, ]$par1,
 ###########################
 ###########################
 ## obtain apparent results:
-preds_app <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study1.RDS"))
-results_app <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study1.RDS"))
+
+p_app_study_1 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study1.RDS"))
+results_app_ext_s1 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study1.RDS"))
 estimands_app <- results_app %>% filter(approach == "Apparent") %>% .[,(colnames(results_app) %in% estimands_names)]
+
+############
+## Lambda ##
+############
+
+### Bootstrap estimate of optimism: Harrell's ###
+get_lambda <- function(data){
+  
+  train_results <- data %>% dplyr::select(ends_with("_train"))
+  df_results <- data %>% dplyr::select(ends_with("_df"))
+  
+  lambda <- colMeans(train_results - df_results, na.rm = TRUE)
+  names(lambda) <- sub("*_train", "_optimism", names(lambda))
+  return(lambda)
+}
+
 
 
 ###############
@@ -41,33 +63,18 @@ get_gamma <- function(data, pred_app){
   return(gamma_hat)
 }
 
-# 
-# # Check whether the data is actually useful
-# if (any(str_detect(names(df),"Error: No events sampled") == TRUE)) {
-#   # If no events were sampled, then the following will be
-#   results <- list("Error: No events sampled" = NA)
-#   return(results) 
-#   
-# } else {
-#   
-  ##########################################
-  ############WORK IN PROGRESS##############
-  ##########################################
-  
-  error_info <- NA
-  # Matrix for results (all 3 methods so should be three
-  # times as large as a single matrix)
-  results_i <- as.data.frame(matrix(NA, nrow =3*nrow(study), 
-                                    ncol = length(results_estimands_names), 
-                                    dimnames = list(c(), results_estimands_names)))
-  # The results should be pasted in rows of 3 as well
-  # Therefore for each scenario, another index is necessary
-  # so it corresponds with each 3rd row in the results
-  results_index <- seq(1, nrow(results_i), by = 3)
 
+get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app, theta_app, nboot){  
+    
+  error_info <- NA
     errors_warnings <- ErrorsWarnings({  
-  
-    #  for (b in 1:nboot) {
+    
+      # create empty matrix for results
+      results <- as.data.frame(matrix(NA, nrow = nboot, ncol = 24, dimnames = list(c(), c(
+        paste0(estimands_names, c(rep("_df",8), rep("_train",8), rep("_test",8)))
+      ))))
+      
+    for (b in 1:nboot) {
     # Obtain indices for the bootstrap sample: "in the bag" = itb
     itb <- sample(nrow(df), size = nrow(df), replace = T) # indices
     
@@ -78,8 +85,9 @@ get_gamma <- function(data, pred_app){
     # Check whether any events have been sampled
     # within the training sample
     if (var(df_train$y) == 0) {
-    error_info <- paste(toString(error_info), paste0("No events sampled in training sample"), sep = " + ")
-    } else { # Otherwise continue by fitting the models
+    error_info <- paste(toString(error_info), paste0(b, " No events sampled in training sample"), sep = " + ")
+    next
+    }
       
       assign("df_train", df_train, envir = .GlobalEnv)
       assign("df_test", df_test, envir = .GlobalEnv)
@@ -134,7 +142,7 @@ get_gamma <- function(data, pred_app){
                              # Add 1, because the indices of columns exclude the intercept
                              + 1)))
         
-        dgm_par_folds <- dgm_par[ind]
+        dgm_par_boot <- dgm_par[ind]
         
       } else if (model == "Lasso" | model == "Ridge") {
         
@@ -297,29 +305,150 @@ get_gamma <- function(data, pred_app){
         
         dgm_par_boot <- dgm_par[ind]
       }
-
-      # create empty vectors for results
-      # Also saving the predictions on the original sample for ci calculations.
-      # objects to save results in
-      auc_bootstrapped <- matrix(NA, nrow = nboot, ncol = 3, dimnames = list(c(), c("df", "train", "test")))
-      calib_int_bootstrapped <- matrix(NA, nrow = nboot, ncol = 3, dimnames = list(c(), c("df", "train", "test")))
-      calib_slope_bootstrapped <- matrix(NA, nrow = nboot, ncol = 3, dimnames = list(c(), c("df", "train", "test")))
-      Tjur_bootstrapped <- matrix(NA, nrow = nboot, ncol = 3, dimnames = list(c(), c("df", "train", "test")))
-      R2_bootstrapped <- matrix(NA, nrow = nboot, ncol = 3, dimnames = list(c(), c("df", "train", "test")))
-      eci_bootstrapped <- matrix(NA, nrow = nboot, ncol = 3, dimnames = list(c(), c("df", "train", "test")))
-      mape_bootstrapped <- matrix(NA, nrow = nboot, ncol = 3, dimnames = list(c(), c("df", "train", "test")))
-      rmspe_bootstrapped <- matrix(NA, nrow = nboot, ncol = 3, dimnames = list(c(), c("df", "train", "test")))
       
-      ## And filling the matrices above withe the resoective estimands
-      auc_bootstrapped$df[b,] <- fastAUC(p = p_df, y = df$y)
-      auc_bootstrapped$train[b,] <- fastAUC(p = p_train, y = df_train$y)
-      auc_bootstrapped$test[b,] <- fastAUC(p = p_test, y = df_test$y)
+      ## Check whether any predictions are 0:
+      if (any(p_df == 0) | any(p_train == 0) | any(p_test == 0)){
+        error_info <- paste(toString(error_info), paste0("probabilities of 0 occured"), sep = " + ")
+      } # close check for predictions of 0.
       
-
-    }
+      if (any(p_df == 1) | any(p_train == 1) | any(p_test == 1)){
+        error_info <- paste(toString(error_info), paste0("probabilities of 1 occured"), sep = " + ")
+      } # close check for predictions of 0.
+      
+      p_df <-  ifelse(p_df == 0, 0.000001, p_df)
+      p_df <- ifelse(p_df == 1,  0.999999, p_df)
+      
+      p_train <-  ifelse(p_train == 0, 0.000001, p_train)
+      p_train <- ifelse(p_train == 1,  0.999999, p_train)
+      
+      p_test <-  ifelse(p_test == 0, 0.000001, p_test)
+      p_test <- ifelse(p_test == 1,  0.999999, p_test)
+      
+      # Obtain 'true' predictions:
+      p_df_true <- 1 / (1 + exp(-df_matrix %*% dgm_par_boot))
+      p_train_true <- 1 / (1 + exp(-train_matrix %*% dgm_par_boot))
+      p_test_true <- 1 / (1 + exp(-test_matrix %*% dgm_par_boot))
+      
+      ## Filling the matrices above withe the respective estimands
+      # AUC
+      results$auc_df[b] <- fastAUC(p = p_df, y = df$y)
+      results$auc_train[b] <- fastAUC(p = p_train, y = df_train$y)
+      results$auc_test[b] <- fastAUC(p = p_test, y = df_test$y)
+      
+      # Calibration slope
+      results$calib_int_df[b] <- coef(glm(df$y ~ offset(log(p_df/(1-p_df))), family="binomial"))
+      results$calib_int_train[b] <- coef(glm(df_train$y ~ offset(log(p_train/(1-p_train))), family="binomial"))
+      results$calib_int_test[b] <- coef(glm(df_test$y ~ offset(log(p_test/(1-p_test))), family="binomial"))
+      
+      # Calibration intercept
+      results$calib_slope_df[b] <- c(coef(glm(df$y ~ log(p_df/(1-p_df)), family="binomial"))[2])
+      results$calib_slope_train[b] <- c(coef(glm(df_train$y ~ log(p_train/(1-p_train)), family="binomial"))[2])
+      results$calib_slope_test[b] <-  c(coef(glm(df_test$y ~ log(p_test/(1-p_test)), family="binomial"))[2])
+      
+      # Tjur's R2
+      results$Tjur_df[b] <- tjur(p = p_df, y = df$y)
+      results$Tjur_train[b] <- tjur(p = p_train, y = df_train$y)
+      results$Tjur_test[b] <- tjur(p = p_test, y = df_test$y)
+      
+      # R2
+      results$R2_CS_df[b] <- pseudo_Rsqrs(p = p_df, y = df$y)
+      results$R2_CS_train[b] <- pseudo_Rsqrs(p = p_train, y = df_train$y) 
+      results$R2_CS_test[b] <- pseudo_Rsqrs(p = p_test, y = df_test$y)
+      
+      # ECI
+      calout <- loess(y ~ log(p_df/(1-p_df)), data = df, span = 10)
+      results$eci_df[b] <- (mean((p_df-fitted(calout))*(p_df-fitted(calout))))*(100)
+      calout <- loess(y ~ log(p_train/(1-p_train)), data = df_train, span = 10)
+      results$eci_train[b] <- (mean((p_train-fitted(calout))*(p_train-fitted(calout))))*(100)
+      calout <- loess(y ~ log(p_test/(1-p_test)), data = df_test, span = 10)
+      results$eci_test[b] <- (mean((p_test-fitted(calout))*(p_test-fitted(calout))))*(100)
+      
+      # MAPE
+      results$mape_df[b] <- mean(abs(p_df_true-p_df))
+      results$mape_train[b] <- mean(abs(p_train_true-p_train))
+      results$mape_test[b] <- mean(abs(p_test_true-p_test))
+      
+      #rMSPE
+      results$rmspe_df[b]  <- sqrt(mean((p_df_true-p_df)^2))
+      results$rmspe_train[b]  <- sqrt(mean((p_train_true-p_train)^2))
+      results$rmspe_test[b]  <- sqrt(mean((p_test_true-p_test)^2))
+      
+    } # Close bootstrap for loop
+      # Matrix to store results for a single scenario:
+      results_matrix <- as.data.frame(matrix(NA, ncol = length(iv_colnames), nrow = 3, dimnames = list(c(),
+                                                                                                       c(iv_colnames))))
+      results_matrix$approach <- c("Harrell's bootstrap", ".632 bootstrap", ".632+ bootstrap")
+      
+      theta_train <- results %>% dplyr::select(ends_with("_train"))
+      train_se <- apply(theta_train, 2, sd)/(sqrt(nboot))
+      #####################
+      # Harrell's results #
+      #####################
+      lambda <- get_lambda(results)
+      Harrell_results <- as.matrix(t(theta_app) - lambda)
+      colnames(Harrell_results) <- estimands_names
+      
+      results_matrix[1,which(colnames(results_matrix) %in% estimands_names)] <- Harrell_results
+      
+      ## SE 
+      delta_Harrell <- abs(Harrell_results-theta_app)
+      SE_Harrell <-  train_se + delta_Harrell
+      colnames(SE_Harrell) <- estimands_se_names
+      
+      results_matrix[1,which(colnames(results_matrix) %in% estimands_se_names)] <- SE_Harrell
+      
+      ##################
+      # .632 bootstrap #
+      ##################
+      ## Average test estimate ##
+      theta_test <- results %>% dplyr::select(ends_with("_test")) %>% colMeans(., na.rm = TRUE)
+      efron_.632_results <- as.matrix(t((0.368 * theta_app) + (0.632 * theta_test)))
+      colnames(efron_.632_results) <- estimands_names
+      
+      results_matrix[2,which(colnames(results_matrix) %in% estimands_names)] <- efron_.632_results
+      
+      ## SE 
+      delta_.632 <- abs(efron_.632_results-theta_app)
+      SE_.632 <-  train_se + delta_.632
+      colnames(SE_.632) <- estimands_se_names
+      
+      results_matrix[2,which(colnames(results_matrix) %in% estimands_se_names)] <- SE_.632
+      
+      ###################
+      # .632+ bootstrap #
+      ###################
+      # Obtain gamma:
+      gamma <- get_gamma(data = df, pred_app = pred_app)
+      
+      # Relative overfitting 
+      # For almost all the following should give correct estimates
+      R <- abs(theta_test - theta_app) / abs(gamma - theta_app)
+      
+      # However, for the eci, mape and rmspe, the results might be quite different from eachother
+      #(R[6:8] <- abs(log(theta_app[6:8]) - log(theta_test[6:8])) / abs(gamma - log(theta_app[6:8])))
+      # If R is negative, return absolute value
+      R <-  ifelse( R< 0, abs(R), R)
+      # Then return all that are bigger than 1 to 1. 
+      R <-  ifelse( R> 1, 1, R)
+      # weight
+      W <-  abs(.632 / (1 - .368 * R))
+      
+      # results:
+      efron_.632_plus_results <- as.matrix(t((1-W) * theta_app) + (W * theta_test)) 
+      colnames(efron_.632_plus_results) <- estimands_names
+      
+      results_matrix[3,which(colnames(results_matrix) %in% estimands_names)] <- efron_.632_plus_results
+      
+      ## SE 
+      delta_.632_plus <- abs(efron_.632_plus_results-theta_app)
+      SE_.632_plus <-  train_se + delta_.632_plus
+      colnames(SE_.632_plus) <- estimands_se_names
+      
+      results_matrix[3,which(colnames(results_matrix) %in% estimands_se_names)] <- SE_.632_plus
+      
   }) #Close warnings and error check
-    
-    #} Close bootstrap for loop
+  
+     
   # If there are warnings, paste those in the error_info
   if (!is.null(errors_warnings$warning)) {
     error_info <- paste(toString(error_info), toString(errors_warnings$warning), sep = " + ")
@@ -329,6 +458,103 @@ get_gamma <- function(data, pred_app){
     error_info <- paste(toString(error_info), toString(errors_warnings$value$message), sep = " + ")
   }
   
-  # Save results
-  results
+    results_matrix$error_info <- error_info 
+  return(results_matrix)
+}  
+
+
+### And to apply this for each scenario in a study and obtaining the results:  
+get_bootstrap_results <- function(study, df, V, studyname) {
+
+  # Matrix for results (all 3 methods so should be three
+  # times as large as a single matrix)
+  results_boot <- as.data.frame(matrix(NA, nrow =3*nrow(study), 
+                                       ncol = length(results_estimands_names), 
+                                       dimnames = list(c(), results_estimands_names)))
   
+  # Fill in details of the study
+  results_boot$study <- studyname
+  
+  # The results should be pasted in rows of 3 as well
+  # Therefore for each scenario, another index is necessary
+  # so it corresponds with each 3rd row in the results
+  results_i_start <- seq(1, nrow(results_boot), by = 3)
+  results_i_end <- seq(3, nrow(results_boot), by = 3)
+  
+  for (i in 1:nrow(study)){
+    print(i)
+    
+    # Fill in some details:
+    results_boot[c(results_i_start[i]:results_i_end[i]),
+                 'scenario'] <- paste0("Scenario ", i)
+    results_boot[c(results_i_start[i]:results_i_end[i]),
+                 'observed events'] <- sum(df[[i]]$y)
+    results_boot[c(results_i_start[i]:results_i_end[i]),
+                 which(colnames(results_boot) %in% study_info)] <- study[i, which(colnames(study) %in% study_info)]
+    
+    # Check whether the data is actually useful
+    if (any(str_detect(names(df[[i]]),"Error: No events sampled") == TRUE)) {
+      # If no events were sampled, then the following will be
+      results_boot[c(results_i_start[i]:results_i_end[i]), 'error_info'] <- c("Error: No events sampled")
+      results_boot[c(results_i_start[i]:results_i_end[i]), 'approach'] <- c("Harrell's bootstrap",
+                                                                            ".632 bootstrap",
+                                                                            ".632+ bootstrap")
+    } else {
+      
+    # Obtain necessary apparent information results
+    pred_app <- get(paste0("p_app_", studyname))[[i]]
+    results_app <- results_app_ext_s1 %>% filter(approach == "Apparent" & scenario == paste("Scenario", i)) 
+    theta_app <- results_app %>% .[,(colnames(results_app) %in% estimands_names)]
+    theta_app <- as.numeric(theta_app)
+    
+    # Go along with obtaining the results
+    results_boot[c(results_i_start[i]:results_i_end[i]),'model'] <- as.character(study[i, ]$model)
+    model <- study[i, ]$model
+    
+    results_boot[c(results_i_start[i]:results_i_end[i]),'pred_selection'] <- as.character(study[i, ]$pred_selection)
+    pred_selection <- study[i, ]$pred_selection
+    
+    # Obtain dgm, depending on the dimensionality,
+    # noise contribution, and therefore dgm settings
+    if (study[i, ]$noise == "default"){
+      dgm_par <-
+        c(study[i, ]$par1, 
+          rep(study[i, ]$par2 * 3, round(0.3 * study[i, ]$dim)), 
+          rep(study[i, ]$par2, round(0.5 *  study[i, ]$dim)), 
+          rep(study[i, ]$par2 * 0, round(0.2 * study[i, ]$dim)))
+    }
+    
+    if (study[i, ]$noise == "half"){
+      dgm_par <-
+        c(study[i, ]$par1, 
+          rep(study[i, ]$par2 * 3, round(1/6 * study[i, ]$dim)), # strong
+          rep(study[i, ]$par2, round(2/6 *  study[i, ]$dim)),    # weak
+          rep(study[i, ]$par2 * 0, round(3/6 * study[i, ]$dim))) # noise
+    } 
+    
+    if (study[i, ]$noise == "none"){
+      dgm_par <-
+        c(study[i, ]$par1, 
+          rep(study[i, ]$par2 * 3, round(1/6 * study[i, ]$dim)), # strong
+          rep(study[i, ]$par2, round(5/6 *  study[i, ]$dim))     # weak
+        )
+    } # Close if statements for dgm_pars
+    
+    # Paste the results in the results matrix:
+    # The rows are per 3, 1:3, 4:6 etc.
+    # The columnnames are the iv_colnames
+    results_boot[c(results_i_start[i]:results_i_end[i]), 
+                 which(colnames(results_boot) %in% iv_colnames)] <- get_bootstrap_estimands(df = df[[i]],
+                                                                                            model = model,
+                                                                                            dgm_par = dgm_par,
+                                                                                            pred_selection = pred_selection,
+                                                                                            pred_app = pred_app,
+                                                                                            theta_app = theta_app,
+                                                                                            nboot = 500)
+    
+  } # close for loop
+  
+  return(results_boot)
+} # Close if else when checking for events in the data
+  
+} # close get_bootstrap_results_function

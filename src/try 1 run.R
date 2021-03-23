@@ -4,18 +4,11 @@
 ## GET ESTIMANDS SCENARIO 1
 
 ############ TO FIX/DO #################
-## [x] IMPLEMENT STUDY 1 FOR ESTIMANDS
-## [X] IMPLEMENT STUDY 2 FOR ESTIMANDS
-## [ ] IMPLEMENT STUDY 3 FOR ESTIMANDS
-
 ## [ ] PERFORMANCE MEASURES IN DATAFRAME
 ##      [ ] ADD SEED
 ##      [ ] ADD STUDY SCENARIO
 ##      [ ] ADD COLUMN FOR IV/APP.
 ##      [ ] ADD PERFORMANCE MEASURE (COMPARED TO EXT.)
-
-## [ ] BOOTSTRAP ESTIMAND FUNCTION
-
 
 ## [ ] BUILD IN ERROR HANDLING AS SPECIFIED IN PROTOCOL!
 ##      [X] CHECK FOR VAR(LP) == 0 in BE:
@@ -26,6 +19,10 @@
 ## [ ] BUILD ERROR HANDLING FOR SIMULATION RUNS!!
 
 ## DONE:
+## [x] BOOTSTRAP ESTIMAND FUNCTION
+## [x] IMPLEMENT STUDY 1 FOR ESTIMANDS
+## [X] IMPLEMENT STUDY 2 FOR ESTIMANDS
+## [X] IMPLEMENT STUDY 3 FOR ESTIMANDS
 ## [X] ADD OPTIONS FOR OTHER MODELS
 ##      [X] MACHINE LEARNING -> CODE IS BEING DEVELOPED
 ##          [X] RF
@@ -103,37 +100,87 @@ set.seed(123)
 n_sim <- 1 # how many iterations?
 seed_state <- sample(1:50000, n_sim)
 
-system.time({for(j in 1:n_sim){
-  set.seed(seed_state[j]) # for each run the next value in the state vector will be chosen (and saved!)
+system.time({
+set.seed(seed_state[1]) # for each run the next value in the state vector will be chosen (and saved!)
   
   ## Create and load simulation data
   s1_data <- generate_data(s1, validation = FALSE)
   s2_data <- generate_data(s2, validation = FALSE)
   s3_data <- generate_data(s3, validation = FALSE)
-
+  
+  progression<-winProgressBar(title = "Progress bar", min = 0,max = 100 , width = 300)
+  l <- seq(1, 100, length.out = 15)
+  
+  
   ## Obtain apparent and external estimands ##
-  results_app_ext_s1 <- get_app_ext_results(study = s1[c(1,4),], df = s1_data[c(1,4)], df_val = s1_val_data[c(1,4)], studyname = "study_1")
-  results_app_ext_s2 <- get_app_ext_results(study = s2[1:3,], df = s2_data[1:3], df_val = s2_val_data[1:3], studyname = "study_2")
-  results_app_ext_s3 <- get_app_ext_results(study = s3[c(7,10,13,16,19,22),], df = s3_data[c(7,10,13,16,19,22)], df_val = s3_val_data[c(7,10,13,16,19,22)], studyname = "study_3")
-
+  results_app_ext_s1 <- get_app_ext_results(study = s1, df = s1_data, df_val = s1_val_data, studyname = "study_1")
+  setWinProgressBar(progression, l[1], title=paste(l[1],"% done"))
+  
+  results_app_ext_s2 <- get_app_ext_results(study = s2, df = s2_data, df_val = s2_val_data, studyname = "study_2")
+  setWinProgressBar(progression, l[2], title=paste(l[2],"% done"))
+  
+  results_app_ext_s3 <- get_app_ext_results(study = s3, df = s3_data, df_val = s3_val_data, studyname = "study_3")
+  setWinProgressBar(progression, l[3], title=paste(l[3],"% done"))
+  
+  saveRDS(results_app_ext_s1, paste0(estimands_path, "app_estimands_for_bootstrap_study1.RDS")) #if bootstrap is not done yet, we can retest
+  saveRDS(results_app_ext_s2, paste0(estimands_path, "app_estimands_for_bootstrap_study2.RDS")) #if bootstrap is not done yet, we can retest
+  saveRDS(results_app_ext_s3, paste0(estimands_path, "app_estimands_for_bootstrap_study3.RDS")) #if bootstrap is not done yet, we can retest
+  
+  saveRDS(p_app_study_1, paste0(estimands_path, "app_preds_for_bootstrap_study1.RDS")) #if bootstrap is not done yet, we can retest
+  saveRDS(p_app_study_2, paste0(estimands_path, "app_preds_for_bootstrap_study2.RDS")) #if bootstrap is not done yet, we can retest
+  saveRDS(p_app_study_3, paste0(estimands_path, "app_preds_for_bootstrap_study3.RDS")) #if bootstrap is not done yet, we can retest
+  
+  
   ## Obtain internal validation estimands ##
   # 10 fold cross-validation
-  results_10_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 10, studyname = "study_1")
-  results_10_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 10, studyname = "study_2")
-  results_10_cv_s3 <- get_cv_results(study = s3[c(7,10,13,16,19,22),], df = s3_data[c(7,10,13,16,19,22)], V = 10, studyname = "study_3")
+  results_10_cv_s1 <- get_cv_results(study = s1, df = s1_data, V = 10, studyname = "study_1")
+  setWinProgressBar(progression, l[4], title=paste(l[4],"% done"))
+  
+  results_10_cv_s2 <- get_cv_results(study = s2, df = s2_data, V = 10, studyname = "study_2")
+  setWinProgressBar(progression, l[5], title=paste(l[5],"% done"))
+  
+  results_10_cv_s3 <- get_cv_results(study = s3, df = s3_data, V = 10, studyname = "study_3")
+  setWinProgressBar(progression, l[6], title=paste(l[6],"% done"))
   
   # 5 fold cross-validation
-  results_5_cv_s1 <- get_cv_results(study = s1[1:3,], df = s1_data[1:3], V = 5, studyname = "study_1")
-  results_5_cv_s2 <- get_cv_results(study = s2[1:3,], df = s2_data[1:3], V = 5, studyname = "study_2")
-  results_5_cv_s3 <- get_cv_results(study = s3[c(7,10,13,16,19,22),], df = s3_data[c(7,10,13,16,19,22)], V = 5, studyname = "study_3")
+  results_5_cv_s1 <- get_cv_results(study = s1, df = s1_data, V = 5, studyname = "study_1")
+  setWinProgressBar(progression, l[7], title=paste(l[7],"% done"))
+  
+  results_5_cv_s2 <- get_cv_results(study = s2, df = s2_data, V = 5, studyname = "study_2")
+  setWinProgressBar(progression, l[8], title=paste(l[8],"% done"))
+  
+  results_5_cv_s3 <- get_cv_results(study = s3, df = s3_data, V = 5, studyname = "study_3")
+  setWinProgressBar(progression, l[9], title=paste(l[9],"% done"))
   
   # 10X10 fold cross-validation 
-  results_10x10_cv_s1 <- get_10x10_results(study = s1[1:3,], df = s1_data[1:3], V = 10, studyname = "Study 1")
-  results_10x10_cv_s2 <- get_10x10_results(study = s2[1,], df = s2_data[1], V = 10, studyname = "Study 2")
-  results_10x10_cv_s3 <- get_10x10_results(study = s3[c(7,10,13,16,19,22),], df = s3_data[c(7,10,13,16,19,22)], V = 10, studyname = "Study 3")
+  results_10x10_cv_s1 <- get_10x10_results(study = s1, df = s1_data, V = 10, studyname = "study_1")
+  setWinProgressBar(progression, l[10], title=paste(l[10],"% done"))
+  
+  results_10x10_cv_s2 <- get_10x10_results(study = s2, df = s2_data, V = 10, studyname = "study_2")
+  setWinProgressBar(progression, l[11], title=paste(l[11],"% done"))
+  
+  results_10x10_cv_s3 <- get_10x10_results(study = s3, df = s3_data, V = 10, studyname = "study_3")
+  setWinProgressBar(progression, l[12], title=paste(l[12],"% done"))
   
   # Bootstrap 3 varieties in one go
-
+  p_app_study_1 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study1.RDS")) 
+  p_app_study_2 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study2.RDS"))
+  p_app_study_3 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study3.RDS"))
+  
+  results_app_ext_s1 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study1.RDS"))
+  results_app_ext_s2 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study2.RDS"))
+  results_app_ext_s3 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study3.RDS"))
+  
+  results_bootstrap_s1 <- get_bootstrap_results(study = s1, df = s1_data, nboot = 500, studyname = "study_1")
+  setWinProgressBar(progression, l[13], title=paste(l[13],"% done"))
+  
+  results_bootstrap_s2 <- get_bootstrap_results(study = s1, df = s2_data, nboot = 500, studyname = "study_2")
+  setWinProgressBar(progression, l[14], title=paste(l[14],"% done"))
+  
+  results_bootstrap_s3 <- get_bootstrap_results(study = s1, df = s3_data, nboot = 500, studyname = "study_3")
+  setWinProgressBar(progression, l[15], title=paste(l[15],"% done, now 'only' save it!"))
+  
+  saveRDS(results_bootstrap_s1, paste0(estimands_path, "bootstrap_results_study1.RDS"))
   
   #################################################
   ########## Wrangling into nice format ###########
@@ -152,8 +199,11 @@ system.time({for(j in 1:n_sim){
           results_5_cv_s3,
           results_10x10_cv_s1,
           results_10x10_cv_s2,
-          results_10x10_cv_s3
-          ) ## ADD OTHER RESULTS FROM VALIDATION APPROACHES
+          results_10x10_cv_s3,
+          results_bootstrap_s1,
+          results_bootstrap_s2,
+          results_bootstrap_s3
+          ) 
   
   ## Filling in missing details:
   results_estimands$iteration <- j
@@ -163,15 +213,8 @@ system.time({for(j in 1:n_sim){
   
   # Saving estimands
   saveRDS(results_estimands, file = paste0(estimands_path, "estimands_seed_", seed_state[j], ".Rds"))
-  
-  } # close simulation for loop
-  
-  }) # Close timing function
 
-
-
-## Obtain external validation estimands based on models fitted
-
+}) # Close timing function
 
 #################################
 ## Obtain performance measures ##
