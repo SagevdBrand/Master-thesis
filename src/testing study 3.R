@@ -6,10 +6,10 @@ source("./src/estimand functions.R")
 s3_data <- generate_data(s3, validation = FALSE)
 s3_val_data <- readRDS(study_3_val_data)
 
-df <- s3_data[[1]]
-df_val <- s3_val_data[[1]]
+df <- s3_data[[19]]
+df_val <- s3_val_data[[19]]
 study <- s3
-i <- 1
+i <- 19
 model <- "SVM"
 
 dgm_par <-
@@ -242,10 +242,11 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
     } else if (model == "SVM" ){
       
       
+      # Pre-defining a tuning grid
       svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 5),
                               .sigma = seq(0.001, 1, length.out = 5))
-      
-      
+      # Fitting the model, making sure that no output
+      # is printed!
       invisible(capture.output(fit_app <- caret::train(as.factor(y) ~.,
                                                        data = df,
                                                        method = 'svmRadial',
@@ -254,21 +255,17 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
                                                        prob.model = TRUE
       )))
       
-      coefs <- as.matrix(fit_app$coefnames)
-      rownames(coefs) <- (fit_app$coefnames)
-      
       # Apparent
       p_app <- predict(fit_app$finalModel, newdata = df[,-ncol(df)], type = "prob")[,2]
-      
       # Then use the names of the coefficients to get the model matrix:
-      df_app_X <- df[colnames(df) %in% rownames(coefs)]
+      df_app_X <- df[colnames(df)[!colnames(df) %in% "y"]]
       # Make model matrix by binding a column of 1 to the above
       app_matrix <- as.matrix(cbind("(Intercept)" = 1, df_app_X))
       
       # External 
-      p_ext <- predict(fit_app$finalModel, newdata = df_val[,-ncol(df_val)], type = "prob")[,2]
+      p_ext <- predict(fit_app$finalModel, newdata = df_val, type = "prob")[,2]
       # Then use the names of the coefficients to get the model matrix:
-      df_ext_X <- df_val[colnames(df_val) %in% rownames(coefs)]
+      df_ext_X <- df_val[colnames(df_val)[!colnames(df_val) %in% "y"]]
       # Make model matrix by binding a column of 1 to the above
       ext_matrix <- as.matrix(cbind("(Intercept)" = 1, df_ext_X))
       
@@ -314,11 +311,16 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
       
     } # Close model if else statements
 
-    if (any(p_app == 0) | any(p_ext == 0)){
-      p_ext[which(p_ext == 0)] <- 0.0000001
-      p_app[which(p_app == 0)] <- 0.0000001
-      error_info <- paste(toString(error_info), paste0("probabilities of 0 occured"), sep = " + ")
+    # Check whether any of the predictions are 0
+    if (any(p_app == 1) | any(p_app == 0) | any(p_ext == 1) | any(p_ext == 0)) {
+      error_info <- paste(toString(error_info), paste0("probabilities of 0 or 1 occured"), sep = " + ")
     }
+    
+    p_app <-  ifelse(p_app == 0, 0.000001, p_app)
+    p_app <- ifelse(p_app == 1,  0.999999, p_app)
+    
+    p_ext <-  ifelse(p_ext == 0, 0.000001, p_ext)
+    p_ext <- ifelse(p_ext == 1,  0.999999, p_ext)
     
     # Obtain apparent results
     auc_app <- fastAUC(p = p_app, y = df$y)
