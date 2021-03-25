@@ -124,33 +124,30 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
   error_info <- NA
   
   errors_warnings <- ErrorsWarnings({
-
-      # Fit model depending on scenario
-      # And get predicted probabilities, modelmatrix and dgm-parameters.
+    
+    # obtaining model matrices
+    app_matrix <- as.matrix(df[,-which(colnames(df)=="y")])
+    app_matrix <- as.matrix(cbind("(Intercept)" = 1, app_matrix))
+    
+    ext_matrix <- as.matrix(df_val[, -which(colnames(df)=="y")])
+    ext_matrix <- as.matrix(cbind("(Intercept)" = 1, ext_matrix))
+    # Fit model depending on scenario
+    # And get predicted probabilities
+    
+    if (model == "Firth" | model == "ML"){ 
+      # Specifiy model formula (necessary for logistf)
+      model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
       
       ## If model is Firth without backwards elimination:
       if (model == "Firth" & pred_selection == "none") {
         
-        fit_app <- logistf(y ~ ., data = df, flic = T)
-        
-        # Apparent
-        app_matrix <- model.matrix(object = fit_app$formula, data = df)
-        p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
-        
-        # External
-        ext_matrix <- model.matrix(object = fit_app$formula, data = df_val)
-        p_ext <- 1 / (1 + exp(-ext_matrix %*% fit_app$coefficients))
-        
-        # Save dgm 
-        dgm_par_app <- dgm_par
+        fit_app <- logistf(formula = modelform, data = df, flic = T)
         
         ## If model is Firth with backwards elimination:  
       } else if (model == "Firth" & pred_selection == "<0.05") {
-        
         df_app <- df
         assign("df_app", as.data.frame(df_app), envir = .GlobalEnv)
         
-        model_form <- as.formula(paste0("y ~", paste(colnames(df_app)[!colnames(df_app)%in%"y"], collapse = "+" )))
         fit_app <- logistf(formula = model_form, data = df_app, flic = T)
         fit_app <- backward(fit_app, trace = FALSE)
         
@@ -159,141 +156,78 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
           error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
         }
         
-        app_matrix <- model.matrix(object = fit_app$formula, data = df_app)
-        p_app <- 1 / (1 + exp(-app_matrix %*% fit_app$coefficients))
-        
-        # External
-        ext_matrix <- model.matrix(object = fit_app$formula, data = df_val)
-        p_ext <- 1 / (1 + exp(-ext_matrix %*% fit_app$coefficients))
-        
-        # Get the elements of the design generating mechanism that are
-        # belonging to the model after backwards elimination
-        # Always get the first element as this is the intercept
-        ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(app_matrix), "(?<=V).*"))
-                             # Add 1, because the indices of columns exclude the intercept
-                             + 1)))
-        
-        dgm_par_app <- dgm_par[ind]
-        
         ## If model is using ML :  
       } else if (model == "ML") {
         
         fit_app <- glm(y ~ ., family = "binomial", data = df) 
-        #Apparent results
-        p_app <- predict(fit_app, type = "response")
-        app_matrix <- model.matrix(object = fit_app$formula, data = df)
         
-        # External
-        ext_matrix <- model.matrix(object = fit_app$formula, data = df_val)
-        p_ext <- predict(fit_app, newdata = df_val, type = "response")
-       
-        # Save dgm
-        dgm_par_app <- dgm_par
-        
-      } else if (model == "Lasso") {
-        
-        fit_app <-  Pen_reg_VC(df = df, alpha = 1, nfolds = 10)
-        
-        ## Check whether predictors have been selected
-        # Create linear predictor
-        lp <- predict(fit_app, newdata = df, s = "lambda.min") 
-        
-        if (var(lp) == 0) {
-          error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
-        }
-        
-        # Create model matrix:
-        # First retrieve the coefficients
-        coefs <- as.matrix(coef(fit_app, s = "lambda.min"))
-        # Remove those that do are 0
-        coefs[coefs == 0] <- NA
-        coefs <- na.exclude(coefs)
-        
-        # Apparent
-        p_app <- predict(fit_app, newdata = df, s = "lambda.min", type = "response")
-        # Then use the names of the coefficients to get the model matrix:
-        df_app_X <- df[colnames(df) %in% rownames(coefs)]
-        # Make model matrix by binding a column of 1 to the above
-        app_matrix <- as.matrix(cbind("(Intercept)" = 1, df_app_X))
-        
-        # External
-        p_ext <- predict(fit_app, newdata = df_val, s = "lambda.min", type = "response")
-        # Then use the names of the coefficients to get the model matrix:
-        df_ext_X <- df_val[colnames(df_val) %in% rownames(coefs)]
-        # Make model matrix by binding a column of 1 to the above
-        ext_matrix <- as.matrix(cbind("(Intercept)" = 1, df_ext_X))
-        
-        # Get the elements of the design generating mechanism that are
-        # belonging to the model after backwards elimination
-        # Always get the first element as this is the intercept
-        ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(app_matrix), "(?<=V).*"))
-                             # Add 1, because the indices of columns exclude the intercept
-                             + 1)))
-        
-        # Save the correct part of dgm_par
-        dgm_par_app <- dgm_par[ind]
-        
-        # If the model is Ridge    
-      } else if (model == "Ridge") {
-        
-        fit_app <-  Pen_reg_VC(df = df, alpha = 0, nfolds = 10)
-        
-        # First retrieve the coefficients
-        coefs <- as.matrix(coef(fit_app, s = "lambda.min"))
-        
-        # Apparent
-        # Get the predictions 
-        p_app <- predict(fit_app, newdata = df, s = "lambda.min", type = "response")
-        # Then use the names of the coefficients to get the model matrix:
-        df_app_X <- df[colnames(df) %in% rownames(coefs)]
-        # Make model matrix by binding a column of 1 to the above
-        app_matrix <- as.matrix(cbind("(Intercept)" = 1, df_app_X))
-        
-        # External
-        p_ext <- predict(fit_app, newdata = df_val, s = "lambda.min", type = "response")
-        # Then use the names of the coefficients to get the model matrix:
-        df_ext_X <- df_val[colnames(df_val) %in% rownames(coefs)]
-        # Make model matrix by binding a column of 1 to the above
-        ext_matrix <- as.matrix(cbind("(Intercept)" = 1, df_ext_X))
-        
-        # Save dgm_par to dgm_par_app
-        dgm_par_app <- dgm_par
-        
-      } else if (model == "RF") {
-        
-        rf_grid <- expand.grid(.mtry = seq(1, ncol(df)-1, by = 1))
-        
+      }
+      # Predictions:
+      # Apparent
+      fit_app_matrix <- model.matrix(object = fit_app$formula, data = df_app)
+      p_app <- 1 / (1 + exp(-fit_app_matrix %*% fit_app$coefficients))
+      
+      # External
+      fit_ext_matrix <- model.matrix(object = fit_app$formula, data = df_val)
+      p_ext <- 1 / (1 + exp(-fit_ext_matrix %*% fit_app$coefficients))
+      
+      # If the model uses penalized regression  
+    } else if (model == "Lasso" | model == "Ridge") {
+      
+      alpha <- ifelse(model == "Lasso", 1, 0) # alpha = 1 for Lasso
+      
+      # Make sure that there are at least 8 events or no-events:
+      if (sum(df$y) < 8 | sum(1-df$y) <8 ){
+        # Fit the model depending on alpha with LOOCV
+        fit <-  Pen_reg_VC(df = df, alpha = alpha, nfolds = nrow(df))
+        error_info <- paste(toString(error_info), 
+                            paste0("Too few (non-)events for tuning -> LOOCV"),
+                            sep = " + ")
+      } else {
+        # Otherwise just use 10-f-cv for tuning of lambda
+        fit <-  Pen_reg_VC(df = df, alpha = alpha, nfolds = 10)
+      }  # close error handling too few events
+      
+      ## Check whether predictors have been selected
+      # Create linear predictor
+      lp <- predict(fit_app, newdata = df, s = "lambda.min") 
+      
+      if (var(lp) == 0) {
+        error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
+      }
+      # Apparent
+      p_app <- predict(fit_app, newdata = df, s = "lambda.min", type = "response")
+      # External
+      p_ext <- predict(fit_app, newdata = df_val, s = "lambda.min", type = "response")
+      
+    } else  if (model == "RF"| model == "CART") {
+      
+      if (model == "RF"){
+  
+          # pre-defining a tune grid
+          if (ncol(df) == 31){
+            rf_grid <-
+              expand.grid(.mtry = seq(1, ncol(df) - 1, by = 2))
+          }
+          
+          else if (ncol(df) == 61){
+            rf_grid <-
+              expand.grid(.mtry = seq(1, ncol(df) - 1, by = 3))
+          }
+          
+          else {
+            rf_grid <-
+              expand.grid(.mtry = seq(1, ncol(df) - 1, by = 1))
+          }
+
         fit_app <- caret::train(as.factor(y) ~.,
                                 data = df, 
                                 method = 'rf',
                                 tuneGrid = rf_grid,
                                 trControl = trainControl(method = "cv")
         )
-        
-        
-        coefs <- as.matrix(fit_app$coefnames)
-        rownames(coefs) <- (fit_app$coefnames)
-        
-        # Apparent
-        p_app <- predict(fit_app$finalModel, newdata = df, type = "prob")[,2]
-        
-        # Then use the names of the coefficients to get the model matrix:
-        df_app_X <- df[colnames(df) %in% rownames(coefs)]
-        # Make model matrix by binding a column of 1 to the above
-        app_matrix <- as.matrix(cbind("(Intercept)" = 1, df_app_X))
-        
-        # External 
-        p_ext <- predict(fit_app$finalModel, newdata = df_val, type = "prob")[,2]
-        # Then use the names of the coefficients to get the model matrix:
-        df_ext_X <- df_val[colnames(df_val) %in% rownames(coefs)]
-        # Make model matrix by binding a column of 1 to the above
-        ext_matrix <- as.matrix(cbind("(Intercept)" = 1, df_ext_X))
-        
-        # Save dgm
-        dgm_par_app <- dgm_par
-        
-      } else if (model == "CART"){
-        
+        # Otherwise fit CART
+      } else {
         # Pre-defining a tuning grid
         rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
         # Fitting the model
@@ -301,119 +235,66 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
                                 data = df,
                                 method = 'rpart',
                                 tuneGrid = rpart_grid,
-                                parms = list(split = "information"),
                                 trControl = trainControl(method = "cv"))
-
-        
         
         # Check whether there were more than 1 splits
         if (nrow(fit_app$finalModel$cptable) == 1) {
-          # if not, find the complexity parameter with the next highest accuracy:
-          ind <-which(fit_app$results$Accuracy != max(fit_app$results$Accuracy))
-          best_tune <- fit_app$results[ind,] %>% slice(which.max(Accuracy)) %>% .$cp
-          model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
-          
           # Refit the model
           fit_app <- caret::train(as.factor(y) ~.,
                                   data = df,
                                   method = 'rpart',
-                                  parms = list(split = "information"),
-                                  control = rpart.control(cp = best_tune),
-                                  trControl = trainControl(method = "none"))
-        
-          p_app <- predict(fit_app, newdata = df, type = "prob")[,2]
-          p_ext <- predict(fit_app, newdata = df_val, type = "prob")[,2]
-          
-        } else {
-          # Apparent
-          p_app <- predict(fit_app$finalModel, newdata = df, type = "prob")[,2]
-          # External 
-          p_ext <- predict(fit_app$finalModel, newdata = df_val, type = "prob")[,2]
-        }
-
-        # Then use the names of the coefficients to get the model matrix:
-        df_app_X <- df[colnames(df)[!colnames(df) %in% "y"]]
-        # Make model matrix by binding a column of 1 to the above
-        app_matrix <- as.matrix(cbind("(Intercept)" = 1, df_app_X))
-        
-        # Then use the names of the coefficients to get the model matrix:
-        df_ext_X <- df_val[colnames(df_val)[!colnames(df_val) %in% "y"]]
-        # Make model matrix by binding a column of 1 to the above
-        ext_matrix <- as.matrix(cbind("(Intercept)" = 1, df_ext_X))
-        
-        # Save dgm
-        dgm_par_app <- dgm_par
-        
-      } else if (model == "SVM" ){
-       
-        # Pre-defining a tuning grid
-        svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 5),
-                                .sigma = seq(0.001, 1, length.out = 5))
-        # Fitting the model, making sure that no output
-        # is printed!
-        invisible(capture.output(fit_app <- caret::train(as.factor(y) ~.,
-                                                     data = df,
-                                                     method = 'svmRadial',
-                                                     tuneGrid = svm_grid,
-                                                     trControl = trainControl(method = "cv"),
-                                                     prob.model = TRUE
-        )))
+                                  maximize = FALSE,
+                                  tuneGrid = rpart_grid,
+                                  trControl = trainControl(method = "cv"))
+        } # close handling if there is only one split in the tree
+      } # close which tree
+      # Apparent
+      p_app <- predict(fit_app$finalModel, newdata = df, type = "prob")[,2]
+      # External 
+      p_ext <- predict(fit_app$finalModel, newdata = df_val, type = "prob")[,2]
       
-        # Apparent
-        p_app <- predict(fit_app$finalModel, newdata = df[,-ncol(df)], type = "prob")[,2]
-        # Then use the names of the coefficients to get the model matrix:
-        df_app_X <- df[colnames(df)[!colnames(df) %in% "y"]]
-        # Make model matrix by binding a column of 1 to the above
-        app_matrix <- as.matrix(cbind("(Intercept)" = 1, df_app_X))
-        
-        # External 
-        p_ext <- predict(fit_app$finalModel, newdata = df_val, type = "prob")[,2]
-        # Then use the names of the coefficients to get the model matrix:
-        df_ext_X <- df_val[colnames(df_val)[!colnames(df_val) %in% "y"]]
-        # Make model matrix by binding a column of 1 to the above
-        ext_matrix <- as.matrix(cbind("(Intercept)" = 1, df_ext_X))
-        
-        # Save dgm
-        dgm_par_app <- dgm_par
-        
-      } else if (model == "ANN"){
-        # Pre-defining a tuning grid
-        nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
-                                 decay = seq(from = 0.1, to = 2, by = 0.4))
-        # Fitting the model
-        fit_app <- caret::train(as.factor(y) ~.,
-                                data = df, 
-                                method = 'nnet', 
-                                tuneGrid = nnet_grid, 
-                                trace = F, 
-                                trControl = trainControl(method = "cv"),
-                                preProcess = c("center", "scale"))
-        # Checking for convergence
-        if (fit_app$finalModel$convergence == 1){
-          error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
-        }
-        
-        coefs <- as.matrix(fit_app$coefnames)
-        rownames(coefs) <- (fit_app$coefnames)
-        
-        # Apparent
-        p_app <- predict(fit_app$finalModel, newdata = df, type='raw')
-        # Then use the names of the coefficients to get the model matrix:
-        df_app_X <- df[colnames(df)[!colnames(df) %in% "y"]]
-        # Make model matrix by binding a column of 1 to the above
-        app_matrix <- as.matrix(cbind("(Intercept)" = 1, df_app_X))
-        
-        # External 
-        p_ext <- predict(fit_app$finalModel, newdata = df_val)
-        # Then use the names of the coefficients to get the model matrix:
-        df_ext_X <- df_val[colnames(df_val)[!colnames(df_val) %in% "y"]]
-        # Make model matrix by binding a column of 1 to the above
-        ext_matrix <- as.matrix(cbind("(Intercept)" = 1, df_ext_X))
-        
-        # Save dgm
-        dgm_par_app <- dgm_par
-        
-      } # Close model if else statements
+    } else if (model == "SVM"){
+      
+      # Pre-defining a tuning grid
+      svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 4),
+                              .sigma = seq(0.001, 1, length.out = 4))
+      # Fitting the model, making sure that no output
+      # is printed!
+      invisible(capture.output(fit_app <- caret::train(as.factor(y) ~.,
+                                                       data = df,
+                                                       method = 'svmRadial',
+                                                       tuneGrid = svm_grid,
+                                                       trControl = trainControl(method = "cv"),
+                                                       prob.model = TRUE
+      )))
+      
+      # Apparent
+      p_app <- predict(fit_app$finalModel, newdata =  df[, which(!colnames(df) %in% "y")], type = "prob")[,2]
+      # External 
+      p_ext <- predict(fit_app$finalModel, newdata = df_val[, which(!colnames(df_val) %in% "y")], type = "prob")[,2]
+      
+    } else if (model == "ANN"){
+      # Pre-defining a tuning grid
+      nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
+                               decay = seq(from = 0.1, to = 2, by = 0.4))
+      # Fitting the model
+      fit_app <- caret::train(as.factor(y) ~.,
+                              data = df, 
+                              method = 'nnet', 
+                              tuneGrid = nnet_grid, 
+                              trace = F, 
+                              trControl = trainControl(method = "cv"),
+                              preProcess = c("center", "scale"))
+      # Checking for convergence
+      if (fit_app$finalModel$convergence == 1){
+        error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
+      } # close check for convergence
+      # Apparent
+      p_app <- predict(fit_app$finalModel, newdata = df, type='raw')
+      # External 
+      p_ext <- predict(fit_app$finalModel, newdata = df_val, type = 'raw')
+      
+    } # Close model if else statements
     
     # Check whether any of the predictions are 0
     if (any(p_app == 1) | any(p_app == 0) | any(p_ext == 1) | any(p_ext == 0)) {
@@ -425,11 +306,11 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
     
     p_ext <-  ifelse(p_ext == 0, 0.000001, p_ext)
     p_ext <- ifelse(p_ext == 1,  0.999999, p_ext)
-
+    
     # Obtain apparent results
     auc_app <- fastAUC(p = p_app, y = df$y)
     R2_app <- pseudo_Rsqrs(p = p_app, y = df$y)
-    MAPE_rMSPE_app <- MAPE_rMSPE(p = p_app, dgm_par = dgm_par_app, iv_matrix = app_matrix) 
+    MAPE_rMSPE_app <- MAPE_rMSPE(p = p_app, dgm_par = dgm_par, iv_matrix = app_matrix) 
     tjur_app <- tjur(p = p_app, y = df$y)
     slope_app <- c(coef(glm(df$y ~ log(p_app/(1-p_app)), family="binomial"))[2])
     intercept_app <- coef(glm(df$y ~ offset(log(p_app/(1-p_app))), family="binomial"))
@@ -439,7 +320,7 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
     # obtain external results
     auc_ext <- fastAUC(p = p_ext, y = df_val$y)
     R2_ext <- pseudo_Rsqrs(p = p_ext, y = df_val$y)
-    MAPE_rMSPE_ext <- MAPE_rMSPE(p = p_ext, dgm_par = dgm_par_app, iv_matrix = ext_matrix) 
+    MAPE_rMSPE_ext <- MAPE_rMSPE(p = p_ext, dgm_par = dgm_par, iv_matrix = ext_matrix) 
     tjur_ext <- tjur(p = p_ext, y = df_val$y)
     slope_ext <- c(coef(glm(df_val$y ~ log(p_ext/(1-p_ext)), family="binomial"))[2])
     intercept_ext <- coef(glm(df_val$y ~ offset(log(p_ext/(1-p_ext))), family="binomial"))
@@ -495,7 +376,7 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
 # for each scenario
 
 get_app_ext_results <- function(study, df, df_val, studyname) {
-
+  
   # objects to store results
   results_app <- as.data.frame(matrix(NA, nrow = nrow(study), 
                                       ncol = length(results_estimands_names), 
@@ -512,23 +393,30 @@ get_app_ext_results <- function(study, df, df_val, studyname) {
   # For each scenario within the study
   for (i in 1:nrow(study)) {
     print(i)
+    
+    # Fill in some information for each scenario:
     results_app[i, 'scenario'] <- paste0("Scenario ", i)
     results_ext[i, 'scenario'] <- paste0("Scenario ", i)
+    # Overwrite n of the development data
     results_ext[i, 'n'] <- nrow(df_val[[i]])
+    # How many events observed in validation set?
+    results_ext[i, 'observed events'] <- sum(df_val[[i]]$y)
+    
     # Check for each scenario whether there are events sampled
     if (any(str_detect(names(df[[i]]),"Error: No events sampled"))){
+      
       # If no events were sampled, then the following will be the result:
       results_app[i, 'error_info'] <- c("Error: No events sampled")
       results_app[i, 'approach'] <- c("Apparent")
       # For the external results, there will be the following messages
       results_ext[i, "error_info"] <- c("Error: No events sampled in development set")
       results_ext[i, "approach"] <- c("External")
-      results_ext[i, 'observed events'] <- sum(df_val[[i]]$y)
       # and all the other columns of the estimands remain NA
+      
     } else {
+      
       # Otherwise do this:
       results_app[i, 'observed events'] <- sum(df[[i]]$y)
-      results_ext[i, 'observed events'] <- sum(df_val[[i]]$y)
       # determine which model & pre_selection is specified
       model <- study[i, ]$model
       pred_selection <- study[i, ]$pred_selection
@@ -556,6 +444,7 @@ get_app_ext_results <- function(study, df, df_val, studyname) {
             rep(study[i, ]$par2, round(5/6 *  study[i, ]$dim))     # weak
           )
       }
+      
       # Fill the columns with apparent results, no SE!
       results <- get_app_ext_estimands(
         df = df[[i]],
@@ -564,6 +453,7 @@ get_app_ext_results <- function(study, df, df_val, studyname) {
         dgm_par = dgm_par,
         pred_selection = pred_selection
       )
+      
       # Save the results of each list into the correct matrix
       results_app[i, which(colnames(results_app) %in% apparent_col_names)] <- results[[1]]
       results_ext[i, which(colnames(results_ext) %in% apparent_col_names)] <- results[[2]]
@@ -642,6 +532,9 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
       assign("df_train", df_train, envir = .GlobalEnv)
       assign("df_test", df_test, envir = .GlobalEnv)
       
+      iv_matrix <- as.matrix(df_test[,-which(colnames(df_test)=="y")])
+      iv_matrix <- as.matrix(cbind("(Intercept)" = 1, iv_matrix))
+      
       # Train/test glm for each fold
       # Fit model depending on scenario
       # And get predicted probabilities and modelmatrix
@@ -655,38 +548,29 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
         } # Close if for firth and no predictor selection
         
         else if (model == "Firth" & pred_selection == "<0.05"){
-        # Fit Firth model with Backward elimination
-        fit <- logistf(formula = model_form, data = df_train, flic = T)
-        fit <- backward(fit, trace = FALSE)
-        
-        # Check whether any predictors have been selected at all. 
-        if (var(fit$linear.predictors) == 0) {
-          error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
-        
-        } # close error handling predictor selction
-      } else if (model == "ML"){
-        #Fit logistic regression with Maximum Likelihood
-        fit <- glm(y ~ ., family = "binomial", data = df_train)
-        
-        # Check for separation
-        if(any(sqrt(diag(summary(fit)$cov.unscaled)*summary(fit)$dispersion) > 70)){
-          error_info <- paste(toString(error_info), paste0("Data separation might have occured"), sep = " + ")
-        } # Close separation detection
-      } # Close if for which specific model
+          # Fit Firth model with Backward elimination
+          fit <- logistf(formula = model_form, data = df_train, flic = T)
+          fit <- backward(fit, trace = FALSE)
+          
+          # Check whether any predictors have been selected at all. 
+          if (var(fit$linear.predictors) == 0) {
+            error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
+            
+          } # close error handling predictor selction
+        } else if (model == "ML"){
+          #Fit logistic regression with Maximum Likelihood
+          fit <- glm(y ~ ., family = "binomial", data = df_train)
+          
+          # Check for separation
+          if(any(sqrt(diag(summary(fit)$cov.unscaled)*summary(fit)$dispersion) > 70)){
+            error_info <- paste(toString(error_info), paste0("Data separation might have occured"), sep = " + ")
+          } # Close separation detection
+        } # Close if for which specific model
         
         # Obtain model matrix
-        iv_matrix <- model.matrix(object = fit$formula, data = df_test)
+        fit_matrix <- model.matrix(object = fit$formula, data = df_test)
         # Obtain predictions
-        p <- 1 / (1 + exp(-iv_matrix %*% fit$coefficients))
-        
-        # Get the elements of the design generating mechanism that are
-        # belonging to the model after backwards elimination
-        # Always get the first element as this is the intercept
-        ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(iv_matrix), "(?<=V).*"))
-                             # Add 1, because the indices of columns exclude the intercept
-                             + 1)))
-        # Save the correct part of data generating mechanism
-        dgm_par_folds <- dgm_par[ind]
+        p <- 1 / (1 + exp(-fit_matrix %*% fit$coefficients))
         
         # If the model is penalized regression  
       } else if (model == "Lasso" | model == "Ridge") {
@@ -700,9 +584,9 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
           error_info <- paste(toString(error_info), 
                               paste0("Too few (non-)events for tuning -> LOOCV"),
                               sep = " + ")
-          } else {
-            # Otherwise just use 10-f-cv for tuning of lambda
-            fit <-  Pen_reg_VC(df = df_train, alpha = alpha, nfolds = 10)
+        } else {
+          # Otherwise just use 10-f-cv for tuning of lambda
+          fit <-  Pen_reg_VC(df = df_train, alpha = alpha, nfolds = 10)
         }  # close error handling too few events
         
         # Check whether predictors have been selected
@@ -715,65 +599,57 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
         # Obtain predictions:
         p <- predict(fit, newdata = df_test, s = "lambda.min", type = "response")
         
-        # Create model matrix:
-        # First retrieve the coefficients
-        coefs <- as.matrix(coef(fit, s = "lambda.min"))
-        # Remove those that are 0 (in the case of Lasso)
-        coefs[coefs == 0] <- NA
-        coefs <- na.exclude(coefs)
+      } else if (model == "RF"| model == "CART") {
         
-        # Then use the names of the coefficients to get the model matrix:
-        df_test_X <- df_test[colnames(df_test) %in% rownames(coefs)]
-        # Make model matrix by binding a column of 1 to the above
-        iv_matrix <- as.matrix(cbind("(Intercept)" = 1, df_test_X))
-        
-        # Get the elements of the design generating mechanism that are
-        # belonging to the model after backwards elimination
-        # Always get the first element as this is the intercept
-        ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(iv_matrix), "(?<=V).*"))
-                             # Add 1, because the indices of columns exclude the intercept
-                             + 1)))
-        
-        dgm_par_folds <- dgm_par[ind]
-        
-      } else if (model == "RF" | model == "SVM" | model == "ANN" | model == "CART") {
-        
-        if (model == "RF"| model == "CART") {
-          if (model == "RF"){
+        if (model == "RF"){
             # pre-defining a tune grid
-            rf_grid <- expand.grid(.mtry = seq(1, ncol(df_train)-1, by = 1))
-            # Fitting the appropriate model:
-            fit <- caret::train(as.factor(y) ~.,
-                                data = df_train, 
-                                method = 'rf',
-                                tuneGrid = rf_grid,
-                                trControl = trainControl(method = "cv"))
-          } else {
-            rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
+            if (ncol(df_train) == 31){
+              rf_grid <-
+                expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 2))
+            }
+            
+            else if (ncol(df_train) == 61){
+              rf_grid <-
+                expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 3))
+            }
+            
+            else {
+              rf_grid <-
+                expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 1))
+            }
+          
+          # Fitting the appropriate model:
+          fit <- caret::train(as.factor(y) ~.,
+                              data = df_train, 
+                              method = 'rf',
+                              tuneGrid = rf_grid,
+                              trControl = trainControl(method = "cv"))
+        } else { # the model is CART
+          rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
+          fit <- caret::train(as.factor(y) ~.,
+                              data = df_train,
+                              method = 'rpart',
+                              tuneGrid = rpart_grid,
+                              trControl = trainControl(method = "cv"))
+          
+          # Check whether there were more than 1 splits
+          if (nrow(fit$finalModel$cptable) == 1) {
+            # Refit the model using the worst accuracy instead
             fit <- caret::train(as.factor(y) ~.,
                                 data = df_train,
                                 method = 'rpart',
+                                maximize = FALSE,
                                 tuneGrid = rpart_grid,
                                 trControl = trainControl(method = "cv"))
-            
-            # Check whether there were more than 1 splits
-            if (nrow(fit$finalModel$cptable) == 1) {
-               # Refit the model using the worst accuracy instead
-              fit <- caret::train(as.factor(y) ~.,
-                                  data = df_train,
-                                  method = 'rpart',
-                                  maximize = FALSE,
-                                  tuneGrid = rpart_grid,
-                                  trControl = trainControl(method = "cv"))
-            } # close check for only 1 splits
-          } # Close if else for which specific tree model
+          } # close check for only 1 splits
+        } # Close fitting tree models 
         
         p <- predict(fit$finalModel, newdata = df_test, type = "prob")[,2]
         
       } else if ( model == "SVM") {
         # pre-defining a tune grid
-        svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 5),
-                                .sigma = seq(0.001, 1, length.out = 5))
+        svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 4),
+                                .sigma = seq(0.001, 1, length.out = 4))
         
         # Fit svm with Radial Basis Function kernel
         invisible(capture.output(fit <- caret::train(as.factor(y) ~.,
@@ -786,7 +662,7 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
         
         # Obtain predictions
         p <- predict(fit$finalModel, newdata = df_test[!colnames(df_test)%in%"y"], type = "prob")[,2]
-
+        
       } else if ( model == "ANN") {
         # pre-defining a tune grid
         nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
@@ -808,37 +684,17 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
         
         # Obtain predictions
         p <- predict(fit$finalModel, newdata = df_test)
-      }
-        # Get coef names out
-        coefs <- as.matrix(fit$coefnames)
-        # Obtain model matrix:
-        df_test_X <- df_test[!colnames(df_test)%in%"y"]
-        # binding a column of 1 to the above for the interceot
-        iv_matrix <- as.matrix(cbind("(Intercept)" = 1, df_test_X))
         
-        # Get the elements of the design generating mechanism that are
-        # belonging to the model after backwards elimination
-        # Always get the first element as this is the intercept
-        ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(iv_matrix), "(?<=V).*"))
-                             # Add 1, because the indices of columns exclude the intercept
-                             + 1)))
-        
-        dgm_par_folds <- dgm_par[ind]
-        
-        } # Close model if else statements
-      
-      results <- list(p, iv_matrix, dgm_par_folds)
-      
+      } # Close model if else statements
+      results <- list(p, iv_matrix)
     } # Close function .doFit
     
     results <- (lapply(seq(V), .doFit, folds = folds, model = model, pred_selection = pred_selection)) # obtain model results for all folds
     p <- c(unlist(sapply(results, "[[", 1))) # Get out pred values as a single vector
     p[which(rownames(df) %in% unlist(folds))] <- p #Re-order pred values, so they are in line with y
     
-    
     p_per_fold <- lapply(results, "[[", 1) # getting the predictions per fold
     iv_matrix <- lapply(results, "[[", 2) # iv_matrix per fold
-    dgm_par_folds <- lapply(results, "[[", 3) # Dgm_par per fold
     
     ######################  
     ## Obtain estimands ##
@@ -856,19 +712,18 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     
     # For each fold, calculate calibration intercept & slope, R2, ECI and MAPE
     for (v in 1:V){
-      # create object to shorten future code:
+      # create objects to shorten future code:
       data <- df[unlist(which(rownames(df) %in% folds[[v]])),]
       ppf <- p_per_fold[[v]]
-      dgm_par_ppf <- dgm_par_folds[[v]]
-      ppf_true <- 1 / (1 + exp(-iv_matrix[[v]] %*% dgm_par_ppf))
+      ppf_true <- 1 / (1 + exp(-iv_matrix[[v]] %*% dgm_par))
       
       # Check whether any of the predictions are 0
       if (any(ppf == 1) | any(ppf == 1)) {
         error_info <- paste(toString(error_info), paste0("probabilities of 0 or 1 occured"), sep = " + ")
       }
-      
       ppf <-  ifelse(ppf == 0, 0.000001, ppf)
       ppf <- ifelse(ppf == 1,  0.999999, ppf)
+      
       # AUC for folds:
       auc_folds[v] <- fastAUC(p = ppf, y = data$y)
       # Calibration slope for folds
@@ -887,7 +742,6 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
       # rMSPE for folds
       rmspe_folds[v] <- sqrt(mean((ppf_true-ppf)^2))
     }
-    
     
     ## Get mean and standard error over all results and store in a single vector:
     ## AUC
@@ -920,7 +774,6 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     error_info <- paste(toString(error_info), toString(test$value$message), sep = " + ")
     
   }
-  
   
   # If the it is anything other than 10x10 cv:
   if (x10 == FALSE){
@@ -1002,7 +855,6 @@ get_cv_results <- function(study, df, V, studyname) {
             rep(study[i, ]$par2, round(5/6 *  study[i, ]$dim))     # weak
           )
       }
-      
       
       results_cv[i, which(colnames(results_cv) %in% iv_colnames)]  <-
         get_cv_estimands(
@@ -1186,6 +1038,9 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
       paste0(estimands_names, c(rep("_df",8), rep("_train",8), rep("_test",8)))
     ))))
     
+    df_matrix <- as.matrix(df[,-which(colnames(df)=="y")])
+    df_matrix <- as.matrix(cbind("(Intercept)" = 1, df_matrix))
+    
     for (b in 1:nboot) {
       # Obtain indices for the bootstrap sample: "in the bag" = itb
       itb <- sample(nrow(df), size = nrow(df), replace = T) # indices
@@ -1203,6 +1058,13 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
       
       assign("df_train", df_train, envir = .GlobalEnv)
       assign("df_test", df_test, envir = .GlobalEnv)
+      
+      ## Create model matrices:
+      train_matrix <- as.matrix(df_train[,-which(colnames(df_train)=="y")])
+      train_matrix <- as.matrix(cbind("(Intercept)" = 1, train_matrix))
+      
+      test_matrix <- as.matrix(df_test[,-which(colnames(df_test)=="y")])
+      test_matrix <- as.matrix(cbind("(Intercept)" = 1, test_matrix))
       
       # Train/test glm for each fold
       # Fit model depending on scenario
@@ -1236,25 +1098,16 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
           }
         }
         # original sample
-        df_matrix <- model.matrix(object = fit$formula, data = df)
-        p_df <- 1 / (1 + exp(-df_matrix %*% fit$coefficients))
+        df_fit_matrix <- model.matrix(object = fit$formula, data = df)
+        p_df <- 1 / (1 + exp(-df_fit_matrix %*% fit$coefficients))
         
         # bootstrapped sample
-        train_matrix <- model.matrix(object = fit$formula, data = df_train)
-        p_train <- 1 / (1 + exp(-train_matrix %*% fit$coefficients))
+        train_fit_matrix <- model.matrix(object = fit$formula, data = df_train)
+        p_train <- 1 / (1 + exp(-train_fit_matrix %*% fit$coefficients))
         
         # out/test sample
-        test_matrix <- model.matrix(object = fit$formula, data = df_test)
-        p_test <- 1 / (1 + exp(-test_matrix %*% fit$coefficients))
-        
-        # Get the elements of the design generating mechanism that are
-        # belonging to the model after backwards elimination
-        # Always get the first element as this is the intercept
-        ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(train_matrix), "(?<=V).*"))
-                             # Add 1, because the indices of columns exclude the intercept
-                             + 1)))
-        
-        dgm_par_boot <- dgm_par[ind]
+        test_fit_matrix <- model.matrix(object = fit$formula, data = df_test)
+        p_test <- 1 / (1 + exp(-test_fit_matrix %*% fit$coefficients))
         
       } else if (model == "Lasso" | model == "Ridge") {
         
@@ -1274,149 +1127,111 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
           error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
         }
         
-        # Create model matrix:
-        # First retrieve the coefficients
-        coefs <- as.matrix(coef(fit, s = "lambda.min"))
-        # Remove those that are 0
-        coefs[coefs == 0] <- NA
-        coefs <- na.exclude(coefs)
-        
         # original sample
-        # Then use the names of the coefficients to get the model matrix:
-        df_X <- df[colnames(df) %in% rownames(coefs)]
-        # Make model matrix by binding a column of 1 to the above
-        df_matrix <- as.matrix(cbind("(Intercept)" = 1, df_X))
-        # Obtain predictions
         p_df <- predict(fit, newdata = df, s = "lambda.min", type = "response")
-        
         # bootstrapped sample
-        train_X <- df_train[colnames(df_train) %in% rownames(coefs)]
-        train_matrix <- as.matrix(cbind("(Intercept)" = 1, train_X))
         p_train <- predict(fit, newdata = df_train, s = "lambda.min", type = "response")
-        
         # out/test sample
-        test_X <- df_test[colnames(df_test) %in% rownames(coefs)]
-        test_matrix <- as.matrix(cbind("(Intercept)" = 1, test_X))
         p_test <- predict(fit, newdata = df_test, s = "lambda.min", type = "response")
         
-        # Get the elements of the design generating mechanism that are
-        # belonging to the model after backwards elimination
-        # Always get the first element as this is the intercept
-        ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(train_matrix), "(?<=V).*"))
-                             # Add 1, because the indices of columns exclude the intercept
-                             + 1)))
+      } else if (model == "RF"| model == "CART") {
         
-        dgm_par_boot <- dgm_par[ind]
-        
-      } else if (model == "RF" | model == "SVM" | model == "ANN" | model == "CART") {
-        
-        if (model == "RF"| model == "CART") {
-          
-          if (model == "RF"){
-            # pre-defining a tune grid
-            rf_grid <- expand.grid(.mtry = seq(1, ncol(df_train)-1, by = 1))
-            # Fitting the appropriate model:
-            fit <- caret::train(as.factor(y) ~.,
-                                data = df_train, 
-                                method = 'rf',
-                                tuneGrid = rf_grid,
-                                trControl = trainControl(method = "cv")
-            )
-            
-            
-          } else {
-            rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
-            fit <- caret::train(as.factor(y) ~.,
-                                data = df_train,
-                                method = 'rpart',
-                                tuneGrid = rpart_grid,
-                                parms = list(split = "information"),
-                                trControl = trainControl(method = "cv"))
-            
-            # Check whether there were more than 1 splits
-            if (nrow(fit$finalModel$cptable) == 1) {
-              # if not, find the complexity parameter with the next highest accuracy:
-              ind <-which(fit$results$Accuracy != max(fit$results$Accuracy))
-              best_tune <- fit$results[ind,] %>% slice(which.max(Accuracy)) %>% .$cp
-              
-              # Refit the model
-              fit <- caret::train(as.factor(y) ~.,
-                                  data = df_train,
-                                  method = 'rpart',
-                                  parms = list(split = "information"),
-                                  control = rpart.control(cp = best_tune),
-                                  trControl = trainControl(method = "none"))
-            } # close check for only 1 splits
-          } # Close if else for which specific tree model
-          
-          # Get probabilities out:
-          p_df <- predict(fit$finalModel, newdata = df, type = "prob")[,2]
-          p_train <- predict(fit$finalModel, newdata = df_train, type = "prob")[,2] 
-          p_test <- predict(fit$finalModel, newdata = df_test, type = "prob")[,2]
-          
-        } else if (model == "SVM"){
+        if (model == "RF"){
           # pre-defining a tune grid
-          svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 5),
-                                  .sigma = seq(0.001, 1, length.out = 5))
+          if (ncol(df_train) == 31){
+          rf_grid <-
+            expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 2))
+          }
           
-          # Fit svm with Radial Basis Function kernel
-          invisible(capture.output(fit <- caret::train(as.factor(y) ~.,
-                                                       data = df_train,
-                                                       method = 'svmRadial',
-                                                       tuneGrid = svm_grid,
-                                                       trControl = trainControl(method = "cv"),
-                                                       prob.model = TRUE
-          )))
-          p_df <- predict(fit$finalModel, newdata = df[!colnames(df)%in%"y"], type = "prob")[,2]
-          p_train <- predict(fit$finalModel, newdata = df_train[!colnames(df_train)%in%"y"], type = "prob")[,2]
-          p_test <- predict(fit$finalModel, newdata = df_test[!colnames(df_test)%in%"y"], type = "prob")[,2]
+          else if (ncol(df_train) == 61){
+            rf_grid <-
+              expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 3))
+          }
           
-        } else { # Otherwise it is a neural network
-          nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
-                                   decay = seq(from = 0.1, to = 2, by = 0.4))
+          else {
+            rf_grid <-
+              expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 1))
+          }
+          # Fitting the appropriate model:
+          fit <- caret::train(
+            as.factor(y) ~ .,
+            data = df_train,
+            method = 'rf',
+            tuneGrid = rf_grid,
+            trControl = trainControl(method = "cv")
+          )
           
-          # Fit Neural network
-          fit <- caret::train(as.factor(y) ~.,
-                              data = df_train, 
-                              method = 'nnet', 
-                              tuneGrid = nnet_grid, 
-                              trace = F, 
-                              trControl = trainControl(method = "cv"),
-                              preProcess = c("center", "scale"))
+        } else {
+          # Pre-defining a tuning grid
+          rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
+          fit <- caret::train(
+            as.factor(y) ~ .,
+            data = df_train,
+            method = 'rpart',
+            tuneGrid = rpart_grid,
+            trControl = trainControl(method = "cv")
+          )
           
-          # Check convergence of model
-          if (fit$finalModel$convergence == 1){
-            error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
-          } # close check for convergence
-          
-          # Obtain predictions
-          p_df <- predict(fit$finalModel, newdata = df)
-          p_train <- predict(fit$finalModel, newdata = df_train)
-          p_test <- predict(fit$finalModel, newdata = df_test)
-          
-        } # close  machine learning models if elses
+          # Check whether there were more than 1 splits
+          if (nrow(fit$finalModel$cptable) == 1) {
+            # Refit the model
+            fit <- caret::train(
+              as.factor(y) ~ .,
+              data = df_train,
+              method = 'rpart',
+              maximize = FALSE,
+              tuneGrid = rpart_grid,
+              trControl = trainControl(method = "cv")
+            )
+          } # close check for only 1 splits
+        } # Close if else for which specific tree model
         
-        # Get coef names out
-        coefs <- as.matrix(fit$coefnames)
-        # Original data
-        df_X <- df[colnames(df) %in% coefs]
-        df_matrix <- as.matrix(cbind("(Intercept)" = 1, df_X))
-        # Boostrapped data
-        train_X <- df_train[colnames(df_train) %in% coefs]
-        train_matrix <- as.matrix(cbind("(Intercept)" = 1, train_X))
-        # Test/out sample
-        test_X <- df_test[colnames(df_test) %in% coefs]
-        test_matrix <- as.matrix(cbind("(Intercept)" = 1, test_X))
+        # Get probabilities out:
+        p_df <- predict(fit$finalModel, newdata = df, type = "prob")[,2]
+        p_train <- predict(fit$finalModel, newdata = df_train, type = "prob")[,2] 
+        p_test <- predict(fit$finalModel, newdata = df_test, type = "prob")[,2]
         
-        # Get the elements of the design generating mechanism that are
-        # belonging to the model after backwards elimination
-        # Always get the first element as this is the intercept
-        ind <- na.omit(c(1, (as.numeric(str_extract_all(colnames(train_matrix), "(?<=V).*"))
-                             # Add 1, because the indices of columns exclude the intercept
-                             + 1)))
+      } else if (model == "SVM"){
+        # pre-defining a tune grid
+        svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 4),
+                                .sigma = seq(0.001, 1, length.out = 4))
         
-        dgm_par_boot <- dgm_par[ind]
-      }
+        # Fit svm with Radial Basis Function kernel
+        invisible(capture.output(fit <- caret::train(as.factor(y) ~.,
+                                                     data = df_train,
+                                                     method = 'svmRadial',
+                                                     tuneGrid = svm_grid,
+                                                     trControl = trainControl(method = "cv"),
+                                                     prob.model = TRUE
+        )))
+        p_df <- predict(fit$finalModel, newdata = df[!colnames(df)%in%"y"], type = "prob")[,2]
+        p_train <- predict(fit$finalModel, newdata = df_train[!colnames(df_train)%in%"y"], type = "prob")[,2]
+        p_test <- predict(fit$finalModel, newdata = df_test[!colnames(df_test)%in%"y"], type = "prob")[,2]
+        
+      } else { # Otherwise it is a neural network
+        nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
+                                 decay = seq(from = 0.1, to = 2, by = 0.4))
+        
+        # Fit Neural network
+        fit <- caret::train(as.factor(y) ~.,
+                            data = df_train, 
+                            method = 'nnet', 
+                            tuneGrid = nnet_grid, 
+                            trace = F, 
+                            trControl = trainControl(method = "cv"),
+                            preProcess = c("center", "scale"))
+        
+        # Check convergence of model
+        if (fit$finalModel$convergence == 1){
+          error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
+        } # close check for convergence
+        
+        # Obtain predictions
+        p_df <- predict(fit$finalModel, newdata = df)
+        p_train <- predict(fit$finalModel, newdata = df_train)
+        p_test <- predict(fit$finalModel, newdata = df_test)
+        
+      } # close  machine learning models if elses
       
       ## Check whether any predictions are 0:
       if (any(p_df == 0) | any(p_train == 0) | any(p_test == 0)){
@@ -1437,9 +1252,9 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
       p_test <- ifelse(p_test == 1,  0.999999, p_test)
       
       # Obtain 'true' predictions:
-      p_df_true <- 1 / (1 + exp(-df_matrix %*% dgm_par_boot))
-      p_train_true <- 1 / (1 + exp(-train_matrix %*% dgm_par_boot))
-      p_test_true <- 1 / (1 + exp(-test_matrix %*% dgm_par_boot))
+      p_df_true <- 1 / (1 + exp(-df_matrix %*% dgm_par))
+      p_train_true <- 1 / (1 + exp(-train_matrix %*% dgm_par))
+      p_test_true <- 1 / (1 + exp(-test_matrix %*% dgm_par))
       
       ## Filling the matrices above withe the respective estimands
       # AUC
@@ -1572,7 +1387,7 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
   
   results_matrix$error_info <- error_info 
   return(results_matrix)
-}  
+} # Close function  
 
 
 ### And to apply this for each scenario in a study and obtaining the results:  
@@ -1599,8 +1414,10 @@ get_bootstrap_results <- function(study, df, nboot, studyname) {
     # Fill in some details:
     results_boot[c(results_i_start[i]:results_i_end[i]),
                  'scenario'] <- paste0("Scenario ", i)
+    
     results_boot[c(results_i_start[i]:results_i_end[i]),
                  'observed events'] <- sum(df[[i]]$y)
+    
     results_boot[c(results_i_start[i]:results_i_end[i]),
                  which(colnames(results_boot) %in% study_info)] <- study[i, which(colnames(study) %in% study_info)]
     
@@ -1619,7 +1436,7 @@ get_bootstrap_results <- function(study, df, nboot, studyname) {
       theta_app <- results_app %>% .[,(colnames(results_app) %in% estimands_names)]
       theta_app <- as.numeric(theta_app)
       
-      # Go along with obtaining the results
+      # Obtain necessary information to obtain results:
       results_boot[c(results_i_start[i]:results_i_end[i]),'model'] <- as.character(study[i, ]$model)
       model <- study[i, ]$model
       
@@ -1665,7 +1482,6 @@ get_bootstrap_results <- function(study, df, nboot, studyname) {
                                                                                               nboot = nboot)
       
     }  # Close if else when checking for events in the data
-    
     
   } # close for loop
   return(results_boot)
