@@ -141,14 +141,14 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
       ## If model is Firth without backwards elimination:
       if (model == "Firth" & pred_selection == "none") {
         
-        fit_app <- logistf(formula = modelform, data = df, flic = T)
+        fit_app <- logistf(formula = model_form, data = df, flic = T, firth = F)
         
         ## If model is Firth with backwards elimination:  
       } else if (model == "Firth" & pred_selection == "<0.05") {
         df_app <- df
         assign("df_app", as.data.frame(df_app), envir = .GlobalEnv)
         
-        fit_app <- logistf(formula = model_form, data = df_app, flic = T)
+        fit_app <- logistf(formula = model_form, data = df_app, flic = T, firth = F)
         fit_app <- backward(fit_app, trace = FALSE)
         
         # Check whether any predictors have been selected.
@@ -164,7 +164,7 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
       }
       # Predictions:
       # Apparent
-      fit_app_matrix <- model.matrix(object = fit_app$formula, data = df_app)
+      fit_app_matrix <- model.matrix(object = fit_app$formula, data = df)
       p_app <- 1 / (1 + exp(-fit_app_matrix %*% fit_app$coefficients))
       
       # External
@@ -179,13 +179,13 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
       # Make sure that there are at least 8 events or no-events:
       if (sum(df$y) < 8 | sum(1-df$y) <8 ){
         # Fit the model depending on alpha with LOOCV
-        fit <-  Pen_reg_VC(df = df, alpha = alpha, nfolds = nrow(df))
+        fit_app <-  Pen_reg_VC(df = df, alpha = alpha, nfolds = nrow(df))
         error_info <- paste(toString(error_info), 
                             paste0("Too few (non-)events for tuning -> LOOCV"),
                             sep = " + ")
       } else {
         # Otherwise just use 10-f-cv for tuning of lambda
-        fit <-  Pen_reg_VC(df = df, alpha = alpha, nfolds = 10)
+        fit_app <-  Pen_reg_VC(df = df, alpha = alpha, nfolds = 10)
       }  # close error handling too few events
       
       ## Check whether predictors have been selected
@@ -205,20 +205,8 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
       if (model == "RF"){
   
           # pre-defining a tune grid
-          if (ncol(df) == 31){
             rf_grid <-
               expand.grid(.mtry = seq(1, ncol(df) - 1, by = 2))
-          }
-          
-          else if (ncol(df) == 61){
-            rf_grid <-
-              expand.grid(.mtry = seq(1, ncol(df) - 1, by = 3))
-          }
-          
-          else {
-            rf_grid <-
-              expand.grid(.mtry = seq(1, ncol(df) - 1, by = 1))
-          }
 
         fit_app <- caret::train(as.factor(y) ~.,
                                 data = df, 
@@ -239,13 +227,7 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
         
         # Check whether there were more than 1 splits
         if (nrow(fit_app$finalModel$cptable) == 1) {
-          # Refit the model
-          fit_app <- caret::train(as.factor(y) ~.,
-                                  data = df,
-                                  method = 'rpart',
-                                  maximize = FALSE,
-                                  tuneGrid = rpart_grid,
-                                  trControl = trainControl(method = "cv"))
+          error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
         } # close handling if there is only one split in the tree
       } # close which tree
       # Apparent
@@ -253,46 +235,46 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
       # External 
       p_ext <- predict(fit_app$finalModel, newdata = df_val, type = "prob")[,2]
       
-    } else if (model == "SVM"){
-      
-      # Pre-defining a tuning grid
-      svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 4),
-                              .sigma = seq(0.001, 1, length.out = 4))
-      # Fitting the model, making sure that no output
-      # is printed!
-      invisible(capture.output(fit_app <- caret::train(as.factor(y) ~.,
-                                                       data = df,
-                                                       method = 'svmRadial',
-                                                       tuneGrid = svm_grid,
-                                                       trControl = trainControl(method = "cv"),
-                                                       prob.model = TRUE
-      )))
-      
-      # Apparent
-      p_app <- predict(fit_app$finalModel, newdata =  df[, which(!colnames(df) %in% "y")], type = "prob")[,2]
-      # External 
-      p_ext <- predict(fit_app$finalModel, newdata = df_val[, which(!colnames(df_val) %in% "y")], type = "prob")[,2]
-      
-    } else if (model == "ANN"){
-      # Pre-defining a tuning grid
-      nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
-                               decay = seq(from = 0.1, to = 2, by = 0.4))
-      # Fitting the model
-      fit_app <- caret::train(as.factor(y) ~.,
-                              data = df, 
-                              method = 'nnet', 
-                              tuneGrid = nnet_grid, 
-                              trace = F, 
-                              trControl = trainControl(method = "cv"),
-                              preProcess = c("center", "scale"))
-      # Checking for convergence
-      if (fit_app$finalModel$convergence == 1){
-        error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
-      } # close check for convergence
-      # Apparent
-      p_app <- predict(fit_app$finalModel, newdata = df, type='raw')
-      # External 
-      p_ext <- predict(fit_app$finalModel, newdata = df_val, type = 'raw')
+    # } else if (model == "SVM"){
+    #   
+    #   # Pre-defining a tuning grid
+    #   svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 4),
+    #                           .sigma = seq(0.001, 1, length.out = 4))
+    #   # Fitting the model, making sure that no output
+    #   # is printed!
+    #   invisible(capture.output(fit_app <- caret::train(as.factor(y) ~.,
+    #                                                    data = df,
+    #                                                    method = 'svmRadial',
+    #                                                    tuneGrid = svm_grid,
+    #                                                    trControl = trainControl(method = "cv"),
+    #                                                    prob.model = TRUE
+    #   )))
+    #   
+    #   # Apparent
+    #   p_app <- predict(fit_app$finalModel, newdata =  df[, which(!colnames(df) %in% "y")], type = "prob")[,2]
+    #   # External 
+    #   p_ext <- predict(fit_app$finalModel, newdata = df_val[, which(!colnames(df_val) %in% "y")], type = "prob")[,2]
+    #   
+    # } else if (model == "ANN"){
+    #   # Pre-defining a tuning grid
+    #   nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
+    #                            decay = seq(from = 0.1, to = 2, by = 0.4))
+    #   # Fitting the model
+    #   fit_app <- caret::train(as.factor(y) ~.,
+    #                           data = df, 
+    #                           method = 'nnet', 
+    #                           tuneGrid = nnet_grid, 
+    #                           trace = F, 
+    #                           trControl = trainControl(method = "cv"),
+    #                           preProcess = c("center", "scale"))
+    #   # Checking for convergence
+    #   if (fit_app$finalModel$convergence == 1){
+    #     error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
+    #   } # close check for convergence
+    #   # Apparent
+    #   p_app <- predict(fit_app$finalModel, newdata = df, type='raw')
+    #   # External 
+    #   p_ext <- predict(fit_app$finalModel, newdata = df_val, type = 'raw')
       
     } # Close model if else statements
     
@@ -327,18 +309,7 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
     calout <- loess(y ~ log(p_ext/(1-p_ext)), data = df_val, span = 10)
     eci_ext <- (mean((p_ext-fitted(calout))*(p_ext-fitted(calout))))*(100)
     
-  }) #Close warnings and error check
-  
-  # If there are warnings, paste those in the error_info
-  if (!is.null(errors_warnings$warning)) {
-    error_info <- paste(toString(error_info), toString(errors_warnings$warning), sep = " + ")
-  }  
-  # If there are error messages print this in the error_info
-  if ("message" %in% errors_warnings$value) {
-    error_info <- paste(toString(error_info), toString(errors_warnings$value$message), sep = " + ")
-  }
-  
-  # Save results
+  # all results together
   results <- list(
     c(
       "Apparent",
@@ -366,6 +337,21 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
     ),
     p_app # Save the prediction to be used in bootstrap!
   )
+  
+  }) #Close warnings and error check
+  
+  # If there are warnings, paste those in the error_info
+  if (!is.null(errors_warnings$warning)) {
+    results[[1]]["error_info"] <- paste(toString(error_info), toString(errors_warnings$warning), sep = " + ")
+    results[[2]]["error_info"] <- paste(toString(error_info), toString(errors_warnings$warning), sep = " + ")
+  }  
+  # If there are error messages print this in the error_info
+  if ("message" %in% errors_warnings$value) {
+    results[[1]]["error_info"] <- paste(toString(error_info), toString(errors_warnings$value$message), sep = " + ")
+    results[[2]]["error_info"] <- paste(toString(error_info), toString(errors_warnings$value$message), sep = " + ")
+  }
+  
+  return(results)
 } # End function
 
 ################################
@@ -395,8 +381,8 @@ get_app_ext_results <- function(study, df, df_val, studyname) {
     print(i)
     
     # Fill in some information for each scenario:
-    results_app[i, 'scenario'] <- paste0("Scenario ", i)
-    results_ext[i, 'scenario'] <- paste0("Scenario ", i)
+    results_app[i, 'scenario'] <- study$scenario[i]
+    results_ext[i, 'scenario'] <- study$scenario[i]
     # Overwrite n of the development data
     results_ext[i, 'n'] <- nrow(df_val[[i]])
     # How many events observed in validation set?
@@ -544,12 +530,12 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
         model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
         
         if (model == "Firth" & pred_selection == "none") { # If model = Firth , no predictor selection
-          fit <- logistf(formula = model_form, data = df_train, flic = T)
+          fit <- logistf(formula = model_form, data = df_train, flic = T, firth = F)
         } # Close if for firth and no predictor selection
         
         else if (model == "Firth" & pred_selection == "<0.05"){
           # Fit Firth model with Backward elimination
-          fit <- logistf(formula = model_form, data = df_train, flic = T)
+          fit <- logistf(formula = model_form, data = df_train, flic = T, firth = F)
           fit <- backward(fit, trace = FALSE)
           
           # Check whether any predictors have been selected at all. 
@@ -603,20 +589,9 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
         
         if (model == "RF"){
             # pre-defining a tune grid
-            if (ncol(df_train) == 31){
               rf_grid <-
                 expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 2))
-            }
-            
-            else if (ncol(df_train) == 61){
-              rf_grid <-
-                expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 3))
-            }
-            
-            else {
-              rf_grid <-
-                expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 1))
-            }
+           
           
           # Fitting the appropriate model:
           fit <- caret::train(as.factor(y) ~.,
@@ -634,56 +609,50 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
           
           # Check whether there were more than 1 splits
           if (nrow(fit$finalModel$cptable) == 1) {
-            # Refit the model using the worst accuracy instead
-            fit <- caret::train(as.factor(y) ~.,
-                                data = df_train,
-                                method = 'rpart',
-                                maximize = FALSE,
-                                tuneGrid = rpart_grid,
-                                trControl = trainControl(method = "cv"))
+            error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
           } # close check for only 1 splits
         } # Close fitting tree models 
         
         p <- predict(fit$finalModel, newdata = df_test, type = "prob")[,2]
         
-      } else if ( model == "SVM") {
-        # pre-defining a tune grid
-        svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 4),
-                                .sigma = seq(0.001, 1, length.out = 4))
-        
-        # Fit svm with Radial Basis Function kernel
-        invisible(capture.output(fit <- caret::train(as.factor(y) ~.,
-                                                     data = df_train,
-                                                     method = 'svmRadial',
-                                                     tuneGrid = svm_grid,
-                                                     trControl = trainControl(method = "cv"),
-                                                     prob.model = TRUE
-        )))
-        
-        # Obtain predictions
-        p <- predict(fit$finalModel, newdata = df_test[!colnames(df_test)%in%"y"], type = "prob")[,2]
-        
-      } else if ( model == "ANN") {
-        # pre-defining a tune grid
-        nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
-                                 decay = seq(from = 0.1, to = 2, by = 0.4))
-        
-        # Fit Neural network
-        fit <- caret::train(as.factor(y) ~.,
-                            data = df_train, 
-                            method = 'nnet', 
-                            tuneGrid = nnet_grid, 
-                            trace = F, 
-                            trControl = trainControl(method = "cv"),
-                            preProcess = c("center", "scale"))
-        
-        # Check convergence of model
-        if (fit$finalModel$convergence == 1){
-          error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
-        }
-        
-        # Obtain predictions
-        p <- predict(fit$finalModel, newdata = df_test)
+      # } else if ( model == "SVM") {
+      #   # pre-defining a tune grid
+      #   svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 4),
+      #                           .sigma = seq(0.001, 1, length.out = 4))
+      #   
+      #   # Fit svm with Radial Basis Function kernel
+      #   invisible(capture.output(fit <- caret::train(as.factor(y) ~.,
+      #                                                data = df_train,
+      #                                                method = 'svmRadial',
+      #                                                tuneGrid = svm_grid,
+      #                                                trControl = trainControl(method = "cv"),
+      #                                                prob.model = TRUE
+      #   )))
+      #   
+      #   # Obtain predictions
+      #   p <- predict(fit$finalModel, newdata = df_test[!colnames(df_test)%in%"y"], type = "prob")[,2]
+      #   
+      # } else if ( model == "ANN") {
+      #   # pre-defining a tune grid
+      #   nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
+      #                            decay = seq(from = 0.1, to = 2, by = 0.4))
+      #   
+      #   # Fit Neural network
+      #   fit <- caret::train(as.factor(y) ~.,
+      #                       data = df_train, 
+      #                       method = 'nnet', 
+      #                       tuneGrid = nnet_grid, 
+      #                       trace = F, 
+      #                       trControl = trainControl(method = "cv"),
+      #                       preProcess = c("center", "scale"))
+      #   
+      #   # Check convergence of model
+      #   if (fit$finalModel$convergence == 1){
+      #     error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
+      #   }
+      #   
+      #   # Obtain predictions
+      #   p <- predict(fit$finalModel, newdata = df_test)
         
       } # Close model if else statements
       results <- list(p, iv_matrix)
@@ -760,21 +729,7 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
     ## rMSPE
     rMSPE_results <-  c(mean(rmspe_folds), (sd(rmspe_folds)/(sqrt(V))))
     
-  }) # Close ErrorsWarnings
-  
-  # If there are warnings, paste those in the error_info
-  if (!is.null(errors_warnings$warning)) {
-    
-    error_info <- paste(toString(error_info), toString(errors_warnings$warning), sep = " + ")
-    
-  }  
-  # If there are error messages print this in the error_info
-  if ("message" %in% errors_warnings$value) {
-    
-    error_info <- paste(toString(error_info), toString(test$value$message), sep = " + ")
-    
-  }
-  
+ 
   # If the it is anything other than 10x10 cv:
   if (x10 == FALSE){
     
@@ -793,6 +748,21 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
                     "rMSPE" = rmspe_folds,
                     error_info)
   } # Close else statement (when 10k or 5k CV is used)
+  
+  }) # Close ErrorsWarnings
+  
+  # If there are warnings, paste those in the error_info
+  if (!is.null(errors_warnings$warning)) {
+    
+    results$error_info <- paste(toString(error_info), toString(errors_warnings$warning), sep = " + ")
+    
+  }  
+  # If there are error messages print this in the error_info
+  if ("message" %in% errors_warnings$value) {
+    
+    results$error_info <- paste(toString(error_info), toString(test$value$message), sep = " + ")
+    
+  }
   
   return(results)
   
@@ -813,7 +783,7 @@ get_cv_results <- function(study, df, V, studyname) {
   for (i in 1:nrow(study)) {
     print(i) ## REMOVE WHEN SIMULATION COMMENCES
     # Paste the correct scenario number:
-    results_cv[i, 'scenario'] <- paste0("Scenario ", i)
+    results_cv[i, 'scenario'] <- study$scenario[i]
     
     # Check for each scenario whether there are events sampled
     if (any(str_detect(names(df[[i]]),"Error: No events sampled"))){
@@ -890,7 +860,7 @@ get_10x10_results <- function(study, df, V, studyname){
     print(i)
     
     # Add which scenario we are working on:
-    results_cv[i, 'scenario'] <- paste0("Scenario ", i)
+    results_cv[i, 'scenario'] <- study$scenario[i]
     
     # Settings for get cv estimands function:
     model <- study[i, ]$model
@@ -1076,11 +1046,11 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
         
         if (model == "Firth" & pred_selection == "none"){
           # Fit Firth model without Backward elimination
-          fit <- logistf(formula = model_form, data = df_train, flic = T)
+          fit <- logistf(formula = model_form, data = df_train, flic = T, firth = F)
           
         } else if (model == "Firth" & pred_selection == "<0.05"){
           # Fit Firth model with Backward elimination
-          fit <- logistf(formula = model_form, data = df_train, flic = T)
+          fit <- logistf(formula = model_form, data = df_train, flic = T, firth = F)
           fit <- backward(fit, trace = FALSE)
           
           # Check whether any predictors have been selected at all. 
@@ -1138,20 +1108,9 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
         
         if (model == "RF"){
           # pre-defining a tune grid
-          if (ncol(df_train) == 31){
           rf_grid <-
             expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 2))
-          }
           
-          else if (ncol(df_train) == 61){
-            rf_grid <-
-              expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 3))
-          }
-          
-          else {
-            rf_grid <-
-              expand.grid(.mtry = seq(1, ncol(df_train) - 1, by = 1))
-          }
           # Fitting the appropriate model:
           fit <- caret::train(
             as.factor(y) ~ .,
@@ -1174,15 +1133,7 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
           
           # Check whether there were more than 1 splits
           if (nrow(fit$finalModel$cptable) == 1) {
-            # Refit the model
-            fit <- caret::train(
-              as.factor(y) ~ .,
-              data = df_train,
-              method = 'rpart',
-              maximize = FALSE,
-              tuneGrid = rpart_grid,
-              trControl = trainControl(method = "cv")
-            )
+            error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
           } # close check for only 1 splits
         } # Close if else for which specific tree model
         
@@ -1191,45 +1142,45 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
         p_train <- predict(fit$finalModel, newdata = df_train, type = "prob")[,2] 
         p_test <- predict(fit$finalModel, newdata = df_test, type = "prob")[,2]
         
-      } else if (model == "SVM"){
-        # pre-defining a tune grid
-        svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 4),
-                                .sigma = seq(0.001, 1, length.out = 4))
-        
-        # Fit svm with Radial Basis Function kernel
-        invisible(capture.output(fit <- caret::train(as.factor(y) ~.,
-                                                     data = df_train,
-                                                     method = 'svmRadial',
-                                                     tuneGrid = svm_grid,
-                                                     trControl = trainControl(method = "cv"),
-                                                     prob.model = TRUE
-        )))
-        p_df <- predict(fit$finalModel, newdata = df[!colnames(df)%in%"y"], type = "prob")[,2]
-        p_train <- predict(fit$finalModel, newdata = df_train[!colnames(df_train)%in%"y"], type = "prob")[,2]
-        p_test <- predict(fit$finalModel, newdata = df_test[!colnames(df_test)%in%"y"], type = "prob")[,2]
-        
-      } else { # Otherwise it is a neural network
-        nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
-                                 decay = seq(from = 0.1, to = 2, by = 0.4))
-        
-        # Fit Neural network
-        fit <- caret::train(as.factor(y) ~.,
-                            data = df_train, 
-                            method = 'nnet', 
-                            tuneGrid = nnet_grid, 
-                            trace = F, 
-                            trControl = trainControl(method = "cv"),
-                            preProcess = c("center", "scale"))
-        
-        # Check convergence of model
-        if (fit$finalModel$convergence == 1){
-          error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
-        } # close check for convergence
-        
-        # Obtain predictions
-        p_df <- predict(fit$finalModel, newdata = df)
-        p_train <- predict(fit$finalModel, newdata = df_train)
-        p_test <- predict(fit$finalModel, newdata = df_test)
+      # } else if (model == "SVM"){
+      #   # pre-defining a tune grid
+      #   svm_grid <- expand.grid(.C = seq(0.001, 10, length.out = 4),
+      #                           .sigma = seq(0.001, 1, length.out = 4))
+      #   
+      #   # Fit svm with Radial Basis Function kernel
+      #   invisible(capture.output(fit <- caret::train(as.factor(y) ~.,
+      #                                                data = df_train,
+      #                                                method = 'svmRadial',
+      #                                                tuneGrid = svm_grid,
+      #                                                trControl = trainControl(method = "cv"),
+      #                                                prob.model = TRUE
+      #   )))
+      #   p_df <- predict(fit$finalModel, newdata = df[!colnames(df)%in%"y"], type = "prob")[,2]
+      #   p_train <- predict(fit$finalModel, newdata = df_train[!colnames(df_train)%in%"y"], type = "prob")[,2]
+      #   p_test <- predict(fit$finalModel, newdata = df_test[!colnames(df_test)%in%"y"], type = "prob")[,2]
+      #   
+      # } else { # Otherwise it is a neural network
+      #   nnet_grid <- expand.grid(size = seq(from = 1, to = 10, by = 2),
+      #                            decay = seq(from = 0.1, to = 2, by = 0.4))
+      #   
+      #   # Fit Neural network
+      #   fit <- caret::train(as.factor(y) ~.,
+      #                       data = df_train, 
+      #                       method = 'nnet', 
+      #                       tuneGrid = nnet_grid, 
+      #                       trace = F, 
+      #                       trControl = trainControl(method = "cv"),
+      #                       preProcess = c("center", "scale"))
+      #   
+      #   # Check convergence of model
+      #   if (fit$finalModel$convergence == 1){
+      #     error_info <- paste(toString(error_info), paste0("nnet: Maximum number of iterations was reached"), sep = " + ")
+      #   } # close check for convergence
+      #   
+      #   # Obtain predictions
+      #   p_df <- predict(fit$finalModel, newdata = df)
+      #   p_train <- predict(fit$finalModel, newdata = df_train)
+      #   p_test <- predict(fit$finalModel, newdata = df_test)
         
       } # close  machine learning models if elses
       
@@ -1308,6 +1259,7 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
     
     theta_train <- results %>% dplyr::select(ends_with("_train"))
     train_se <- apply(theta_train, 2, sd)/(sqrt(nboot))
+    results_matrix[ ,which(colnames(results_matrix) %in% estimands_names)] <- train_se
     #####################
     # Harrell's results #
     #####################
@@ -1316,13 +1268,6 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
     colnames(Harrell_results) <- estimands_names
     
     results_matrix[1,which(colnames(results_matrix) %in% estimands_names)] <- Harrell_results
-    
-    ## SE 
-    delta_Harrell <- abs(Harrell_results-theta_app)
-    SE_Harrell <-  train_se + delta_Harrell
-    colnames(SE_Harrell) <- estimands_se_names
-    
-    results_matrix[1,which(colnames(results_matrix) %in% estimands_se_names)] <- SE_Harrell
     
     ##################
     # .632 bootstrap #
@@ -1333,13 +1278,6 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
     colnames(efron_.632_results) <- estimands_names
     
     results_matrix[2,which(colnames(results_matrix) %in% estimands_names)] <- efron_.632_results
-    
-    ## SE 
-    delta_.632 <- abs(efron_.632_results-theta_app)
-    SE_.632 <-  train_se + delta_.632
-    colnames(SE_.632) <- estimands_se_names
-    
-    results_matrix[2,which(colnames(results_matrix) %in% estimands_se_names)] <- SE_.632
     
     ###################
     # .632+ bootstrap #
@@ -1365,13 +1303,6 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
     colnames(efron_.632_plus_results) <- estimands_names
     
     results_matrix[3,which(colnames(results_matrix) %in% estimands_names)] <- efron_.632_plus_results
-    
-    ## SE 
-    delta_.632_plus <- abs(efron_.632_plus_results-theta_app)
-    SE_.632_plus <-  train_se + delta_.632_plus
-    colnames(SE_.632_plus) <- estimands_se_names
-    
-    results_matrix[3,which(colnames(results_matrix) %in% estimands_se_names)] <- SE_.632_plus
     
   }) #Close warnings and error check
   
@@ -1413,7 +1344,7 @@ get_bootstrap_results <- function(study, df, nboot, studyname) {
     
     # Fill in some details:
     results_boot[c(results_i_start[i]:results_i_end[i]),
-                 'scenario'] <- paste0("Scenario ", i)
+                 'scenario'] <- study$scenario[i]
     
     results_boot[c(results_i_start[i]:results_i_end[i]),
                  'observed events'] <- sum(df[[i]]$y)
@@ -1431,8 +1362,9 @@ get_bootstrap_results <- function(study, df, nboot, studyname) {
     } else {
       
       # Obtain necessary apparent information results
-      pred_app <- get(paste0("p_app_", studyname))[[i]]
-      results_app <- results_app_ext_s1 %>% filter(approach == "Apparent" & scenario == paste("Scenario", i)) 
+      scen_num <- as.numeric(paste0(str_extract_all(study$scenario[i], "[:digit:]", simplify = T), collapse = ""))
+      pred_app <- get(paste0("p_app_", studyname))[[scen_num]]
+      results_app <- as.data.frame(get(paste0("results_app_ext_", studyname))) %>% filter(approach == "Apparent" & scenario == paste("Scenario", scen_num))
       theta_app <- results_app %>% .[,(colnames(results_app) %in% estimands_names)]
       theta_app <- as.numeric(theta_app)
       

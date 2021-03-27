@@ -108,6 +108,8 @@ s1 <- s1 %>%
                           prev == 0.5 ~ beta_0.5[2],
                           TRUE ~ NA_real_))
 
+
+s1$scenario <- c(paste("Scenario", 1:nrow(s1)))
 ### Save the study scenarios in the settings folder
 write_rds(s1, file = study_1_settings)
 
@@ -215,6 +217,9 @@ s2 <- s2 %>%
                           TRUE ~ NA_real_
   ))
 
+
+s2$scenario <- c(paste("Scenario", 1:nrow(s2)))
+
 ### Save the study scenarios in the settings folder
 write_rds(s2, file = study_2_settings)
 
@@ -230,7 +235,15 @@ n_setting3 <- c("n/2", "n", "n*2")
 noise_3 <- c("default")
 prev3 <- 0.2
 pred_sel3 <- c("none")
-models3 <- c("ML", "Firth", "Ridge", "Lasso", "CART", "ANN", "SVM", "RF")
+models3 <-
+  c("ML", 
+    "Firth",
+    "Ridge",
+    "Lasso",
+    "CART",
+    #"ANN",
+    #"SVM",
+    "RF")
 
 ## all combinations:
 s3 <- expand.grid(AUC = AUC3,
@@ -276,12 +289,13 @@ beta_30 <- c(-1.64950299, -0.04977404)
 s3$par1 <- beta_30[1]
 s3$par2 <- beta_30[2]
 
+s3$scenario <- c(paste("Scenario", 1:nrow(s3)))
 
 ### Save the study scenarios in the settings folder
 write_rds(s3, file = study_3_settings)
 
 # Remove everything except the three study matrices
-rm(list=ls()[! ls() %in% c("s1","s2", "s3")])
+#rm(list=ls()[! ls() %in% c("s1","s2", "s3")])
 
 ####################################
 ####################################
