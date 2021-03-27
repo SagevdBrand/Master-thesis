@@ -1,7 +1,9 @@
 
+df <- s1_data
+df_val <- s1_val_data
+study <- s1
 
 s <- nrow(study)
-
 test <- sapply(seq(s), get_app_ext_estimands_test, df = df, df_val = df_val, study)
   
   
@@ -43,8 +45,11 @@ get_app_ext_estimands_test <- function(s, df, df_val, study){
       )
   }
   
+  # Create an empty element to store all errors that occur
+  # In between and add error_warnings in the end
   error_info <- NA
   
+  # Start the actual function
   errors_warnings <- ErrorsWarnings({
     
     # obtaining model matrices
@@ -230,6 +235,9 @@ get_app_ext_estimands_test <- function(s, df, df_val, study){
     intercept_ext <- coef(glm(df_val_app$y ~ offset(log(p_ext/(1-p_ext))), family="binomial"))
     calout <- loess(y ~ log(p_ext/(1-p_ext)), data = df_val_app, span = 10)
     eci_ext <- (mean((p_ext-fitted(calout))*(p_ext-fitted(calout))))*(100)
+    
+    # Save all the results in a matrix  
+    results <- matrix(nrow = 2, ncol = 11, dimnames = c("Apparent", "External"), c())
     
     # all results together
     results <- list(

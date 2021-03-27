@@ -16,5 +16,4 @@ library(caret)
 library(nnet)
 library(rpart)
 library(randomForest)
-library(kernlab)
-library(splines)
+

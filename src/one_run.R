@@ -73,7 +73,6 @@
 ############################################################################
 ############ Load libraries, validation data and study settings ############
 ############################################################################
-library(profvis)
 ## Libraries, file paths and functions
 source("./src/setup.R")
 source("./src/estimand functions.R")
@@ -96,14 +95,14 @@ s3_val_data <- readRDS(study_3_val_data)
 # Reproduction seed
 set.seed(123)
 
+run_number=1
 # Store seed values
-n_sim <- 1 # how many iterations?
+n_sim <- 5000 # how many iterations?
 seed_state <- sample(1:50000, n_sim)
 
 errors_during_sim <- ErrorsWarnings({
   
-  for (j in 1:n_sim){
-set.seed(seed_state[j]) # for each run the next value in the state vector will be chosen (and saved!)
+  set.seed(seed_state[run_number]) # for each run the next value in the state vector will be chosen (and saved!)
   
   ## Create and load simulation data
   s1_data <- generate_data(s1, validation = FALSE)
@@ -198,7 +197,6 @@ set.seed(seed_state[j]) # for each run the next value in the state vector will b
   
   # Saving estimands
   saveRDS(results_estimands, file = paste0(estimands_path, "estimands_trialrun_s1:12_s2:27_s3:21_seed_", seed_state[j], ".Rds"))
-  } # Close for loop
   })# close Error warnings
 
 
