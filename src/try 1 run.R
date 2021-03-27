@@ -73,7 +73,7 @@
 ############################################################################
 ############ Load libraries, validation data and study settings ############
 ############################################################################
-
+library(profvis)
 ## Libraries, file paths and functions
 source("./src/setup.R")
 source("./src/estimand functions.R")
@@ -100,51 +100,72 @@ set.seed(123)
 n_sim <- 1 # how many iterations?
 seed_state <- sample(1:50000, n_sim)
 
-ErrorsWarnings({
-system.time({
-set.seed(seed_state[1]) # for each run the next value in the state vector will be chosen (and saved!)
+errors_during_sim <- ErrorsWarnings({
+  
+  for (j in 1:n_sim){
+set.seed(seed_state[j]) # for each run the next value in the state vector will be chosen (and saved!)
   
   ## Create and load simulation data
   s1_data <- generate_data(s1, validation = FALSE)
   s2_data <- generate_data(s2, validation = FALSE)
   s3_data <- generate_data(s3, validation = FALSE)
   
-  
   ## Obtain apparent and external estimands ##
-  results_app_ext_s1 <- get_app_ext_results(study = s1[12,], df = s1_data[12], df_val = s1_val_data[12], studyname = "study_1")
-  results_app_ext_s2 <- get_app_ext_results(study = s2[27,], df = s2_data[27], df_val = s2_val_data[27], studyname = "study_2")
-  results_app_ext_s3 <- get_app_ext_results(study = s3[21,], df = s3_data[21], df_val = s3_val_data[21], studyname = "study_3")
+  runtime <- system.time({
+  results_app_ext_study_1 <- get_app_ext_results(study = s1, df = s1_data, df_val = s1_val_data, studyname = "study_1")
+  results_app_ext_study_2 <- get_app_ext_results(study = s2, df = s2_data, df_val = s2_val_data, studyname = "study_2")
+  results_app_ext_study_3 <- get_app_ext_results(study = s3, df = s3_data, df_val = s3_val_data, studyname = "study_3")
+  })
+  print(paste("app_ext", runtime))
+  
+  #saveRDS(p_app_study_1, paste0(estimands_path, "app_preds_for_bootstrap_study1.RDS")) 
+  #saveRDS(p_app_study_2, paste0(estimands_path, "app_preds_for_bootstrap_study2.RDS")) 
+  #saveRDS(p_app_study_3, paste0(estimands_path, "app_preds_for_bootstrap_study3.RDS")) 
+
+  #saveRDS(results_app_ext_study_1, paste0(estimands_path, "app_estimands_for_bootstrap_study1.RDS")) 
+  #saveRDS(results_app_ext_study_2, paste0(estimands_path, "app_estimands_for_bootstrap_study2.RDS")) 
+  #saveRDS(results_app_ext_study_3, paste0(estimands_path,"app_estimands_for_bootstrap_study3.RDS"))
+  
   
   ## Obtain internal validation estimands ##
   # 10 fold cross-validation
-  results_10_cv_s1 <- get_cv_results(study = s1[12,], df = s1_data[12], V = 10, studyname = "study_1")
-  results_10_cv_s2 <- get_cv_results(study = s2[27,], df = s2_data[27], V = 10, studyname = "study_2")
-  results_10_cv_s3 <- get_cv_results(study = s3[21,], df = s3_data[21], V = 10, studyname = "study_3")
+  runtime <- system.time({
+  results_10_cv_s1 <- get_cv_results(study = s1, df = s1_data, V = 10, studyname = "study_1")
+  results_10_cv_s2 <- get_cv_results(study = s2, df = s2_data, V = 10, studyname = "study_2")
+  results_10_cv_s3 <- get_cv_results(study = s3, df = s3_data, V = 10, studyname = "study_3")
+  })
+  print(paste("10_cv", runtime))
   
   # 5 fold cross-validation
-  results_5_cv_s1 <- get_cv_results(study = s1[12,], df = s1_data[12], V = 5, studyname = "study_1")
-  results_5_cv_s2 <- get_cv_results(study = s2[27,], df = s2_data[27], V = 5, studyname = "study_2")
-  results_5_cv_s3 <- get_cv_results(study = s3[21,], df = s3_data[21], V = 5, studyname = "study_3")
+  runtime <- system.time({
+  results_5_cv_s1 <- get_cv_results(study = s1, df = s1_data, V = 5, studyname = "study_1")
+  results_5_cv_s2 <- get_cv_results(study = s2, df = s2_data, V = 5, studyname = "study_2")
+  results_5_cv_s3 <- get_cv_results(study = s3, df = s3_data, V = 5, studyname = "study_3")
+  })
+  print(paste("5_cv", runtime))
   
   # 10X10 fold cross-validation 
-  results_10x10_cv_s1 <- get_10x10_results(study = s1[12,], df = s1_data[12], V = 10, studyname = "study_1")
-  results_10x10_cv_s2 <- get_10x10_results(study = s2[27,], df = s2_data[27], V = 10, studyname = "study_2")
-  results_10x10_cv_s3 <- get_10x10_results(study = s3[21,], df = s3_data[21], V = 10, studyname = "study_3")
+  runtime <- system.time({
+  results_10x10_cv_s1 <- get_10x10_results(study = s1, df = s1_data, V = 10, studyname = "study_1")
+  results_10x10_cv_s2 <- get_10x10_results(study = s2, df = s2_data, V = 10, studyname = "study_2")
+  results_10x10_cv_s3 <- get_10x10_results(study = s3, df = s3_data, V = 10, studyname = "study_3")
+  })
+  print(paste("10x10cv", runtime))
   
   # Bootstrap 3 varieties in one go
-  p_app_study_1 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study1.RDS")) 
-  p_app_study_2 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study2.RDS"))
-  p_app_study_3 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study3.RDS"))
-  
-  results_app_ext_s1 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study1.RDS"))
-  results_app_ext_s2 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study2.RDS"))
-  results_app_ext_s3 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study3.RDS"))
-  
-  results_bootstrap_s1 <- get_bootstrap_results(study = s1[12,], df = s1_data[12], nboot = 500, studyname = "study_1")
-  results_bootstrap_s2 <- get_bootstrap_results(study = s2[27,], df = s2_data[27], nboot = 500, studyname = "study_2")
-  results_bootstrap_s3 <- get_bootstrap_results(study = s3[21,], df = s3_data[21], nboot = 500, studyname = "study_3")
-  
-  saveRDS(results_bootstrap_s1, paste0(estimands_path, "bootstrap_results_study1.RDS"))
+  # p_app_study_1 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study1.RDS")) 
+  # p_app_study_2 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study2.RDS"))
+  # p_app_study_3 <- readRDS(paste0(estimands_path, "app_preds_for_bootstrap_study3.RDS"))
+  # 
+  # results_app_ext_study_1 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study1.RDS"))
+  # results_app_ext_study_2 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study2.RDS"))
+  # results_app_ext_study_3 <- readRDS(paste0(estimands_path, "app_estimands_for_bootstrap_study3.RDS"))
+  runtime <- system.time({
+  results_bootstrap_s1 <- get_bootstrap_results(study = s1, df = s1_data, nboot = 500, studyname = "study_1")
+  results_bootstrap_s2 <- get_bootstrap_results(study = s2, df = s2_data, nboot = 500, studyname = "study_2")
+  results_bootstrap_s3 <- get_bootstrap_results(study = s3, df = s3_data, nboot = 500, studyname = "study_3")
+  })
+  print(paste("res_bootstrap", runtime))
   
   #################################################
   ########## Wrangling into nice format ###########
@@ -152,9 +173,9 @@ set.seed(seed_state[1]) # for each run the next value in the state vector will b
   
   ## Bind all results together 
   results_estimands <-
-    rbind(results_app_ext_s1,
-          results_app_ext_s2,
-          results_app_ext_s3,
+    rbind(results_app_ext_study_1,
+          results_app_ext_study_2,
+          results_app_ext_study_3,
           results_10_cv_s1,
           results_10_cv_s2,
           results_10_cv_s3,
@@ -177,9 +198,10 @@ set.seed(seed_state[1]) # for each run the next value in the state vector will b
   
   # Saving estimands
   saveRDS(results_estimands, file = paste0(estimands_path, "estimands_trialrun_s1:12_s2:27_s3:21_seed_", seed_state[j], ".Rds"))
+  } # Close for loop
+  })# close Error warnings
 
-}) # Close timing function
-})# close Error warnings
+
 #################################
 ## Obtain performance measures ##
 #################################
