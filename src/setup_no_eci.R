@@ -8,13 +8,7 @@ source("./src/libraries.R")
 
 setting_path <- "./data/simulation settings/"
 val_data_path <- "./data/validation data/"
-
-estimands_path <- "./results/output/estimands/all/"
-app_ext_path <- "./results/output/estimands/app_ext/"
-cv_10_fold_path <- "./results/output/estimands/10_fold_cv/"
-cv_5_fold_path <- "./results/output/estimands/5_fold_cv/"
-cv_10x10_fold_path <- "./results/output/estimands/10x10_fold_cv/"
-bootstrap_path <- "./results/output/estimands/bootstrap/"
+estimands_path <- "./results/output/estimands/"
 
 #######################################
 ## Results names for estimand matrix ##
@@ -43,8 +37,8 @@ results_estimands_names <-
     "Tjur_se",
     "R2_CS",
     "R2_CS_se",
-    "eci",
-    "eci_se",
+    #"eci",
+    #"eci_se",
     "mape",
     "mape_se",
     "rmspe",
@@ -60,11 +54,11 @@ apparent_col_names <-
     "calib_slope",
     "Tjur",
     "R2_CS",
-    "eci",
+    #"eci",
     "mape",
     "rmspe",
     "error_info"
-    )
+  )
 
 estimands_names <- 
   c(
@@ -73,7 +67,7 @@ estimands_names <-
     "calib_slope",
     "Tjur",
     "R2_CS",
-    "eci",
+    #"eci",
     "mape",
     "rmspe"
   )
@@ -85,7 +79,7 @@ estimands_se_names <-
     "calib_slope_se",
     "Tjur_se",
     "R2_CS_se",
-    "eci_se",
+    #"eci_se",
     "mape_se",
     "rmspe_se"
   )
@@ -102,8 +96,8 @@ iv_colnames <- c(
   "Tjur_se",
   "R2_CS",
   "R2_CS_se",
-  "eci",
-  "eci_se",
+  #"eci",
+  #"eci_se",
   "mape",
   "mape_se",
   "rmspe",
@@ -112,10 +106,10 @@ iv_colnames <- c(
 )
 
 study_info <- c("dim",
-    "prev",
-    "model",
-    "pred_selection",
-    "n")
+                "prev",
+                "model",
+                "pred_selection",
+                "n")
 
 #####################
 ###### study 1 ######
