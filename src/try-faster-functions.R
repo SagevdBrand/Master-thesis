@@ -90,8 +90,8 @@ s3_data <- generate_data(s3, validation = FALSE)
 
 
 ## create one test set for all studies, shortes scenarios:
-df <- s1_data[[1]]#c(s1_data[c(7)], s2_data[c(10)], s3_data[c(16)])
-df_val <- c(s1_val_data[c(7)], s2_val_data[c(10)], s3_val_data[c(16)])
+df <- s1_data[1]#c(s1_data[c(7)], s2_data[c(10)], s3_data[c(16)])
+df_val <- s1_val_data[1]#, s2_val_data[c(10)], s3_val_data[c(16)])
 study <- s1[1,]#rbind(s1[c(7),], s2[c(10),], s3[c(16),])
 study$scenario <- "Scenario 1" #c("Scenario 1", "Scenario 2", "Scenario 3")
 model <- "Firth"
@@ -102,6 +102,11 @@ dgm_par <-
     rep(study[1, ]$par2, round(0.5 *  study[1, ]$dim)), 
     rep(study[1, ]$par2 * 0, round(0.2 * study[1, ]$dim)))
 
+app_estimands_for_bootstrap_study1 <- readRDS("~/GitHub/Master-thesis/results/output/estimands/old/app_estimands_for_bootstrap_study1.RDS")
+app_preds_for_bootstrap_study1 <- readRDS("~/GitHub/Master-thesis/results/output/estimands/old/app_preds_for_bootstrap_study1.RDS")
+p_app_study1 <- app_preds_for_bootstrap_study1
+results_app_ext_study1 <- app_estimands_for_bootstrap_study1
+nboot <- 10
 
 # Test apparent & external:
 system.time(results_app_ext_test <- get_app_ext_results(study = study, df = df, df_val = df_val, studyname = "test"))

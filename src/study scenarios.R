@@ -15,8 +15,8 @@ AUC1 <- 0.75
 dim1 <- 10
 n_setting1 <- c("n/2", "n", "n*2")
 prev1 <- c(0.05, 0.2, 0.5)
-model1 <- "Firth"
-pred_sel1 <- c("none", "<0.05")
+model1 <- "ML"
+pred_sel1 <- c("none", "<0.157")
 noise_1 <- c("default")
 
 ## all combinations:
@@ -109,7 +109,7 @@ s1 <- s1 %>%
                           TRUE ~ NA_real_))
 
 
-s1$scenario <- c(paste("Scenario", 1:nrow(s1)))
+s1$scenario <- c(paste0("Scenario_", 1:nrow(s1)))
 ### Save the study scenarios in the settings folder
 write_rds(s1, file = study_1_settings)
 
@@ -119,11 +119,11 @@ write_rds(s1, file = study_1_settings)
 
 ## Data gen mechanism
 AUC2 <- 0.75
-dim2 <- c(6, 30, 60)
+dim2 <- c(6, 30)
 n_setting2 <- c("n/2", "n", "n*2")
 prev2 <- 0.2
-model2 <- "Firth"
-pred_sel2 <- c("none", "<0.05")
+model2 <- "ML"
+pred_sel2 <- c("none", "<0.157")
 noise_2 <- c("none", "half")
 
 ## all combinations:
@@ -148,8 +148,7 @@ s2$R2 <- R2[2]
 ########################
 
 n_2 <- c("dim_6" = pmsampsize(type = "b", parameters = 6, prevalence = prev2, rsquared = R2[2])$sample_size,
-         "dim_30" = pmsampsize(type = "b", parameters = 30, prevalence = prev2, rsquared = R2[2])$sample_size,
-         "dim_60" = pmsampsize(type = "b", parameters = 60, prevalence = prev2, rsquared = R2[2])$sample_size
+         "dim_30" = pmsampsize(type = "b", parameters = 30, prevalence = prev2, rsquared = R2[2])$sample_size
          )
          
 
@@ -162,9 +161,6 @@ s2 <- s2 %>%
       n_setting == "n/2" & dim == 30 ~ n_2["dim_30"]/2,
       n_setting == "n"   & dim == 30 ~ n_2["dim_30"],
       n_setting == "n*2" & dim == 30 ~ n_2["dim_30"]*2,
-      n_setting == "n/2" & dim == 60 ~ n_2["dim_60"]/2,
-      n_setting == "n"   & dim == 60 ~ n_2["dim_60"],
-      n_setting == "n*2" & dim == 60 ~ n_2["dim_60"]*2,
       TRUE ~ NA_real_
     )
     )
@@ -185,16 +181,12 @@ attr(s2$n, "ATT") <- NULL
 beta_6_half <- c(-1.671603, 0.27602491)
 # 30 candidate predictors, with half noise:
 beta_30_half <- c(-1.623487, 0.07781071)
-# 60 candidate predictors, with half noise:
-beta_60_half <- c(-1.657480, -0.04277436)
 
 
 # 6 candidate predictors, with no noise:
 beta_6_none <- c(-1.670588, 0.20894297)
 # 6 candidate predictors, with no noise:
 beta_30_none <- c(-1.667019,  -0.05344094)
-# 6 candidate predictors, with no noise:
-beta_60_none <- c(-1.652066, 0.02734855)
 
 ## Bind parameters to study 1 matrix
 # par1 represents intercept
@@ -202,23 +194,19 @@ beta_60_none <- c(-1.652066, 0.02734855)
 s2 <- s2 %>% 
   mutate(par1 = case_when(dim == 6 & noise == "half" ~ beta_6_half[1],
                           dim == 30 & noise == "half" ~ beta_30_half[1],
-                          dim == 60 & noise == "half" ~ beta_60_half[1],
                           dim == 6 & noise == "none" ~ beta_6_none[1],
                           dim == 30 & noise == "none" ~ beta_30_none[1],
-                          dim == 60 & noise == "none" ~ beta_60_none[1],
                           TRUE ~ NA_real_
   )) %>%
   mutate(par2 = case_when(dim == 6 & noise == "half" ~ beta_6_half[2],
                           dim == 30 & noise == "half" ~ beta_30_half[2],
-                          dim == 60 & noise == "half" ~ beta_60_half[2],
                           dim == 6 & noise == "none" ~ beta_6_none[2],
                           dim == 30 & noise == "none" ~ beta_30_none[2],
-                          dim == 60 & noise == "none" ~ beta_60_none[2],
                           TRUE ~ NA_real_
   ))
 
 
-s2$scenario <- c(paste("Scenario", 1:nrow(s2)))
+s2$scenario <- c(paste0("Scenario_", 1:nrow(s2)))
 
 ### Save the study scenarios in the settings folder
 write_rds(s2, file = study_2_settings)
@@ -230,7 +218,7 @@ write_rds(s2, file = study_2_settings)
 
 ## Data gen mechanism
 AUC3 <- 0.75
-dim3 <- 30
+dim3 <- 20
 n_setting3 <- c("n/2", "n", "n*2")
 noise_3 <- c("default")
 prev3 <- 0.2
@@ -264,7 +252,7 @@ s3$R2 <- R2[2]
 ########################
 ## Actual sample size ##
 ########################
-n_3 <- pmsampsize(type = "b", parameters = 30, prevalence = 0.2, rsquared = R2[2])$sample_size
+n_3 <- pmsampsize(type = "b", parameters = 20, prevalence = 0.2, rsquared = R2[2])$sample_size
 
 
 s3 <- s3 %>%
@@ -284,18 +272,32 @@ s3 <- s3 %>%
 ### Using the testing site optimization script
 ## The following values for the parameters were 
 ## found during optimization:
-beta_30 <- c(-1.64950299, -0.04977404)
+beta_20 <- c(-1.64975835, -0.07082455)
 
-s3$par1 <- beta_30[1]
-s3$par2 <- beta_30[2]
+s3$par1 <- beta_20[1]
+s3$par2 <- beta_20[2]
 
-s3$scenario <- c(paste("Scenario", 1:nrow(s3)))
+s3$scenario <- c(paste0("Scenario_", 1:nrow(s3)))
 
 ### Save the study scenarios in the settings folder
 write_rds(s3, file = study_3_settings)
 
 # Remove everything except the three study matrices
 #rm(list=ls()[! ls() %in% c("s1","s2", "s3")])
+
+
+########################
+## All studies in one ##
+########################
+
+s1$study <- "Study_1"
+s2$study <- "Study_2"
+s3$study <- "Study_3"
+
+studies <- rbind(s1,s2,s3)
+saveRDS(studies, paste0(setting_path, "studies.RDS"))
+
+
 
 ####################################
 ####################################
