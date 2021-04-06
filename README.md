@@ -1,6 +1,6 @@
 # Master thesis internal validation
 
-Version 0.1.0
+Version 0.1.1
 
 The battle of internal validation The Battle of Internal Validation within Medical Prediction Models: Bootstrap vs. Cross-Validation
 
@@ -17,15 +17,9 @@ The battle of internal validation The Battle of Internal Validation within Medic
 ├── LICENSE.md              <- License for my project (RO)
 ├── README.md               <- The document you are reading right now (RO)
 ├── requirements.txt        <- Which packages are needed to run the scripts? (RO)
-├── bin                     <- Compiled and external code, ignored by git (PG)
-│   └── external            <- Any external source code, ignored by git (RO)
 ├── config                  <- Configuration files (HW)
 ├── data                    <- All project data, ignored by git
-│   ├── simulation data     <- Folder where the simulated data is temporarily 
-|   |                          stored for each run per study (PG) 
-│   ├── simulation settings <- The simulation studies as defined in the thesis methods (RO)
-│   └── validation data     <- Folder where the simulated validation data is temporarily
-|                              stored for each run (PG) 
+│   └── simulation settings <- The simulation studies as defined in the thesis (RO)
 ├── docs                    <- Documentation notebook for users (HW)
 │   ├── manuscript          <- Manuscript source, e.g., LaTeX, Markdown, etc. (HW)
 │   └── reports             
