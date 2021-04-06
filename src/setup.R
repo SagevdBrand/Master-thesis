@@ -126,49 +126,6 @@ study_1_val_data <- "./data/validation data/study 1/s1_val_data.Rds"
 s1_performance <- "./results/output/performance/study 1/"
 s1_figures <- "./results/figures/study 1/"
 
-# For testing/programming purposes
-data_files_s1 <- c(
-  "s1_data_a.Rds",
-  "s1_data_b.Rds",
-  "s1_data_c.Rds",
-  "s1_data_d.Rds",
-  "s1_data_e.Rds",
-  "s1_data_f.Rds",
-  "s1_data_g.Rds",
-  "s1_data_h.Rds",
-  "s1_data_i.Rds",
-  "s1_data_j.Rds",
-  "s1_data_k.Rds",
-  "s1_data_l.Rds",
-  "s1_data_m.Rds",
-  "s1_data_n.Rds",
-  "s1_data_o.Rds",
-  "s1_data_p.Rds",
-  "s1_data_q.Rds",
-  "s1_data_r.Rds"
-)
-
-val_data_files_s1 <- c(
-  "s1_val_data_a.Rds",
-  "s1_val_data_b.Rds",
-  "s1_val_data_c.Rds",
-  "s1_val_data_d.Rds", 
-  "s1_val_data_e.Rds",
-  "s1_val_data_f.Rds",
-  "s1_val_data_g.Rds",
-  "s1_val_data_h.Rds", 
-  "s1_val_data_i.Rds",
-  "s1_val_data_j.Rds", 
-  "s1_val_data_k.Rds",
-  "s1_val_data_l.Rds",
-  "s1_val_data_m.Rds",
-  "s1_val_data_n.Rds",
-  "s1_val_data_o.Rds",
-  "s1_val_data_p.Rds",
-  "s1_val_data_q.Rds",
-  "s1_val_data_r.Rds"
-)
-
 #####################
 ###### study 2 ######
 #####################
@@ -186,13 +143,5 @@ s3_performance <- "./results/output/performance/study 3/"
 s3_figures <- "./results/figures/study 3/"
 
 
-# for (i in 1:4){
-# study_specific <- paste0("study ", i, "/")
-# dir.create(file.path(paste0("Output/", study_specific)), recursive = TRUE)
-#  }
-
-# datasets <- list.dirs(path = "data", recursive = F, full.names = F)
-# data_files <- glue(datasets, ".csv")
-# data_dir <- glue("data/", datasets)
-
-
+### RUN THE FOLLOWING ONCE ON THE HPC
+# sessionInfo()

@@ -143,25 +143,43 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
         
         fit_app <- logistf(formula = model_form, data = df, flic = T, firth = T)
         
-        ## If model is Firth with backwards elimination:  
-      } else if (model == "Firth" & pred_selection == "<0.05") {
-        df_app <- df
-        assign("df_app", as.data.frame(df_app), envir = .GlobalEnv)
-        
-        fit_app <- logistf(formula = model_form, data = df_app, flic = T, firth = T)
-        fit_app <- backward(fit_app, trace = FALSE)
-        
-        # Check whether any predictors have been selected.
-        if (var(fit_app$linear.predictors) == 0) {
-          error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
+      #   ## If model is Firth with backwards elimination:  
+      # } else if (model == "Firth" & pred_selection == "<0.157") {
+      #   df_app <- df
+      #   assign("df_app", as.data.frame(df_app), envir = .GlobalEnv)
+      #   
+      #   fit_app <- logistf(formula = model_form, data = df_app, flic = T, firth = T)
+      #   fit_app <- backward(fit_app, trace = FALSE)
+      #   
+      #   # Check whether any predictors have been selected.
+      #   if (var(fit_app$linear.predictors) == 0) {
+      #     error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
         }
         
-        ## If model is using ML :  
-      } else if (model == "ML") {
+      ## If model is using ML :  
+      if (model == "ML"){
+        
+        if (pred_selection == "none") {
         
         fit_app <- glm(y ~ ., family = "binomial", data = df) 
         
-      }
+      } else if (model == "ML" & pred_selection == "<0.157"){
+        
+        fit_app <- glm(y ~ ., family = "binomial", data = df) 
+        step(fit_app, trace = FALSE)
+        
+        # Check whether any predictors have been selected.
+           if (var(fit_app$linear.predictors) == 0) {
+             error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
+           } # close check for predictors
+        
+      } # close Which specific type of ML 
+      
+      # Check for separation
+      if(any(sqrt(diag(summary(fit_app)$cov.unscaled)*summary(fit_app)$dispersion) > 70)){
+        error_info <- paste(toString(error_info), paste0("Data separation might have occured"), sep = " + ")
+      } # Close separation detection
+      } # Close ML
       # Predictions:
       # Apparent
       fit_app_matrix <- model.matrix(object = fit_app$formula, data = df)
@@ -355,8 +373,11 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
     tjur_app <- tjur(p = p_app, y = df$y)
     slope_app <- c(coef(glm(df$y ~ log(p_app/(1-p_app)), family="binomial"))[2])
     intercept_app <- coef(glm(df$y ~ offset(log(p_app/(1-p_app))), family="binomial"))
+    # ECI calculations
     calout <- loess(y ~ log(p_app/(1-p_app)), data = df, span = 10)
-    eci_app <- (mean((p_app-fitted(calout))*(p_app-fitted(calout))))*(100)
+    ecir <- mean((p_app - mean(df$y))*(p_app - mean(df$y)))
+    ecim <- (mean((p_app-fitted(calout))*(p_app-fitted(calout))))
+    eci_app <- ecim/ecir
     
     # obtain external results
     auc_ext <- fastAUC(p = p_ext, y = df_val$y)
@@ -365,8 +386,11 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
     tjur_ext <- tjur(p = p_ext, y = df_val$y)
     slope_ext <- c(coef(glm(df_val$y ~ log(p_ext/(1-p_ext)), family="binomial"))[2])
     intercept_ext <- coef(glm(df_val$y ~ offset(log(p_ext/(1-p_ext))), family="binomial"))
+    # ECI calculations
     calout <- loess(y ~ log(p_ext/(1-p_ext)), data = df_val, span = 10)
-    eci_ext <- (mean((p_ext-fitted(calout))*(p_ext-fitted(calout))))*(100)
+    ecir <- mean((p_ext - mean(df_val$y))*(p_ext - mean(df_val$y)))
+    ecim <- (mean((p_ext-fitted(calout))*(p_ext-fitted(calout))))
+    eci_ext <- ecim/ecir
     
   # all results together
   results <- list(
@@ -437,8 +461,6 @@ get_app_ext_results <- function(study, df, df_val, studyname) {
   
   # For each scenario within the study
   for (i in 1:nrow(study)) {
-    print(i)
-    
     # Fill in some information for each scenario:
     results_app[i, 'scenario'] <- study$scenario[i]
     results_ext[i, 'scenario'] <- study$scenario[i]
@@ -505,7 +527,7 @@ get_app_ext_results <- function(study, df, df_val, studyname) {
       # Bind the matrices together
       results_app_ext <- rbind(results_app, results_ext)
       # Fill in details of the study
-      results_app_ext$study <- studyname
+      results_app_ext$study <- study$study
       
       # Save the p_apps to the environment
       p_app_preds[[i]] <- c(results[[3]])
@@ -588,30 +610,43 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
         # Specifiy model formula (necessary for logistf)
         model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
         
-        if (model == "Firth" & pred_selection == "none") { # If model = Firth , no predictor selection
+        if (model == "Firth") { # If model = Firth 
           fit <- logistf(formula = model_form, data = df_train, flic = T, firth = T)
         } # Close if for firth and no predictor selection
         
-        else if (model == "Firth" & pred_selection == "<0.05"){
-          # Fit Firth model with Backward elimination
-          fit <- logistf(formula = model_form, data = df_train, flic = T, firth = T)
-          fit <- backward(fit, trace = FALSE)
+        # else if (model == "Firth" & pred_selection == "<0.157"){
+        #   # Fit Firth model with Backward elimination
+        #   fit <- logistf(formula = model_form, data = df_train, flic = T, firth = T)
+        #   fit <- backward(fit, trace = FALSE)
+        #   
+        #   # Check whether any predictors have been selected at all. 
+        #   if (var(fit$linear.predictors) == 0) {
+        #     error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
+        #     
+        #   } # close error handling predictor selection
+      
+      
+      if (model == "ML"){ 
           
-          # Check whether any predictors have been selected at all. 
-          if (var(fit$linear.predictors) == 0) {
-            error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
+          if(pred_selection == "none") {
             
-          } # close error handling predictor selction
-        } else if (model == "ML"){
-          #Fit logistic regression with Maximum Likelihood
-          fit <- glm(y ~ ., family = "binomial", data = df_train)
+            fit <- glm(y ~ ., family = "binomial", data = df_train) 
+            
+          } else if (pred_selection == "<0.157"){
+            
+            fit <- glm(y ~ ., family = "binomial", data = df_train) 
+            step(fit, trace = FALSE)
+            if (var(fit$linear.predictors) == 0) {
+              error_info <-paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
+            } # close error handling predictor selction
+          } # Close for specific models
           
           # Check for separation
           if(any(sqrt(diag(summary(fit)$cov.unscaled)*summary(fit)$dispersion) > 70)){
             error_info <- paste(toString(error_info), paste0("Data separation might have occured"), sep = " + ")
           } # Close separation detection
-        } # Close if for which specific model
-        
+       
+      }
         # Obtain model matrix
         fit_matrix <- model.matrix(object = fit$formula, data = df_test)
         # Obtain predictions
@@ -805,7 +840,9 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
       R2_folds[v] <- pseudo_Rsqrs(p = ppf, y = data$y)
       # ECI for folds
       calout <- loess(y ~ log(ppf/(1-ppf)), data = data, span = 10)
-      eci_folds[v] <- (mean((ppf-fitted(calout))*(ppf-fitted(calout))))*(100)
+      ecir <- mean((ppf - mean(data$y))*(ppf - mean(data$y)))
+      ecim <- mean((ppf-fitted(calout))*(ppf-fitted(calout)))
+      eci_folds[v] <- ecim/ecir
       # MAPE for folds
       mape_folds[v] <- mean(abs(ppf_true-ppf))
       # rMSPE for folds
@@ -877,13 +914,12 @@ get_cv_results <- function(study, df, V, studyname) {
   results_cv <- as.data.frame(matrix(NA, nrow = nrow(study), ncol = length(results_estimands_names), dimnames = list(c(), results_estimands_names)))
   
   # Fill in details of the study
-  results_cv$study <- studyname
+  results_cv$study <- study$study
   # And of each scenario:
   results_cv[, which(colnames(results_cv) %in% study_info)] <- study[, which(colnames(study) %in% study_info)]
   
   
   for (i in 1:nrow(study)) {
-    print(i) ## REMOVE WHEN SIMULATION COMMENCES
     # Paste the correct scenario number:
     results_cv[i, 'scenario'] <- study$scenario[i]
     
@@ -954,13 +990,11 @@ get_10x10_results <- function(study, df, V, studyname){
   results_cv <- as.data.frame(matrix(NA, nrow = nrow(study), ncol = length(results_estimands_names), dimnames = list(c(), results_estimands_names)))
   
   # Fill in details of the study
-  results_cv$study <- studyname
+  results_cv$study <- study$study
   # And of each scenario:
   results_cv[, which(colnames(results_cv) %in% study_info)] <- study[, which(colnames(study) %in% study_info)]
   
   for (i in 1:length(df)) {
-    print(i)
-    
     # Add which scenario we are working on:
     results_cv[i, 'scenario'] <- study$scenario[i]
     
@@ -1150,29 +1184,45 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
         # Specifiy model formula (necessary for logistf)
         model_form <- as.formula(paste0("y ~", paste(colnames(df)[!colnames(df)%in%"y"], collapse = "+" )))
         
-        if (model == "Firth" & pred_selection == "none"){
+        if (model == "Firth"){
           # Fit Firth model without Backward elimination
           fit <- logistf(formula = model_form, data = df_train, flic = T, firth = T)
+        } 
           
-        } else if (model == "Firth" & pred_selection == "<0.05"){
-          # Fit Firth model with Backward elimination
-          fit <- logistf(formula = model_form, data = df_train, flic = T, firth = T)
-          fit <- backward(fit, trace = FALSE)
+        # } else if (model == "Firth" & pred_selection == "<0.157"){
+        #   # Fit Firth model with Backward elimination
+        #   fit <- logistf(formula = model_form, data = df_train, flic = T, firth = T)
+        #   fit <- backward(fit, trace = FALSE)
+        #   
+        #   # Check whether any predictors have been selected at all. 
+        #   if (var(fit$linear.predictors) == 0) {
+        #     error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
+        #   }
           
-          # Check whether any predictors have been selected at all. 
-          if (var(fit$linear.predictors) == 0) {
-            error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
-          }
+        if (model == "ML"){
           
-        } else if (model == "ML"){
-          #Fit logistic regression with Maximum Likelihood
-          fit <- glm(y ~ ., family = "binomial", data = df_train)
+          if (pred_selection == "none") {
+            
+            fit <- glm(y ~ ., family = "binomial", data = df_train) 
+            
+            } else if (pred_selection == "<0.157"){
+            
+            fit <- glm(y ~ ., family = "binomial", data = df_train) 
+            step(fit, trace = FALSE)
+            
+            if (var(fit$linear.predictors) == 0) {
+              error_info <-paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
+            } # close error handling predictor selection
+            
+            } # Close for specific models
           
-          # Check for separation
+          # Check for separation of ML models
           if(any(sqrt(diag(summary(fit)$cov.unscaled)*summary(fit)$dispersion) > 70)){
             error_info <- paste(toString(error_info), paste0("Data separation might have occured"), sep = " + ")
-          }
-        }
+          } # Close separation detection
+        } # close if for ML
+        
+
         # original sample
         df_fit_matrix <- model.matrix(object = fit$formula, data = df)
         p_df <- 1 / (1 + exp(-df_fit_matrix %*% fit$coefficients))
@@ -1396,13 +1446,24 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
       results$R2_CS_train[b] <- pseudo_Rsqrs(p = p_train, y = df_train$y) 
       results$R2_CS_test[b] <- pseudo_Rsqrs(p = p_test, y = df_test$y)
       
-      # ECI
+      ## ECI
+      # DF
       calout <- loess(y ~ log(p_df/(1-p_df)), data = df, span = 10)
-      results$eci_df[b] <- (mean((p_df-fitted(calout))*(p_df-fitted(calout))))*(100)
+      ecir <- mean((p_df - mean(df$y))*(p_df - mean(df$y)))
+      ecim <- mean((p_df-fitted(calout))*(p_df-fitted(calout)))
+      results$eci_df[b] <- ecim/ecir
+      
+      # df_train
       calout <- loess(y ~ log(p_train/(1-p_train)), data = df_train, span = 10)
-      results$eci_train[b] <- (mean((p_train-fitted(calout))*(p_train-fitted(calout))))*(100)
+      ecir <- mean((p_train - mean(df_train$y))*(p_train - mean(df_train$y)))
+      ecim <- (mean((p_train-fitted(calout))*(p_train-fitted(calout))))
+      results$eci_train[b] <- ecim/ecir
+      
+      # df-test
       calout <- loess(y ~ log(p_test/(1-p_test)), data = df_test, span = 10)
-      results$eci_test[b] <- (mean((p_test-fitted(calout))*(p_test-fitted(calout))))*(100)
+      ecir <- mean((p_test - mean(df_test$y))*(p_test - mean(df_test$y)))
+      ecim <- (mean((p_test-fitted(calout))*(p_test-fitted(calout))))
+      results$eci_test[b] <- ecim/ecir
       
       # MAPE
       results$mape_df[b] <- mean(abs(p_df_true-p_df))
@@ -1446,16 +1507,40 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
     ###################
     # .632+ bootstrap #
     ###################
-    # Obtain gamma:
-    gamma <- c(0.5, 0,100,0,0,50,100,100) # No-information predictive performance
-    
+    gamma <- c(0.5,0.5,0,0,0,1,0.5,0.25) # No-information predictive performance
+
     # Relative overfitting 
     R <- (theta_test - theta_app) / (gamma - theta_app)
     
+    # Exceptional cases:
+    # If AUC is smaller than 0.5:
+    # https://github.com/nomahi/predboot/blob/master/R/pred.ML 
+    if (theta_test['auc_test'] < 0.5) {R[1] <- 1}
+    # If the calibration slope is negative
+    if (theta_test['calib_slope_test'] < 0) {R[3] <- 1}
+    # If one of the pseudo-R^2 is negative:
+    if (theta_test['Tjur_test'] < 0) {R[4] <- 1}
+    if (theta_test['R2_CS_test'] < 0) {R[5] <- 1}
+   
+    # In those cases where the apparent performance is smaller than the test performance
+    # For AUC, and both Pseudo-R2. 
+    app_smaller_test <- which(theta_app[c(1,4,5)] < theta_test[c(1,4,5)])
+    R[c(app_smaller_test)] <- 0
+    
+    # In those cases where the apparent performance is higher than test performance
+    # For the ECI, rMSPE and MAPE:
+    app_bigger_test <- which(theta_app[c(6,7,8)] > theta_test[c(6,7,8)])
+    R[c(app_smaller_test)] <- 0
+    
+    # In those cases where the absolute distance of the cal_int to 0 is bigger for the apparent performance than the test performance:
+    if(abs(theta_test[2]) < abs(theta_app[2])) {R[2] <- 0}
+    # In those cases where the absolute distance of the cal_slope to 1 is bigger for the apparent performance than the test performance:
+    if(abs(theta_test[3] - 1) <  abs(theta_app[3] - 1)) {R[3] <- 0}
+    
     # If R is negative, return absolute value
-    R <-  ifelse( R< 0, abs(R), R)
+    R <-  ifelse( R < 0, abs(R), R)
     # Then return all that are bigger than 1 to 1. 
-    R <-  ifelse( R> 1, 1, R)
+    R <-  ifelse( R > 1, 1, R)
     # weight
     W <-  .632 / (1 - .368 * R)
     
@@ -1492,7 +1577,7 @@ get_bootstrap_results <- function(study, df, nboot, studyname) {
                                        dimnames = list(c(), results_estimands_names)))
   
   # Fill in details of the study
-  results_boot$study <- studyname
+  results_boot$study <- study$study
   
   # The results should be pasted in rows of 3 as well
   # Therefore for each scenario, another index is necessary
@@ -1501,8 +1586,6 @@ get_bootstrap_results <- function(study, df, nboot, studyname) {
   results_i_end <- seq(3, nrow(results_boot), by = 3)
   
   for (i in 1:nrow(study)){
-    print(i)
-    
     # Fill in some details:
     results_boot[c(results_i_start[i]:results_i_end[i]),
                  'scenario'] <- study$scenario[i]
@@ -1524,8 +1607,8 @@ get_bootstrap_results <- function(study, df, nboot, studyname) {
       
       # Obtain necessary apparent information results
       scen_num <- as.numeric(paste0(str_extract_all(study$scenario[i], "[:digit:]", simplify = T), collapse = ""))
-      pred_app <- get(paste0("p_app_", studyname))[[scen_num]]
-      results_app <- as.data.frame(get(paste0("results_app_ext_", studyname))) %>% filter(approach == "Apparent" & scenario == paste("Scenario", scen_num))
+      pred_app <- get(paste0("p_app_", studyname))
+      results_app <- as.data.frame(results_app_ext) %>% filter(approach == "Apparent")
       theta_app <- results_app %>% .[,(colnames(results_app) %in% estimands_names)]
       theta_app <- as.numeric(theta_app)
       

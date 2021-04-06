@@ -293,7 +293,7 @@ set.seed(123)
 n <- 30000 
 
 # How many predictors?
-n_pred <- 30 
+n_pred <- 20 
 
 # create covariance matrix to be used as input
 sigma <- matrix(0.2, ncol = n_pred, nrow = n_pred) 
@@ -326,7 +326,7 @@ dm_val <- cbind(1, X_val)
 ##################
 # Use some basis for the function below
 # By trial and error:
-par_i <- c(-1.65, -0.05)
+par_i <- c(-1.64187732, -0.07185555)
 
 results_s3 <- replicate(n = 20, 
                       optim(par_i, 
@@ -357,7 +357,7 @@ checking_val(par = par_s3, noise_contrib = "default", n_pred = n_pred)
 #############
 ## RESULTS ##
 #############
-## [1] -1.64950299 -0.04977404
+## [1]  -1.64975835 -0.07082455
 
 
 ########################
