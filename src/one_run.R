@@ -24,7 +24,7 @@ scenario <- scenarios[scenario_id,]
 val_data <- readRDS(paste0(val_data_path, "val_data_", scenario_id, ".Rds"))
 
 ## How many iterations?
-num_iterations <- 10000
+num_iterations <- 1000
 set.seed(123)
 seed_state <- sample(1:500000, num_iterations)
 
