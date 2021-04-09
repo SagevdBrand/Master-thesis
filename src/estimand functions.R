@@ -265,7 +265,7 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
         
       } else {
         # Pre-defining a tuning grid
-        rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
+        rpart_grid <- expand.grid(cp = seq(0, 0.01, by = 0.00034))
         
         # Fitting the model
         # Check number of events
@@ -273,8 +273,10 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
         fit_app <- caret::train(as.factor(y) ~.,
                                 data = df,
                                 method = 'rpart',
+                                minsplit = 1,
+                                minbucket = 1,
                                 tuneGrid = rpart_grid,
-                                trControl = trainControl(method = "cv"))
+                                trControl = trainControl(method = "LOOCV"))
         
         # Save the error:
         error_info <- paste(toString(error_info), 
@@ -291,13 +293,12 @@ get_app_ext_estimands <- function(df, df_val, model, dgm_par, pred_selection){
           fit_app <- caret::train(as.factor(y) ~.,
                                   data = df,
                                   method = 'rpart',
+                                  minsplit = 1,
+                                  minbucket = 1,
                                   tuneGrid = rpart_grid,
                                   trControl = trainControl(method = "cv"))
           
-        # Save the error:
-        error_info <- paste(toString(error_info), 
-                            paste0("Too few (non-)events for tuning -> LOOCV"),
-                            sep = " + ")
+        
         # Check whether there were more than 1 splits
         if (nrow(fit_app$finalModel$cptable) == 1) {
           error_info <- paste(toString(error_info), paste0("No predictors selected -> no calibration slope"), sep = " + ")
@@ -721,13 +722,15 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
           p <- predict(fit$finalModel, df_test_factor, type = "response")$predictions[,2]
           
         } else { # the model is CART
-          rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
+          rpart_grid <- expand.grid(cp = seq(0, 0.01, by = 0.00034))
           # Make sure that there are at least 8 events or no-events:
           if (sum(df_train$y) < 8 | sum(1-df_train$y) <8 ){
           # Fit the model with LOOCV
           fit <- caret::train(as.factor(y) ~.,
                               data = df_train,
                               method = 'rpart',
+                              minsplit = 1,
+                              minbucket = 1,
                               tuneGrid = rpart_grid,
                               trControl = trainControl(method = "LOOCV"))
           # Save the error:
@@ -739,6 +742,8 @@ get_cv_estimands <- function(df, model, dgm_par, pred_selection, V, x10 = c(FALS
             fit <- caret::train(as.factor(y) ~.,
                                 data = df_train,
                                 method = 'rpart',
+                                minsplit = 1,
+                                minbucket = 1,
                                 tuneGrid = rpart_grid,
                                 trControl = trainControl(method = "cv"))
           } # Close events check
@@ -1313,7 +1318,7 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
           
         } else {
           # Pre-defining a tuning grid
-          rpart_grid <- expand.grid(.cp = seq(0, 0.3, by = 0.01))
+          rpart_grid <- expand.grid(cp = seq(0, 0.01, by = 0.00034))
           
           # Check number of events:
           if (sum(df_train$y) < 8 | sum(1-df_train$y) <8 ){
@@ -1323,6 +1328,8 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
               as.factor(y) ~ .,
               data = df_train,
               method = 'rpart',
+              minsplit = 1,
+              minbucket = 1,
               tuneGrid = rpart_grid,
               trControl = trainControl(method = "LOOCV")
             )
@@ -1337,6 +1344,8 @@ get_bootstrap_estimands <- function(df, model, dgm_par, pred_selection, pred_app
             as.factor(y) ~ .,
             data = df_train,
             method = 'rpart',
+            minsplit = 1,
+            minbucket = 1,
             tuneGrid = rpart_grid,
             trControl = trainControl(method = "cv")
           )
