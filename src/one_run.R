@@ -49,7 +49,7 @@ errors_during_sim <- ErrorsWarnings({
   results_app_ext <- get_app_ext_results(study = scenario, df = sim_data, df_val = val_data, studyname = as.character(scenario_id))
   
   # Save just to be sure
-  saveRDS(results_app_ext, paste0(app_ext_path, "app_ext_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds")) 
+  #saveRDS(results_app_ext, paste0(app_ext_path, "app_ext_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds")) 
   print("app_ext_done")
   ##############################
   ## 10 fold cross-validation ##
@@ -57,7 +57,7 @@ errors_during_sim <- ErrorsWarnings({
   results_10_cv <- get_cv_results(study = scenario, df = sim_data, V = 10, studyname = as.character(scenario_id))
   
   # Save just to be sure
-  saveRDS(results_10_cv, paste0(cv_10_fold_path, "10fcv_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds"))
+  #saveRDS(results_10_cv, paste0(cv_10_fold_path, "10fcv_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds"))
   print("10_cv_done")
   #############################
   ## 5 fold cross-validation ##
@@ -65,7 +65,7 @@ errors_during_sim <- ErrorsWarnings({
   results_5_cv <- get_cv_results(study = scenario, df = sim_data, V = 5, studyname = as.character(scenario_id))
   
   # Save just to be sure
-  saveRDS(results_5_cv, paste0(cv_5_fold_path, "5fcv_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds")) 
+  #saveRDS(results_5_cv, paste0(cv_5_fold_path, "5fcv_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds")) 
   print("5_cv_done")
   #################################
   ## 10X10 fold cross-validation ##
@@ -73,14 +73,14 @@ errors_during_sim <- ErrorsWarnings({
   results_10x10_cv <- get_10x10_results(study = scenario, df = sim_data, V = 10, studyname = as.character(scenario_id))
   
   # Save just to be sure
-  saveRDS(results_10x10_cv, paste0(cv_10x10_fold_path, "10x10fcv_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds"))
+  #saveRDS(results_10x10_cv, paste0(cv_10x10_fold_path, "10x10fcv_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds"))
   print("10x10_cv_done")
   ###############
   ## Bootstrap ##
   ###############
   results_bootstrap <- get_bootstrap_results(study = scenario, df = sim_data, nboot = 500, studyname = as.character(scenario_id))
   ## Save just to be sure
-  saveRDS(results_bootstrap, paste0(bootstrap_path, "bootstrap_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds"))
+  #saveRDS(results_bootstrap, paste0(bootstrap_path, "bootstrap_estimands_", scenario_id, "_seed_", seed_state[j], "_iteration_", j, ".Rds"))
   print("bootstrap_done")
   })
   print(paste("Single iteration run time:", runtime))

@@ -9,6 +9,7 @@ source("./src/libraries.R")
 setting_path <- "./data/simulation settings/"
 val_data_path <- "./data/validation data/"
 
+estimands_general_path <- "./results/output/estimands/"
 estimands_path <- "./results/output/estimands/all/"
 app_ext_path <- "./results/output/estimands/app_ext/"
 cv_10_fold_path <- "./results/output/estimands/10_fold_cv/"
