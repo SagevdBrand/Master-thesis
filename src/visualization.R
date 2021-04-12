@@ -8,17 +8,11 @@ source("./src/setup.R")
 scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
 ## Loading the above estimand files:
-df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_1_2_3_4.RDS"))
+df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
 
 ################################
 ## Pre-processing of the data ##
 ################################
-
-df_all$error_info[df_all$error_info == "NA"] <- NA
-
-## Make sure that all estimands and estimand_se are numeric
-df_all[, estimands_names] <- lapply(estimands_names, function(x) as.numeric(df_all[[x]]))
-df_all[, estimands_se_names] <- lapply(estimands_se_names, function(x) as.numeric(df_all[[x]]))
 
 # As I missed this when programming the study, need to add it here:
 # Add n_setting to the columns:
@@ -145,7 +139,7 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(value > 5 ~ 5, TRUE ~ valu
 start_scen <- seq(1,18, by = 3)
 end_scen <- seq(3, 18, by = 3)
 
-for (i in 1:4){
+for (i in 1:6){
   model <- df_s3_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(model) %>% .[1,1]
   preval <- df_s3_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(prev) %>% .[1,1]
   predictor_selection <- df_s3_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(pred_selection) %>% .[1,1]
@@ -198,5 +192,5 @@ Study_3_set_2
 Study_3_set_3
 Study_3_set_4
 Study_3_set_5
-# Study_3_set_6
+Study_3_set_6
 
