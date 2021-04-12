@@ -9,10 +9,10 @@ scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 #   map_dfr(readRDS)
 # 
 # Saving it for easy reference 
-#saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_1_2_3_4.RDS"))
+# saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
 
 ## Loading the above created file
-df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_1_2_3_4.RDS"))
+df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
 df_all$error_info[df_all$error_info == "NA"] <- NA
 
 ## Make sure that all estimands and estimand_se are numeric
@@ -25,36 +25,38 @@ df_all[, estimands_se_names] <- lapply(estimands_se_names, function(x) as.numeri
 
 # How many iterations have been analyzed?
 counts <- df_all %>% group_by(study, scenario) %>% summarise(count = n())
-# For 500 iterations there should be 4000 results per scenario!
-# ind <- seq(500)
+#For 500 iterations there should be 4000 results per scenario!
+ind <- seq(500)
 # 
-# # # If it is not 4000, check what is missing by:
-# df_s2_s24 <- df_all %>% filter(study == "Study_2", scenario == "Scenario_24")
-# which(!ind %in% df_s2_s24$iteration)
+# If it is not 4000, check what is missing by:
+df_s2_s24 <- df_all %>% filter(study == "Study_2", scenario == "Scenario_24")
+ which(!ind %in% df_s2_s24$iteration)
 
 error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
 
-##########################################################
+#########################################################
 # For those situations were no predictors were selected #
-##########################################################
+#########################################################
 ## do this first to have a check later:
 # Find the max values for calibration slope for each scenario
-max_slopes <- df_all %>% group_by(study, scenario) %>% summarise(max_slope = max(calib_slope))
+max_slopes <- df_all %>% group_by(study, scenario) %>% summarise(max_slope = max(calib_slope, na.rm = T))
 # Which rows have the relevant warning? "No predictors selected -> no calibration slope"
-no_pred_ind <- str_which(df_all$error_info, "No predictors selected -> no calibration slope")
+no_pred_ind <- which(str_detect(df_all$error_info, "No predictors selected -> no calibration slope"))
 
 df_all <- df_all %>% group_by(study, scenario) %>%
   mutate(calib_slope = 
            case_when(str_detect(error_info, 
-                                "No predictors selected -> no calibration slope") == TRUE ~ max(calib_slope),
+                                "No predictors selected -> no calibration slope") == TRUE ~ max(calib_slope, na.rm = T),
                      TRUE ~ calib_slope))
 
 # Check
 df_all$calib_slope[no_pred_ind]
+saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
 
-# test <- which(is.na(df_all$calib_slope))
-# test_df <- df_all[test, ]
-# union(which(is.na(df_all$calib_slope)), no_pred_ind)
+
+# s3_scen_14 <- df_all %>% filter(study == "Study_3", scenario == "Scenario_14")
+# test <- which(is.na(s3_scen_14$calib_slope))
+# test_df <- s3_scen_14[test, ]
 
 #####################################
 ####### Performance measures ########
@@ -122,5 +124,6 @@ rmspe_p <- performance_measures(ext = "rmspe_ext", int = "rmspe", name = "rmspe"
 
 m_perform_results <-  rbind(auc_p, calib_slope_p, calib_int_p, tjur_p, R2_CS_p,eci_p, mape_p, rmspe_p)
 
+saveRDS(m_perform_results, file = paste0(performance_general_path, "all_pm_batch_5.RDS"))
 
 

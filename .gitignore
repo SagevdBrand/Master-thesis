@@ -45,4 +45,4 @@ vignettes/*.pdf
 .Rhistory
 
 # Ignore estimand results
-results/output/estimands/*.Rds
+results/output/estimands/all/*.Rds
