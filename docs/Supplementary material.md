@@ -1,5 +1,5 @@
 # Supplementary material
-This supplementary document contains the following material.
+This document contains the following material.
 1. Numerical estimation procedure the regression coefficients
 used within the data generating mechanism
 2. Error handling
@@ -71,7 +71,7 @@ criterion, following van Smeden et al. (2019).
   - Development dataset when `var(Y) = 0`:
      - No models will be developed on these data. Performance measures over all
      simulation iterations will be based on complete case analysis. The number of
-     instances is documented and reported per simulation condition.
+     instances is documented and reported per simulation scenario.
   - CV fold or bootstrap sample with `var(Y) = 0`:
      - validation will not be performed on this resampling/fold, the remaining
     folds/resamples will be used to calculate performance. The number of
@@ -98,20 +98,20 @@ For models in which predictors are selected (maximum likelihood with backwards
   - Following Van Smeden et al. (2019), replace the calibration slope by the
     highest estimated calibration slope within the scenario (replacement is
     done after all simulation iterations are completed). The number of instances
-    will be documented and reported per model and simulation condition.
+    will be documented and reported per model and simulation scenario.
 
 ### Separation:
 Data separation might occur (probability increases when decreasing sample size
   and increasing dimensionality). We anticipate separation will not occur often
   due to the continuous predictor data and moderate discrimination, AUC of 0.75,
-  for all simulation conditions.
+  for all simulation scenarios.
 1.	How to detect:
   - Supplemental material of (van Smeden et al., 2019) assumes separation when
     any estimated standard error of maximum likelihood model was > 70 (study 3).
   - Warnings or errors might be returned that indicate separation.
 2.	How to handle:
   - Report an error when separation occurs within the results. The number of
-    separated datasets will be registered per condition. No action is needed, as
+    separated datasets will be registered per scenario. No action is needed, as
     models developed on separated data can still be used to make predictions.
     With the low prevalence of separation that is anticipated, we assume it will
     have a negligible influence on performance.
