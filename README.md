@@ -20,7 +20,7 @@ The battle of internal validation The Battle of Internal Validation within Medic
 ├── config                  <- Configuration files (HW)
 ├── data                    <- All project data, ignored by git
 │   └── simulation settings <- The simulation studies as defined in the thesis (RO)
-├── docs                    <- Documentation notebook for users (HW)
+├── docs                    <- Documentation notebook for users + supplementary material (HW)
 │   ├── manuscript          <- Manuscript source, e.g., LaTeX, Markdown, etc. (HW)
 │   └── reports             
 |       ├── Proposal        <- Research proposal (HW)
