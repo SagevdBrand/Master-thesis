@@ -4,20 +4,8 @@
 source("./src/setup.R")
 scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
-## Loading the separate datafiles and binding them togetgher saving it for easy reference 
-#df_all <- list.files(path = estimands_path, pattern = "*.Rds", full.names = T) %>%
-#   map_dfr(readRDS)
-# 
-# Saving it for easy reference 
-# saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
-
-## Loading the above created file
+## Loading the file, created after error handling. 
 df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
-df_all$error_info[df_all$error_info == "NA"] <- NA
-
-## Make sure that all estimands and estimand_se are numeric
-df_all[, estimands_names] <- lapply(estimands_names, function(x) as.numeric(df_all[[x]]))
-df_all[, estimands_se_names] <- lapply(estimands_se_names, function(x) as.numeric(df_all[[x]]))
 
 ##########################################################
 ############## Check which results are present ###########
@@ -32,31 +20,6 @@ ind <- seq(500)
 df_s2_s24 <- df_all %>% filter(study == "Study_2", scenario == "Scenario_24")
  which(!ind %in% df_s2_s24$iteration)
 
-error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
-
-#########################################################
-# For those situations were no predictors were selected #
-#########################################################
-## do this first to have a check later:
-# Find the max values for calibration slope for each scenario
-max_slopes <- df_all %>% group_by(study, scenario) %>% summarise(max_slope = max(calib_slope, na.rm = T))
-# Which rows have the relevant warning? "No predictors selected -> no calibration slope"
-no_pred_ind <- which(str_detect(df_all$error_info, "No predictors selected -> no calibration slope"))
-
-df_all <- df_all %>% group_by(study, scenario) %>%
-  mutate(calib_slope = 
-           case_when(str_detect(error_info, 
-                                "No predictors selected -> no calibration slope") == TRUE ~ max(calib_slope, na.rm = T),
-                     TRUE ~ calib_slope))
-
-# Check
-df_all$calib_slope[no_pred_ind]
-saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
-
-
-# s3_scen_14 <- df_all %>% filter(study == "Study_3", scenario == "Scenario_14")
-# test <- which(is.na(s3_scen_14$calib_slope))
-# test_df <- s3_scen_14[test, ]
 
 #####################################
 ####### Performance measures ########

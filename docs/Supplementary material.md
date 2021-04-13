@@ -62,7 +62,7 @@ criterion, following van Smeden et al. (2019).
   - While sampling the development dataset:
       - Check for `var(Y) = 0`.
   - While resampling the data (bootstrap methods):
-      - Check for `var(Y) = 0` in each bootstrap sample. Within cross-validation 
+      - Check for `var(Y) = 0` in each bootstrap sample. Within cross-validation
       stratified folds are used, which makes sure that there are events within
       each fold. However, an extra check is implemented as well.
   -  While tuning ridge and lasso regression:
@@ -135,7 +135,7 @@ For a clear overview of all scenarios considered in the thesis, see the table be
 - pred_selection = predictor selection, <0.157 represents Backwards selection using the AIC criterion.
 - R2 = R2_CS as obtained through the code by Riley et al., 2020. This is used for calculating the sample size.
 - par1 = The coefficient for the intercept that was obtained through the numerical estimation procedure explained above.
-- par2 = The value of &beta;, which represent a weak candidate predictor. 
+- par2 = The value of &beta;, which represent a weak candidate predictor.
 
 |  AUC| dim|n_setting |noise   | prev|model |pred_selection |        R2|    n|       par1|       par2|scenario    |study   |
 |----:|---:|:---------|:-------|----:|:-----|:--------------|---------:|----:|----------:|----------:|:-----------|:-------|
@@ -204,12 +204,12 @@ For a clear overview of all scenarios considered in the thesis, see the table be
 The following code was used and/or adapted:
 -	For generating the data: Approximate R2_CS function Riley et al., 2020
 -	For ridge and Lasso: Lambda tuning approach by Van Calster et al., 2020
--	For creating [stratified cross-validation folds and training and testing the model](https://github.com/ledell/cvAUC). 
+-	For creating [stratified cross-validation folds and training and testing the model](https://github.com/ledell/cvAUC).
 -	For obtaining the AUC: [FastAUC](https://gist.github.com/traversc/1446ebe1dcc2d84bccdca781d4f1fa2a)
 -	Multiple functions from Van Smeden's [Beyond EPV simulation study](https://github.com/MvanSmeden/Beyond-EPV)
--	Parts from [here](https://github.com/easystats/performance/blob/master/R/r2_tjur.R) to obtain Tjur’s R2 
+-	Parts from [here](https://github.com/easystats/performance/blob/master/R/r2_tjur.R) to obtain Tjur’s R2
 
-The following describes all information about the HPC used, 
+The following describes all information about the HPC used,
 and packages and dependencies that were used to obtain the results:
 
 **R version 4.0.2 (2020-06-22) <br>
@@ -225,6 +225,7 @@ Running under: CentOS Linux 7 (Core)** <br>
 - base     
 
 **other attached packages:**
+- kableExtra_1.3.1 
 - ranger_0.12.1
 - rpart_4.1-15
 - caret_6.0-86
@@ -240,8 +241,8 @@ Running under: CentOS Linux 7 (Core)** <br>
 - survival_3.1-12
 - lattice_0.20-41   
 - MASS_7.3-53.1
-- pmsampsize_1.0.3 
-- forcats_0.5.0 
+- pmsampsize_1.0.3
+- forcats_0.5.0
 - stringr_1.4.0
 - dplyr_1.0.2
 - purrr_0.3.4
@@ -250,4 +251,3 @@ Running under: CentOS Linux 7 (Core)** <br>
 - tibble_3.0.3
 - ggplot2_3.3.2    
 - tidyverse_1.3.0  
-
