@@ -137,11 +137,11 @@ The following code was used and/or adapted:
 The following describes all information about the HPC used, 
 and packages and dependencies that were used to obtain the results:
 
-R version 4.0.2 (2020-06-22)
-Platform: x86_64-pc-linux-gnu (64-bit)
-Running under: CentOS Linux 7 (Core)
+**R version 4.0.2 (2020-06-22) <br>
+Platform: x86_64-pc-linux-gnu (64-bit) <br>
+Running under: CentOS Linux 7 (Core)** <br>
 
-attached base packages:
+**attached base packages:**
 - stats
 - graphics
 - grDevices utils
@@ -149,7 +149,7 @@ attached base packages:
 - methods
 - base     
 
-other attached packages:
+**other attached packages:**
 - ranger_0.12.1
 - rpart_4.1-15
 - caret_6.0-86
