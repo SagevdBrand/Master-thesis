@@ -18,13 +18,13 @@ Mathematical calculations are represented in Rcode.
 while constraining the coefficients such that 30% is stronger, 50% weak and
 20% noise (except if otherwise specified within a scenario). Given this
 constraint, only 2 coefficients need optimization: one for the intercept and one
- for all candidate predictors. A strong effect is defined as 3*\beta, weak = \beta,
+ for all candidate predictors. A strong effect is defined as 3 * &beta;  , weak = &beta;  ,
 noise = 0.
     - Result 	= dgm_par (data generating mechanism parameters)
 5.	Use logistic regression to determine probability of an event.
 This probability will then be used as input for a uniform distribution to
-determine the outcomes:
-`p <- 1/(1+exp(-dm %*% dgm_par))`
+determine the outcomes: <br>
+`p <- 1/(1+exp(-dm %*% dgm_par))` <br>
 `y <- as.numeric(p > runif(length(p)))`
 6.	 Calculate observed AUC and prevalence.
     -  Results = obs_R2 \& obs_prev
