@@ -5,7 +5,7 @@ used within the data generating mechanism
 2. Error handling
 3. Details on the software and code used
 
-## 1. Numerical estimation procedure the regression coefficients used within the data generating mechanism
+## 1. Numerical estimation procedure for regression coefficients used within the data generating mechanism
 This approach is based on the supplemental material of Van Smeden et al., 2019.
 Mathematical calculations are represented in Rcode.
 1.	Determine preferred AUC and prevalence
