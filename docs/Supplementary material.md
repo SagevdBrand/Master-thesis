@@ -1,6 +1,6 @@
 # Supplementary material
 This document contains the following material.
-1. Numerical estimation procedure the regression coefficients
+1. Numerical estimation procedure for the regression coefficients
 used within the data generating mechanism
 2. Error handling
 3. Scenario settings
