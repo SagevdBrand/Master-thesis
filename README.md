@@ -12,11 +12,6 @@ The battle of internal validation The Battle of Internal Validation within Medic
 
 ```
 .
-├── .gitignore              <- Files that are not taken into account when commiting (RO)
-├── CITATION.md             <- How to cite my work (RO)
-├── LICENSE.md              <- License for my project (RO)
-├── README.md               <- The document you are reading right now (RO)
-├── requirements.txt        <- Which packages are needed to run the scripts? (RO)
 ├── config                  <- Configuration files (HW)
 ├── data                    <- All project data, ignored by git
 │   └── simulation settings <- The simulation studies as defined in the thesis (RO)
@@ -30,7 +25,12 @@ The battle of internal validation The Battle of Internal Validation within Medic
 │   └── output              <- Other output for the manuscript or reports (PG)
 |       ├── estimands       <- Estimands for each simulation run (PG)
 |       └── performance     <- Performance measures for each simulation run (PG)           
-└── src                     <- Source code for this project (HW)
+├── src                     <- Source code for this project (HW)
+├── .gitignore              <- Files that are not taken into account when commiting (RO)
+├── CITATION.md             <- How to cite my work (RO)
+├── LICENSE.md              <- License for my project (RO)
+├── README.md               <- The document you are reading right now (RO)
+└── requirements.txt        <- Which packages are needed to run the scripts? (RO)
 
 ```
 
