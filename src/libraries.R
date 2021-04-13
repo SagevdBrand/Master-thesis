@@ -14,4 +14,6 @@ library(glmnetUtils)
 library(caret)
 library(rpart)
 library(ranger)
+library(kableExtra)
 
+sessionInfo()
