@@ -5,21 +5,7 @@ source("./src/setup.R")
 scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
 ## Loading the file, created after error handling. 
-df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
-
-##########################################################
-############## Check which results are present ###########
-##########################################################
-
-# How many iterations have been analyzed?
-counts <- df_all %>% group_by(study, scenario) %>% summarise(count = n())
-#For 500 iterations there should be 4000 results per scenario!
-ind <- seq(500)
-# 
-# If it is not 4000, check what is missing by:
-df_s2_s24 <- df_all %>% filter(study == "Study_2", scenario == "Scenario_24")
- which(!ind %in% df_s2_s24$iteration)
-
+df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_6.RDS"))
 
 #####################################
 ####### Performance measures ########
