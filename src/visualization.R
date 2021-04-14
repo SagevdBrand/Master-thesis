@@ -8,7 +8,7 @@ source("./src/setup.R")
 scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
 ## Loading the above estimand files:
-df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
+df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_6.RDS"))
 
 ################################
 ## Pre-processing of the data ##

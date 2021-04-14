@@ -2,7 +2,7 @@
 /bin
 
 # exclude data from source control by default
-/data/simulation data
+/data/simulation settings
 /data/validation data
 
 # Session Data files

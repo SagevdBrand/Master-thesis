@@ -11,7 +11,7 @@ scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 #df_all <- list.files(path = estimands_path, pattern = "*.Rds", full.names = T) %>%
 #  map_dfr(readRDS)
 
-df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
+df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_6.RDS"))
 
 ### Pre-processing ###
 # Convert all "NA" to actual NA 
@@ -20,6 +20,22 @@ df_all$error_info[df_all$error_info == "NA"] <- NA
 # Make sure that all estimands and estimand_se are numeric
 df_all[, estimands_names] <- lapply(estimands_names, function(x) as.numeric(df_all[[x]]))
 df_all[, estimands_se_names] <- lapply(estimands_se_names, function(x) as.numeric(df_all[[x]]))
+
+
+##########################################################
+############## Check which results are present ###########
+##########################################################
+
+# How many iterations have been analyzed?
+counts <- df_all %>% group_by(study, scenario) %>% summarise(count = n())
+#For 500 iterations there should be 4000 results per scenario!
+ind <- seq(500)
+# 
+# If it is not 4000, check what is missing by:
+df_s3_s18 <- df_all %>% filter(study == "Study_3", scenario == "Scenario_18")
+which(!ind %in% df_s3_s18$iteration)
+
+
 
 ##################################
 ## What are the error messages? ##
@@ -61,17 +77,30 @@ all_together <- df_all %>% summarise(no_pred_count = sum(str_count(.$error_info,
                                                           no_events_folds_count = sum(str_count(.$error_info, no_events_folds), na.rm = T),
                                                           no_events_training_samp_count = sum(str_count(.$error_info, no_events_training_samp), na.rm = T),
                                                           )
+
 all_together <- all_together[1, c(3:10)]
 saveRDS(all_together, file = paste0(performance_general_path,"all_errors_together.Rds"))
 
 t(all_together)
 
 # How many models in total?
-num_models <- (1 + 5 + 10 + 100 + 500) * 60 * 500
+num_models_total <- (1 + 5 + 10 + 100 + 500) * 60 * 500
+num_models_pred_sel <- (1 + 5 + 10 + 100 + 500) * 30 * 500
+num_models_tuning <- (1 + 5 + 10 + 100 + 500) * 12 * 500
+num_models_cv <- (5 + 10 + 100) * 60 * 500
+num_models_boot <- 500*60*500
 
-percentage_errors <- all_together / num_models
 
-
+percentage_errors <- c(all_together[,1]/num_models_pred_sel,
+                       all_together[,2]/num_models_total,
+                       all_together[,3]/num_models_total,
+                       all_together[,4]/num_models_tuning,
+                       all_together[,5]/num_models_total,
+                       all_together[,6]/num_models_total,
+                       all_together[,7]/num_models_cv,
+                       all_together[,8]/num_models_boot
+                         )
+percentage_errors <- lapply(percentage_errors, round, 4)  
 
 #########################################################
 # For those situations were no predictors were selected #
@@ -97,4 +126,5 @@ df_all <- df_all %>% group_by(study, scenario) %>%
 
 # Check
 df_all$calib_slope[no_pred_ind]
-saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_5.RDS"))
+saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_6.RDS"))
+
