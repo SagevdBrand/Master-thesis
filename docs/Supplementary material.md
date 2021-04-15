@@ -126,6 +126,73 @@ It might occur that predicted probability are exactly 1 or 0. In those cases the
   - Report an error when probabilities of 0 or 1 occurred. Change the values
     of these probabilities to 0.000001 or 0.999999, respectively.
 
+### Error occurrence
+The following represents the number of errors that occurred for each scenario
+specifically:
+
+|Study   | Scenario| No predictors selected| Prob of 0 or 1| Separation| < 8 events| eci: LOESS warning| No events| No events in fold| No events in bootstrap sample|
+|:-------|--------:|----------------------:|--------------:|----------:|----------:|------------------:|---------:|-----------------:|-----------------------------:|
+|Study_1 |        1|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
+|Study_1 |        2|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        3|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        4|                      0|              0|          2|          0|                  0|         0|                 0|                             0|
+|Study_1 |        5|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        6|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        7|                      0|              0|          5|          0|                  0|         0|                 0|                             0|
+|Study_1 |        8|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        9|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       10|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
+|Study_1 |       11|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       12|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       13|                      0|              0|          2|          0|                  0|         0|                 0|                             0|
+|Study_1 |       14|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       15|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       16|                      0|              0|          5|          0|                  0|         0|                 0|                             0|
+|Study_1 |       17|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       18|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        1|                      0|              0|         86|          0|                  0|         0|                 0|                             0|
+|Study_2 |        2|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        3|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        4|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        5|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        6|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        7|                      0|              0|         69|          0|                  0|         0|                 0|                             0|
+|Study_2 |        8|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        9|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
+|Study_2 |       10|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       11|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       12|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       13|                      0|              0|         86|          0|                  0|         0|                 0|                             0|
+|Study_2 |       14|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       15|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       16|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       17|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       18|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       19|                      0|              0|         69|          0|                  0|         0|                 0|                             0|
+|Study_2 |       20|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       21|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
+|Study_2 |       22|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       23|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       24|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        1|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        2|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        3|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        4|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        5|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        6|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        7|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        8|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        9|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       10|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       11|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       12|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       13|                      0|          14239|        497|          0|                  1|         0|                 0|                             0|
+|Study_3 |       14|                      0|          17057|          0|          0|                  7|         0|                 0|                             0|
+|Study_3 |       15|                    121|           6091|          0|          0|                298|         0|                 0|                             0|
+|Study_3 |       16|                      0|            842|       2500|          0|                  0|         0|                 0|                             0|
+|Study_3 |       17|                      0|            712|       1895|          0|                  0|         0|                 0|                             0|
+|Study_3 |       18|                      0|             70|        180|          0|                  0|         0|                 0|                             0|
+
 ## 3. Scenario settings
 For a clear overview of all scenarios considered in the thesis, see the table below.
 - dim = dimensionality, or number of candidate predictors
@@ -225,7 +292,7 @@ Running under: CentOS Linux 7 (Core)** <br>
 - base     
 
 **other attached packages:**
-- kableExtra_1.3.1 
+- kableExtra_1.3.1
 - ranger_0.12.1
 - rpart_4.1-15
 - caret_6.0-86
