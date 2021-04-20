@@ -4,6 +4,7 @@
 ## Libraries
 
 library(tidyverse)
+library(ggpubr)
 library(pmsampsize)
 library(MASS)
 library(rms)

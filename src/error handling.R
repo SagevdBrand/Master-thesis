@@ -68,7 +68,19 @@ no_events_training_samp <- " No events sampled in training sample"
 
 # per_scenario$scenario <- as.numeric(gsub("Scenario_", "", per_scenario$scenario))
 # per_scenario <- per_scenario %>% arrange(study, scenario)
-# saveRDS(per_scenario, file = paste0(performance_general_path,"all_errors_per_scenario.Rds"))
+# colnames(per_scenario) <- c("Study", 
+# "Scenario", 
+# "No predictors selected", 
+# "Prob of 0 or 1", 
+# "Separation", 
+# "< 8 events", 
+# "eci: LOESS warning",
+# "No events",
+# "No events in fold",
+# "No events in bootstrap sample"
+# )
+
+# saveRDS(per_scenario, file = paste0(errors_path,"all_errors_per_scenario.Rds"))
 # 
 # all_together <- df_all %>% summarise(no_pred_count = sum(str_count(.$error_info, no_pred), na.rm = T),
 #                                                           max_probs_count = sum(str_count(.$error_info, max_probs), na.rm = T),
@@ -81,11 +93,12 @@ no_events_training_samp <- " No events sampled in training sample"
 #                                                           )
 # 
 # all_together <- all_together[1, c(3:10)]
-# saveRDS(all_together, file = paste0(performance_general_path,"all_errors_together.Rds"))
+# saveRDS(all_together, file = paste0(errors_path,"all_errors_together.Rds"))
+
 per_scenario <- readRDS(paste0(performance_general_path,"all_errors_per_scenario.Rds"))
 all_together <- readRDS(paste0(performance_general_path,"all_errors_together.Rds"))
 
-t(all_together)
+kable(per_scenario, format = "markdown")
 
 # How many models in total?
 num_models_total <- (1 + 5 + 10 + 100 + 500) * 60 * 500
@@ -107,6 +120,25 @@ percentage_errors <- c(all_together[,1]/num_models_pred_sel,
                        all_together[,8]/num_models_boot
                          )
 percentage_errors <- lapply(percentage_errors, round, 4)  
+
+##################
+## ECI problems ##
+##################
+
+eci_problems <- df_all %>% filter(is.na(eci)|is.infinite(eci)| eci>1| eci<0)
+negative_eci <- eci_problems %>% filter(eci <0)
+summary(df_all$eci)
+
+###################
+## R2CS problems ##
+###################
+
+R2_CS_problems <- df_all %>% filter(is.na(R2_CS)|is.infinite(R2_CS)| R2_CS>1| R2_CS<0)
+negative_R2_CS <- R2_CS_problems %>% filter(R2_CS <0)
+na_R2_CS <-   R2_CS_problems %>% filter(is.na(R2_CS))
+summary(df_all$R2_CS)
+
+
 
 #########################################################
 # For those situations were no predictors were selected #

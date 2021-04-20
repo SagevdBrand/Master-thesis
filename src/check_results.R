@@ -42,21 +42,37 @@ performance_measures <- function(ext, int, name){
   
   if (name == "calib_slope"){
     
-    results <- estimand_results %>% group_by(study, scenario, approach.x) %>% summarise(md = median(get(ext) - get(int) , na.rm = T),
-                                                                            md_var = IQR(get(ext) - get(int), na.rm = T),
-                                                                            rmsd = sqrt(median((get(ext) - get(int))^2, na.rm = T)),
-                                                                            rmsd_var = sqrt(IQR((get(ext) - get(int))^2, na.rm = T)))
+    results <- estimand_results %>% group_by(study, scenario, approach.x) %>% summarise(md = median(log(get(int)) - log(get(ext)), na.rm = T),
+                                                                            md_q1 = summary(ifelse(get(int) == 0,
+                                                                                                   0, 
+                                                                                                   log(get(int))) - 
+                                                                                              ifelse(get(ext) == 0,
+                                                                                                     0,
+                                                                                                     log(get(ext))))[2],
+                                                                            md_q3 = summary(ifelse(get(int) == 0,
+                                                                                                   0, 
+                                                                                                   log(get(int))) - 
+                                                                                              ifelse(get(ext) == 0,
+                                                                                                     0,
+                                                                                                     log(get(ext))))[5]) #,
+                                                                            #rmsd = sqrt(median((get(ext) - get(int))^2, na.rm = T)),
+                                                                            #rmsd_var = sqrt(IQR((get(ext) - get(int))^2, na.rm = T)))
+    results$scenario <- as.numeric(gsub("Scenario_", "", results$scenario))
+    results$estimand <- name
+    colnames(results) <-c("study", "scenario", "approach", "md", "md_q1", "md_q3", "estimand") 
     
     } else {
       
-      results <- estimand_results %>% group_by(study, scenario, approach.x) %>% summarise(md = mean(get(ext) - get(int) , na.rm = T),
-                                                                     md_var = sd(get(ext) - get(int))/sqrt(nrow(.)),
-                                                                     rmsd = sqrt(mean((get(ext) - get(int))^2, na.rm = T)),
-                                                                     rmsd_var = sqrt(sd((get(ext) - get(int))^2/sqrt(nrow(.)))))
+      results <- estimand_results %>% group_by(study, scenario, approach.x) %>% summarise(md = mean(get(int) - get(ext), na.rm = T),
+                                                                     md_var = sd(get(int) - get(ext)))#,
+                                                                     #rmsd = sqrt(mean((get(ext) - get(int))^2, na.rm = T)),
+                                                                     #rmsd_var = sqrt(sd((get(ext) - get(int))^2)))
+      
+      results$scenario <- as.numeric(gsub("Scenario_", "", results$scenario))
+      results$estimand <- name
+      colnames(results) <-c("study", "scenario", "approach", "md", "md_dist", "estimand") 
     }
-  results$scenario <- as.numeric(gsub("Scenario_", "", results$scenario))
-  results$estimand <- name
-  colnames(results) <-c("study", "scenario", "approach", "md", "md_dist", "rmsd", "rmsd_dist", "estimand")  
+  
   results <- results %>% arrange(study, scenario)
   return(results)
 
@@ -74,5 +90,4 @@ rmspe_p <- performance_measures(ext = "rmspe_ext", int = "rmspe", name = "rmspe"
 m_perform_results <-  rbind(auc_p, calib_slope_p, calib_int_p, tjur_p, R2_CS_p,eci_p, mape_p, rmspe_p)
 
 saveRDS(m_perform_results, file = paste0(performance_general_path, "all_pm_batch_6.RDS"))
-
 

@@ -9,7 +9,14 @@ source("./src/libraries.R")
 setting_path <- "./data/simulation settings/"
 val_data_path <- "./data/validation data/"
 
-performance_general_path <- "./results/output/performance/"
+### Results
+## Visualization
+full_estimand_plots <- "./results/figures/full estimands/"
+full_performance_plots <- "./results/figures/full performance measures/"
+estimand_plots <- "./results/figures/estimands thesis/"
+performance_measures_plots <- "./results/figures/performance measures thesis/"
+
+## Estimands
 estimands_general_path <- "./results/output/estimands/"
 estimands_path <- "./results/output/estimands/all/"
 app_ext_path <- "./results/output/estimands/app_ext/"
@@ -17,6 +24,12 @@ cv_10_fold_path <- "./results/output/estimands/10_fold_cv/"
 cv_5_fold_path <- "./results/output/estimands/5_fold_cv/"
 cv_10x10_fold_path <- "./results/output/estimands/10x10_fold_cv/"
 bootstrap_path <- "./results/output/estimands/bootstrap/"
+
+## Performance measures
+performance_general_path <- "./results/output/performance/"
+
+## errors occurred durings sims
+errors_path <- "./results/output/errors/"
 
 #######################################
 ## Results names for estimand matrix ##

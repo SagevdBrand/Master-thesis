@@ -23,19 +23,62 @@ df_all_2 <- merge(df_all, scenarios_n_setting, by = c("study", "scenario"))
 # Turn the results into long format:
 df_all_long <- df_all_2 %>% pivot_longer(., cols = all_of(estimands_names), names_to = "estimand", values_to = "value")
 
+################################################################
+## Rename estimands for plots and change the order of factors ##
+################################################################
+df_all_long <- df_all_long %>% mutate(estimand = case_when(estimand == "auc" ~ "AUC",
+                                                           estimand == "calib_slope" ~  "log(Slope)",
+                                                           estimand == "calib_int" ~ "Calibration Intercept",
+                                                           estimand == "Tjur" ~ "R2 Tjur",
+                                                           estimand == "R2_CS" ~ "R2 Cox Snell",
+                                                           estimand == "eci" ~ "ECI",
+                                                           estimand == "mape" ~ "MAPE",
+                                                           estimand == "rmspe" ~ "rMSPE",
+                                                           TRUE ~ estimand),
+                                      estimand = fct_relevel(estimand,
+                                                             "AUC", 
+                                                             "Calibration Intercept",
+                                                             "log(Slope)",
+                                                             "R2 Tjur",
+                                                             "R2 Cox Snell",
+                                                             "ECI",
+                                                             "MAPE",
+                                                             "rMSPE"),
+                                      approach = fct_relevel(approach,
+                                                             "External",
+                                                             "Apparent",
+                                                             "5 fold cross-validation",
+                                                             "10 fold cross-validation",
+                                                             "10x10 fold cross-validation",
+                                                             "Harrell's bootstrap",
+                                                             ".632 bootstrap",
+                                                             ".632+ bootstrap"),
+                                      prev = case_when(prev == 0.05 ~ "event-fraction = 0.05",
+                                                       prev == 0.2 ~ "event-fraction = 0.2",
+                                                       prev == 0.5 ~ "event-fraction = 0.5",
+                                                       TRUE ~ as.character(prev)),
+                                      dim = case_when(dim == 6 ~ "6 Candidate predictors",
+                                                      dim == 30 ~"30 Candidate predictors",
+                                                     TRUE ~ as.character(dim)),
+                                      noise = case_when(noise == "none" ~ "No noise predictors",
+                                                      noise == "half" ~"50% noise predictors",
+                                                      noise == "default" ~ "20% noise predictors",
+                                                      TRUE ~ as.character(dim))
+                                      )
+
 ############
 ## Colors ##
 ############
 
 # Specify color palette:
-colors <- c("#02c39a", #Mountain meadow
+colors <- c("white",   # White
+            "#e63946", # imperial red
+            "#02c39a", #Mountain meadow
             "#f28482", #Light coral
             "#84a59d", # Morning blue
             "#f6bd60", # Maximum yellow red
             "#457b9d", # Celadon blue
-            "#f4a261", # Sandy brown
-            "white",   # White
-            "#e63946" # imperial red
+            "#f4a261" # Sandy brown
 )
 
 ############################
@@ -47,35 +90,104 @@ colors <- c("#02c39a", #Mountain meadow
 # Results of study 1:
 df_s1_long<- df_all_long %>% filter(study == "Study_1")
 df_s1_long$scenario <- as.numeric(gsub("Scenario_", "", df_s1_long$scenario))
-df_s1_long <- df_s1_long %>% mutate(value = case_when(value > 5 ~ 5, TRUE ~ value))
+df_s1_long <- df_s1_long%>% mutate(value = case_when(estimand == "log(Slope)" & value > 5 ~ 5,
+                                                     estimand == "log(Slope)" & value < 0 ~ 0,
+                                                     estimand == "log(Slope)" & is.infinite(value) ~ 5,
+                                                     TRUE ~ value))
 
-# For each 3 scenarios a plot can be created
-start_scen <- seq(1,18, by = 3)
-end_scen <- seq(3, 18, by = 3)
+### Figures to be included in thesis
+p1 <- 
+  ggplot(data = df_s1_long %>% 
+           filter(pred_selection == "none",
+                  estimand %in% c("AUC", "rMSPE")),
+         mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+  geom_boxplot(data = df_s1_long %>% 
+                 filter(pred_selection == "none",
+                        estimand == "log(Slope)"),
+               mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
+               position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+  #coord_cartesian(ylim = c(-1, 2.5)) +
+  geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+  theme_set(theme_bw(base_size = 11)) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Estimand value",
+       x = "Sample size setting",
+       fill = "Validation approach"
+       ) +
+  facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+ 
+  theme(legend.position="bottom")+
+  guides(color = guide_legend(nrow=4, ncol=3))
 
-for (i in 1:6){
-preval <- df_s1_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(prev) %>% .[1,1]
-model <- df_s1_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(model) %>% .[1,1]
-predictor_selection <- df_s1_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(pred_selection) %>% .[1,1]
-  
-p1 <- df_s1_long %>% 
-    filter(scenario %in% c(start_scen[i]:end_scen[i])) %>% 
-    ggplot(data = ., mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
-    geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    theme_set(theme_bw(base_size = 11)) +
-    scale_fill_manual(values = colors) +
-    labs(y = " ",
-         x = "Prevalence",
-         fill = "Validation approach",
-         title = paste("Estimands for study 1: Scenario", start_scen[i], "until scenario", end_scen[i] ),
-         subtitle = paste0("Prevalence = ", preval,", ",
-                          "Model = ", model$model, ", ",
-                          "Predictor Selection = ", predictor_selection$pred_selection)) +
-    facet_wrap(~estimand, nrow = 3, scales = "free") +
-    theme(legend.position = c(0.8, 0.12))
-  
-assign(paste0("Study_1_set_", i), p1)
-}
+p2 <- 
+  ggplot(data = df_s1_long %>% 
+           filter(pred_selection == "<0.157",
+                  estimand %in% c("AUC", "rMSPE")),
+         mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+  geom_boxplot(data = df_s1_long %>% 
+                 filter(pred_selection == "<0.157",
+                        estimand == "log(Slope)"),
+               mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
+               position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+  geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+  # stat_summary(fun=mean, geom="point",position = position_dodge(width = 0.95), shape=1, size= 1.5) +
+  theme_set(theme_bw(base_size = 11)) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Estimand value",
+       x = "Sample size setting",
+       fill = "Validation approach") +
+  facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+ 
+  theme(legend.position="bottom")+
+  guides(color = guide_legend(nrow=4, ncol=3))
+
+
+# Figures of all estimands (For supplementary material)
+p3 <- 
+  ggplot(data = df_s1_long %>% 
+           filter(pred_selection == "none", 
+                  estimand != "log(Slope)"), 
+         mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+  geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+  geom_boxplot(data = df_s1_long %>% 
+                 filter(pred_selection == "none",
+                        estimand == "log(Slope)"),
+               mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
+               position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+  theme_set(theme_bw(base_size = 11)) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Estimand value",
+       x = "Sample size setting",
+       fill = "Validation approach") +
+  facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+ 
+  theme(legend.position="bottom")+
+  guides(color = guide_legend(nrow=4, ncol=3))
+
+p4 <- 
+  ggplot(data = df_s1_long %>% 
+           filter(pred_selection == "<0.157",
+                  estimand != "log(Slope)"),
+         mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+  geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+  geom_boxplot(data = df_s1_long %>% 
+                 filter(pred_selection == "<0.157",
+                        estimand == "log(Slope)"),
+               mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
+               position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+  theme_set(theme_bw(base_size = 11)) +
+  scale_fill_manual(values = colors) +
+  labs(y = "Estimand value",
+       x = "Sample size setting",
+       fill = "Validation approach") +
+  facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+ 
+  theme(legend.position="bottom")+
+  guides(color = guide_legend(nrow=4, ncol=3))
+
+## Saving the plots
+assign(paste0("thesis_estimands_study_1_no_pred_sel"), p1)
+ggsave(paste0(estimand_plots,"estimands_study_1_no_pred_sel.pdf"), plot = p1, width = 20, height = 25, units = "cm")
+assign(paste0("thesis_estimands_study_1_pred_sel"), p2)
+ggsave(paste0(estimand_plots,"estimands_study_1_pred_sel.pdf"), plot = p2, width = 20, height = 25, units = "cm")
+ggsave(paste0(full_estimand_plots,"full_estimands_study_1_no_pred_sel.pdf"), plot = p3, width = 20, height = 25, units = "cm")
+ggsave(paste0(full_estimand_plots,"full_estimands_study_1_pred_sel.pdf"), plot = p4, width = 20, height = 25, units = "cm")
 
 
 ############################
@@ -87,40 +199,98 @@ assign(paste0("Study_1_set_", i), p1)
 # Results of study 2:
 df_s2_long<- df_all_long %>% filter(study == "Study_2")
 df_s2_long$scenario <- as.numeric(gsub("Scenario_", "", df_s2_long$scenario))
+df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" & value > 5 ~ 5,
+                                                      estimand == "log(Slope)" & value < 0 ~ 0,
+                                                      estimand == "log(Slope)" & is.infinite(value) ~ 5,
+                                                      TRUE ~ value))
 
-
-df_s2_long <- df_s2_long %>% mutate(value = case_when(value > 5 ~ 5, TRUE ~ value))
-
-# For each 2 scenarios a plot can be created
-start_scen <- seq(1,24, by = 2)
-end_scen <- seq(2, 24, by = 2)
-
-for (i in 1:12){
-  noise <- df_s2_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(noise) %>% .[1,1]
-  model <- df_s2_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(model) %>% .[1,1]
-  predictor_selection <- df_s2_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(pred_selection) %>% .[1,1]
-  n_setting <- df_s2_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(n_setting) %>% .[1,1]
-  
-  p1 <- df_s2_long %>% 
-    filter(scenario %in% c(start_scen[i]:end_scen[i])) %>% 
-    ggplot(data = ., mapping = aes(x = as.factor(dim), y = value, fill = approach)) +
+  p1 <-  
+    ggplot(data = df_s2_long %>%
+             filter(pred_selection == "none",
+                    estimand %in% c("AUC", "rMSPE", "eci")), 
+           mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    geom_boxplot(data = df_s2_long %>% 
+                   filter(pred_selection == "none",
+                          estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
+                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
-    labs(y = " ",
-         x = "Number of Candidate Predictors",
-         fill = "Validation approach",
-         title = paste("Estimands for study 2: Scenario", start_scen[i], "and scenario", end_scen[i] ),
-         subtitle = paste0("Noise = ", noise$noise,", ",
-                           "model = ", model$model, ", ",
-                           "predictor selection = ", predictor_selection$pred_selection,", ",
-                           "n-setting = ", n_setting$n_setting)) +
-    facet_wrap(~estimand, nrow = 3, scales = "free") +
-    theme(legend.position = c(0.8, 0.12))
+    labs(y = "Estimand value",
+         x = "Sample size setting",
+         fill = "Validation approach") +
+    facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))
   
-  assign(paste0("Study_2_set_", i), p1)
-}
-
+  
+  p2 <- ggplot(data = df_s2_long %>%
+                 filter(pred_selection == "<0.157",
+                        estimand %in% c("AUC", "rMSPE", "eci")), 
+               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+    geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    geom_boxplot(data = df_s2_long %>% 
+                   filter(pred_selection == "<0.157",
+                          estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
+                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    theme_set(theme_bw(base_size = 11)) +
+    scale_fill_manual(values = colors) +
+    labs(y = "Estimand value",
+         x = "Sample size setting",
+         fill = "Validation approach") +
+    facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))
+  
+  p3 <- ggplot(data = df_s2_long %>%
+                 filter(pred_selection == "none",
+                        estimand != "log(Slope)"), 
+               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+    geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    geom_boxplot(data = df_s2_long %>% 
+                   filter(pred_selection == "none",
+                          estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
+                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    theme_set(theme_bw(base_size = 11)) +
+    scale_fill_manual(values = colors) +
+    labs(y = "Estimand value",
+         x = "Sample size setting",
+         fill = "Validation approach") +
+    facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))
+  
+  
+  p4 <- ggplot(data = df_s2_long %>%
+                 filter(pred_selection == "<0.157",
+                        estimand != "log(Slope)"), 
+               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+    geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    geom_boxplot(data = df_s2_long %>% 
+                   filter(pred_selection == "<0.157",
+                          estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
+                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    theme_set(theme_bw(base_size = 11)) +
+    scale_fill_manual(values = colors) +
+    labs(y = "Estimand value",
+         x = "Sample size setting",
+         fill = "Validation approach",
+         title = "Estimands for study 2") +
+    facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))
+  
+  assign("thesis_estimands_study_2_no_pred_sel", p1)
+  ggsave(paste0(estimand_plots,"estimands_study_2_no_pred_sel.pdf"), plot = p1, width = 20, height = 25, units = "cm")
+  assign("thesis_estimands_study_2_pred_sel", p2)
+  ggsave(paste0(estimand_plots,"estimands_study_2_pred_sel.pdf"), plot = p2, width = 20, height = 25, units = "cm")
+  ggsave(paste0(full_estimand_plots,"full_estimands_study_2_no_pred_sel.pdf"), plot = p3, width = 20, height = 25, units = "cm")
+  ggsave(paste0(full_estimand_plots,"full_estimands_study_2_pred_sel.pdf"), plot = p4, width = 20, height = 25, units = "cm")
+  
 
 ############################
 ############################
@@ -131,66 +301,101 @@ for (i in 1:12){
 # Results of study 2:
 df_s3_long<- df_all_long %>% filter(study == "Study_3")
 df_s3_long$scenario <- as.numeric(gsub("Scenario_", "", df_s3_long$scenario))
+df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" & value > 5 ~ 5,
+                                                      estimand == "log(Slope)" & value < 0 ~ 0,
+                                                      estimand == "log(Slope)" & is.infinite(value) ~ 5,
+                                                      TRUE ~ value))
 
-
-df_s3_long <- df_s3_long %>% mutate(value = case_when(value > 5 ~ 5, TRUE ~ value))
-
-# For each 3 scenarios a plot can be created
-start_scen <- seq(1,18, by = 3)
-end_scen <- seq(3, 18, by = 3)
-
-for (i in 1:6){
-  model <- df_s3_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(model) %>% .[1,1]
-  preval <- df_s3_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(prev) %>% .[1,1]
-  predictor_selection <- df_s3_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(pred_selection) %>% .[1,1]
-  n_setting <- df_s3_long %>% filter(scenario == start_scen[i]) %>% dplyr::select(n_setting) %>% .[1,1]
-  
-  p1 <- df_s3_long %>% 
-    filter(scenario %in% c(start_scen[i]:end_scen[i])) %>% 
-    ggplot(data = ., mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+  p1 <- 
+    ggplot(data = df_s3_long %>% 
+             filter(model %in% c("Firth", "Ridge", "Lasso"), 
+                    !(estimand %in% c( "log(Slope)", "R2 Cox Snell", "MAPE")) ), 
+           mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    geom_boxplot(data = df_s2_long %>% 
+                   filter(pred_selection == "<0.157",
+                          model %in% c("Firth", "Ridge", "Lasso"), 
+                          estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
+                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
-    labs(y = " ",
-         x = "Number of Candidate Predictors",
-         fill = "Validation approach",
-         title = paste("Estimands for study 3: Scenario", start_scen[i], "until scenario", end_scen[i] ),
-         subtitle = paste0("Model = ", model$model
-                           )) +
-    facet_wrap(~estimand, nrow = 3, scales = "free") +
-    theme(legend.position = c(0.8, 0.12))
+    labs(y = "Estimand value",
+         x = "Sample size setting",
+         fill = "Validation approach") +
+    facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))
   
-  assign(paste0("Study_3_set_", i), p1)
-}
-
-#############################
-## VIEW THE VISUALIZATIONS ##
-#############################
-
-Study_1_set_1
-Study_1_set_2
-Study_1_set_3
-Study_1_set_4
-Study_1_set_5
-Study_1_set_6
-
-Study_2_set_1
-Study_2_set_2
-Study_2_set_3
-Study_2_set_4
-Study_2_set_5
-Study_2_set_6
-Study_2_set_7
-Study_2_set_8
-Study_2_set_9
-Study_2_set_10
-Study_2_set_11
-Study_2_set_12
-
-Study_3_set_1
-Study_3_set_2
-Study_3_set_3
-Study_3_set_4
-Study_3_set_5
-Study_3_set_6
-
+ 
+  
+  p2 <-ggplot(data = df_s3_long %>% 
+                filter(model %in% c("Firth", "Ridge", "Lasso"), 
+                       estimand != "log(Slope)"), 
+              mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+    geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    geom_boxplot(data = df_s2_long %>% 
+                   filter(pred_selection == "<0.157",
+                          model %in% c("Firth", "Ridge", "Lasso"), 
+                          estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
+                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    theme_set(theme_bw(base_size = 11)) +
+    scale_fill_manual(values = colors) +
+    labs(y = "Estimand value",
+         x = "Sample size setting",
+         fill = "Validation approach") +
+    facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))
+  
+  
+  
+  p3 <- 
+    ggplot(data = df_s3_long %>% 
+             filter(model %in% c("ML", "CART", "RF"), 
+                    !(estimand %in% c("log(Slope)", "R2 Cox Snell", "MAPE")) ), 
+           mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+    geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    geom_boxplot(data = df_s2_long %>% 
+                   filter(pred_selection == "<0.157",
+                          model %in% c("ML", "CART", "RF"), 
+                          estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
+                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    theme_set(theme_bw(base_size = 11)) +
+    scale_fill_manual(values = colors) +
+    labs(y = "Estimand value",
+         x = "Sample size setting",
+         fill = "Validation approach") +
+    facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))
+  
+  p4 <-ggplot(data = df_s3_long %>% 
+                filter(model %in% c("ML", "CART", "RF"), 
+                       estimand  != "log(Slope)"), 
+              mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+    geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    geom_boxplot(data = df_s2_long %>% 
+                   filter(pred_selection == "<0.157",
+                          model %in% c("ML", "CART", "RF"), 
+                          estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
+                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    theme_set(theme_bw(base_size = 11)) +
+    scale_fill_manual(values = colors) +
+    labs(y = "Estimand value",
+         x = "Sample size setting",
+         fill = "Validation approach") +
+    facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))
+  
+  
+  assign("thesis_estimands_study_3_penalized", p1)
+  ggsave(paste0(estimand_plots,"estimands_study_3_penalized.pdf"), plot = p1, width = 20, height = 25, units = "cm")
+  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_penalized.pdf"), plot = p2, width = 20, height = 20, units = "cm")
+  assign("full_estimands_study_3_treebased", p3)
+  ggsave(paste0(estimand_plots,"estimands_study_3_treebased.pdf"), plot = p3, width = 20, height = 25, units = "cm")
+  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_treebased.pdf"), plot = p4, width = 20, height = 20, units = "cm")
