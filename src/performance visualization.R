@@ -8,7 +8,7 @@
 source("./src/setup.R")
 scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
-df_perf <- readRDS(paste0(performance_general_path, "all_pm_batch_6.RDS"))
+df_perf <- readRDS(paste0(performance_general_path, "all_pm_batch_7.RDS"))
 
 ################################
 ## Pre-processing of the data ##
@@ -141,7 +141,9 @@ p1_all <-
     #theme(legend.position = c(0.75, 0.23)) +
     guides(color = guide_legend(nrow=4, ncol=2),
            shape = guide_legend(nrow = 2)) +
-    theme(legend.position="bottom")
+    theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
   
 
 p1_thesis <- 
@@ -184,7 +186,9 @@ p1_thesis <-
   #theme(legend.position = c(0.75, 0.23)) +
   guides(color = guide_legend(nrow=4, ncol=2),
          shape = guide_legend(nrow = 2)) +
-  theme(legend.position="bottom")
+  theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
 
 
 p2_all <- 
@@ -226,7 +230,9 @@ p2_all <-
              #theme(legend.position = c(0.75, 0.23)) +
              guides(color = guide_legend(nrow=4, ncol=2),
                     shape = guide_legend(nrow = 2)) +
-             theme(legend.position="bottom")
+             theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
            
            
 p3_all_p <- 
@@ -274,7 +280,9 @@ p3_all_p <-
              #theme(legend.position = c(0.75, 0.23)) +
              guides(color = guide_legend(nrow=4, ncol=2),
                     shape = guide_legend(nrow = 2)) +
-             theme(legend.position="bottom")
+             theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
     
     
 p2_thesis <- 
@@ -316,7 +324,9 @@ p2_thesis <-
   #theme(legend.position = c(0.75, 0.23)) +
   guides(color = guide_legend(nrow=4, ncol=2),
          shape = guide_legend(nrow = 2)) +
-  theme(legend.position="bottom")
+  theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
 
 
 p3_all_p <- 
@@ -364,7 +374,9 @@ p3_all_p <-
   #theme(legend.position = c(0.75, 0.23)) +
   guides(color = guide_legend(nrow=4, ncol=2),
          shape = guide_legend(nrow = 2)) +
-  theme(legend.position="bottom")
+  theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
 
 
 
@@ -408,7 +420,9 @@ p3_thesis_p <-
   #theme(legend.position = c(0.75, 0.23)) +
   guides(color = guide_legend(nrow=4, ncol=2),
          shape = guide_legend(nrow = 2)) +
-  theme(legend.position="bottom")
+  theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
 
 
 
@@ -459,7 +473,9 @@ p3_all_t <-
   #theme(legend.position = c(0.75, 0.23)) +
   guides(color = guide_legend(nrow=4, ncol=2),
          shape = guide_legend(nrow = 2)) +
-  theme(legend.position="bottom")
+  theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
 
 
 
@@ -503,11 +519,13 @@ p3_thesis_t <-
   #theme(legend.position = c(0.75, 0.23)) +
   guides(color = guide_legend(nrow=4, ncol=2),
          shape = guide_legend(nrow = 2)) +
-  theme(legend.position="bottom")
+  theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
 
 
-  ggsave(paste0(full_performance_plots,"performance_study_1_full.pdf"), plot = p1_all, width = 25, height = 30, units = "cm")
-  ggsave(paste0(performance_measures_plots,"performance_study_1_thesis.pdf"), plot = p1_thesis, width = 25, height = 30, units = "cm")
+
+  ggsave(paste0(full_performance_plots,"performance_study_1_full.pdf"), plot = p1_all,  width = 20, height = 25, units = "cm")
+  ggsave(paste0(performance_measures_plots,"performance_study_1_thesis.pdf"), plot = p1_thesis, width = 20, height = 25, units = "cm")
   
   
   ggsave(paste0(full_performance_plots,"performance_study_2_full.pdf"), plot = p2_all, width = 25, height = 30, units = "cm")

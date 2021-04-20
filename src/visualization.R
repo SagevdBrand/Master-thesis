@@ -8,7 +8,7 @@ source("./src/setup.R")
 scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
 ## Loading the above estimand files:
-df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_6.RDS"))
+df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
 
 ################################
 ## Pre-processing of the data ##
@@ -116,7 +116,8 @@ p1 <-
        ) +
   facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+ 
   theme(legend.position="bottom")+
-  guides(color = guide_legend(nrow=4, ncol=3))
+  guides(color = guide_legend(nrow=4, ncol=3)) +
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
 
 p2 <- 
   ggplot(data = df_s1_long %>% 
@@ -137,7 +138,9 @@ p2 <-
        fill = "Validation approach") +
   facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+ 
   theme(legend.position="bottom")+
-  guides(color = guide_legend(nrow=4, ncol=3))
+  guides(color = guide_legend(nrow=4, ncol=3))+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
 
 
 # Figures of all estimands (For supplementary material)
@@ -159,7 +162,9 @@ p3 <-
        fill = "Validation approach") +
   facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+ 
   theme(legend.position="bottom")+
-  guides(color = guide_legend(nrow=4, ncol=3))
+  guides(color = guide_legend(nrow=4, ncol=3))+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
 
 p4 <- 
   ggplot(data = df_s1_long %>% 
@@ -179,11 +184,13 @@ p4 <-
        fill = "Validation approach") +
   facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+ 
   theme(legend.position="bottom")+
-  guides(color = guide_legend(nrow=4, ncol=3))
+  guides(color = guide_legend(nrow=4, ncol=3))+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
 
 ## Saving the plots
 assign(paste0("thesis_estimands_study_1_no_pred_sel"), p1)
-ggsave(paste0(estimand_plots,"estimands_study_1_no_pred_sel.pdf"), plot = p1, width = 20, height = 25, units = "cm")
+ggsave(paste0(estimand_plots,"estimands_study_1_no_pred_sel.pdf"), plot = p1, width = 20, height = 23, units = "cm")
 assign(paste0("thesis_estimands_study_1_pred_sel"), p2)
 ggsave(paste0(estimand_plots,"estimands_study_1_pred_sel.pdf"), plot = p2, width = 20, height = 25, units = "cm")
 ggsave(paste0(full_estimand_plots,"full_estimands_study_1_no_pred_sel.pdf"), plot = p3, width = 20, height = 25, units = "cm")
@@ -222,7 +229,9 @@ df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" &
          fill = "Validation approach") +
     facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
     theme(legend.position="bottom")+
-    guides(color = guide_legend(nrow=4, ncol=3))
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+  
   
   
   p2 <- ggplot(data = df_s2_long %>%
@@ -242,7 +251,9 @@ df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" &
          fill = "Validation approach") +
     facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
     theme(legend.position="bottom")+
-    guides(color = guide_legend(nrow=4, ncol=3))
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+  
   
   p3 <- ggplot(data = df_s2_long %>%
                  filter(pred_selection == "none",
@@ -261,10 +272,12 @@ df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" &
          fill = "Validation approach") +
     facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
     theme(legend.position="bottom")+
-    guides(color = guide_legend(nrow=4, ncol=3))
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
   
   
-  p4 <- ggplot(data = df_s2_long %>%
+  
+  p4 <-  ggplot(data = df_s2_long %>%
                  filter(pred_selection == "<0.157",
                         estimand != "log(Slope)"), 
                mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
@@ -278,11 +291,12 @@ df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" &
     scale_fill_manual(values = colors) +
     labs(y = "Estimand value",
          x = "Sample size setting",
-         fill = "Validation approach",
-         title = "Estimands for study 2") +
+         fill = "Validation approach") +
     facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
     theme(legend.position="bottom")+
-    guides(color = guide_legend(nrow=4, ncol=3))
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+  
   
   assign("thesis_estimands_study_2_no_pred_sel", p1)
   ggsave(paste0(estimand_plots,"estimands_study_2_no_pred_sel.pdf"), plot = p1, width = 20, height = 25, units = "cm")
@@ -325,7 +339,9 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" &
          fill = "Validation approach") +
     facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+ 
     theme(legend.position="bottom")+
-    guides(color = guide_legend(nrow=4, ncol=3))
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+  
   
  
   
@@ -347,19 +363,20 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" &
          fill = "Validation approach") +
     facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+ 
     theme(legend.position="bottom")+
-    guides(color = guide_legend(nrow=4, ncol=3))
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+  
   
   
   
   p3 <- 
     ggplot(data = df_s3_long %>% 
-             filter(model %in% c("ML", "CART", "RF"), 
+             filter(model %in% c("ML","CART", "RF"), 
                     !(estimand %in% c("log(Slope)", "R2 Cox Snell", "MAPE")) ), 
            mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s2_long %>% 
-                   filter(pred_selection == "<0.157",
-                          model %in% c("ML", "CART", "RF"), 
+    geom_boxplot(data = df_s3_long %>% 
+                   filter(model %in% c("ML", "CART", "RF"), 
                           estimand == "log(Slope)"),
                  mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
                  position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
@@ -370,16 +387,17 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" &
          fill = "Validation approach") +
     facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+ 
     theme(legend.position="bottom")+
-    guides(color = guide_legend(nrow=4, ncol=3))
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+  
   
   p4 <-ggplot(data = df_s3_long %>% 
                 filter(model %in% c("ML", "CART", "RF"), 
                        estimand  != "log(Slope)"), 
               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s2_long %>% 
-                   filter(pred_selection == "<0.157",
-                          model %in% c("ML", "CART", "RF"), 
+    geom_boxplot(data = df_s3_long %>% 
+                   filter(model %in% c("ML", "CART", "RF"), 
                           estimand == "log(Slope)"),
                  mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
                  position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
@@ -390,7 +408,9 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" &
          fill = "Validation approach") +
     facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+ 
     theme(legend.position="bottom")+
-    guides(color = guide_legend(nrow=4, ncol=3))
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+  
   
   
   assign("thesis_estimands_study_3_penalized", p1)
