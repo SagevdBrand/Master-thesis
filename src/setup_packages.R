@@ -4,6 +4,7 @@
 ## Libraries
 
 install.packages("tidyverse")
+install.packages("ggpubr")
 install.packages("pmsampsize")
 install.packages("MASS")
 install.packages("rms")

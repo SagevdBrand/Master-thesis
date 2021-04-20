@@ -2,8 +2,8 @@
 This document contains the following material.
 1. Numerical estimation procedure for the regression coefficients
 used within the data generating mechanism
-2. Error handling
-3. Scenario settings
+2. Scenario settings
+3. Error handling
 4. Details on the software and code used
 
 ## 1. Numerical estimation procedure for regression coefficients used within the data generating mechanism
@@ -48,7 +48,82 @@ datasets for each scenario and each iteration. The size of the dataset is
 defined by using the ‘pmsampsize’ package, which uses pref_prev and pref_R2 as
 defined above as input (Riley et al., 2020).
 
-## 2. Error handling
+
+## 2. Scenario settings
+For a clear overview of all scenarios considered in the thesis, see the table below.
+- dim = dimensionality, or number of candidate predictors
+- n_setting = the setting for the sample size, either half, double or the minimum sample size required
+- noise = the setting for the percentage of noise variables, were the default is 20%, none is 0%, and half 50%
+- prev = prevalence or event-fraction
+- pred_selection = predictor selection, <0.157 represents Backwards selection using the AIC criterion.
+- R2 = R2_CS as obtained through the code by Riley et al., 2020. This is used for calculating the sample size.
+- par1 = The coefficient for the intercept that was obtained through the numerical estimation procedure explained above.
+- par2 = The value of &beta;, which represent a weak candidate predictor.
+
+|  AUC| dim|n_setting |noise   | prev|model |pred_selection |        R2|    n|       par1|       par2|scenario    |study   |
+|----:|---:|:---------|:-------|----:|:-----|:--------------|---------:|----:|----------:|----------:|:-----------|:-------|
+| 0.75|  10|n/2       |default | 0.05|ML    |none           | 0.0413198| 1064| -3.3705418|  0.1222722|Scenario_1  |Study_1 |
+| 0.75|  10|n         |default | 0.05|ML    |none           | 0.0413198| 2128| -3.3705418|  0.1222722|Scenario_2  |Study_1 |
+| 0.75|  10|n*2       |default | 0.05|ML    |none           | 0.0413198| 4256| -3.3705418|  0.1222722|Scenario_3  |Study_1 |
+| 0.75|  10|n/2       |default | 0.20|ML    |none           | 0.1265814|  330| -1.6740826|  0.1280781|Scenario_4  |Study_1 |
+| 0.75|  10|n         |default | 0.20|ML    |none           | 0.1265814|  660| -1.6740826|  0.1280781|Scenario_5  |Study_1 |
+| 0.75|  10|n*2       |default | 0.20|ML    |none           | 0.1265814| 1320| -1.6740826|  0.1280781|Scenario_6  |Study_1 |
+| 0.75|  10|n/2       |default | 0.50|ML    |none           | 0.1840704|  219|  0.0140326|  0.1314477|Scenario_7  |Study_1 |
+| 0.75|  10|n         |default | 0.50|ML    |none           | 0.1840704|  438|  0.0140326|  0.1314477|Scenario_8  |Study_1 |
+| 0.75|  10|n*2       |default | 0.50|ML    |none           | 0.1840704|  876|  0.0140326|  0.1314477|Scenario_9  |Study_1 |
+| 0.75|  10|n/2       |default | 0.05|ML    |<0.157         | 0.0413198| 1064| -3.3705418|  0.1222722|Scenario_10 |Study_1 |
+| 0.75|  10|n         |default | 0.05|ML    |<0.157         | 0.0413198| 2128| -3.3705418|  0.1222722|Scenario_11 |Study_1 |
+| 0.75|  10|n*2       |default | 0.05|ML    |<0.157         | 0.0413198| 4256| -3.3705418|  0.1222722|Scenario_12 |Study_1 |
+| 0.75|  10|n/2       |default | 0.20|ML    |<0.157         | 0.1265814|  330| -1.6740826|  0.1280781|Scenario_13 |Study_1 |
+| 0.75|  10|n         |default | 0.20|ML    |<0.157         | 0.1265814|  660| -1.6740826|  0.1280781|Scenario_14 |Study_1 |
+| 0.75|  10|n*2       |default | 0.20|ML    |<0.157         | 0.1265814| 1320| -1.6740826|  0.1280781|Scenario_15 |Study_1 |
+| 0.75|  10|n/2       |default | 0.50|ML    |<0.157         | 0.1840704|  219|  0.0140326|  0.1314477|Scenario_16 |Study_1 |
+| 0.75|  10|n         |default | 0.50|ML    |<0.157         | 0.1840704|  438|  0.0140326|  0.1314477|Scenario_17 |Study_1 |
+| 0.75|  10|n*2       |default | 0.50|ML    |<0.157         | 0.1840704|  876|  0.0140326|  0.1314477|Scenario_18 |Study_1 |
+| 0.75|   6|n/2       |none    | 0.20|ML    |none           | 0.1265814|  198| -1.6705880|  0.2089430|Scenario_1  |Study_2 |
+| 0.75|  30|n/2       |none    | 0.20|ML    |none           | 0.1265814|  990| -1.6670190| -0.0534409|Scenario_2  |Study_2 |
+| 0.75|   6|n         |none    | 0.20|ML    |none           | 0.1265814|  396| -1.6705880|  0.2089430|Scenario_3  |Study_2 |
+| 0.75|  30|n         |none    | 0.20|ML    |none           | 0.1265814| 1980| -1.6670190| -0.0534409|Scenario_4  |Study_2 |
+| 0.75|   6|n*2       |none    | 0.20|ML    |none           | 0.1265814|  792| -1.6705880|  0.2089430|Scenario_5  |Study_2 |
+| 0.75|  30|n*2       |none    | 0.20|ML    |none           | 0.1265814| 3960| -1.6670190| -0.0534409|Scenario_6  |Study_2 |
+| 0.75|   6|n/2       |half    | 0.20|ML    |none           | 0.1265814|  198| -1.6716030|  0.2760249|Scenario_7  |Study_2 |
+| 0.75|  30|n/2       |half    | 0.20|ML    |none           | 0.1265814|  990| -1.6234870|  0.0778107|Scenario_8  |Study_2 |
+| 0.75|   6|n         |half    | 0.20|ML    |none           | 0.1265814|  396| -1.6716030|  0.2760249|Scenario_9  |Study_2 |
+| 0.75|  30|n         |half    | 0.20|ML    |none           | 0.1265814| 1980| -1.6234870|  0.0778107|Scenario_10 |Study_2 |
+| 0.75|   6|n*2       |half    | 0.20|ML    |none           | 0.1265814|  792| -1.6716030|  0.2760249|Scenario_11 |Study_2 |
+| 0.75|  30|n*2       |half    | 0.20|ML    |none           | 0.1265814| 3960| -1.6234870|  0.0778107|Scenario_12 |Study_2 |
+| 0.75|   6|n/2       |none    | 0.20|ML    |<0.157         | 0.1265814|  198| -1.6705880|  0.2089430|Scenario_13 |Study_2 |
+| 0.75|  30|n/2       |none    | 0.20|ML    |<0.157         | 0.1265814|  990| -1.6670190| -0.0534409|Scenario_14 |Study_2 |
+| 0.75|   6|n         |none    | 0.20|ML    |<0.157         | 0.1265814|  396| -1.6705880|  0.2089430|Scenario_15 |Study_2 |
+| 0.75|  30|n         |none    | 0.20|ML    |<0.157         | 0.1265814| 1980| -1.6670190| -0.0534409|Scenario_16 |Study_2 |
+| 0.75|   6|n*2       |none    | 0.20|ML    |<0.157         | 0.1265814|  792| -1.6705880|  0.2089430|Scenario_17 |Study_2 |
+| 0.75|  30|n*2       |none    | 0.20|ML    |<0.157         | 0.1265814| 3960| -1.6670190| -0.0534409|Scenario_18 |Study_2 |
+| 0.75|   6|n/2       |half    | 0.20|ML    |<0.157         | 0.1265814|  198| -1.6716030|  0.2760249|Scenario_19 |Study_2 |
+| 0.75|  30|n/2       |half    | 0.20|ML    |<0.157         | 0.1265814|  990| -1.6234870|  0.0778107|Scenario_20 |Study_2 |
+| 0.75|   6|n         |half    | 0.20|ML    |<0.157         | 0.1265814|  396| -1.6716030|  0.2760249|Scenario_21 |Study_2 |
+| 0.75|  30|n         |half    | 0.20|ML    |<0.157         | 0.1265814| 1980| -1.6234870|  0.0778107|Scenario_22 |Study_2 |
+| 0.75|   6|n * 2     |half    | 0.20|ML    |<0.157         | 0.1265814|  792| -1.6716030|  0.2760249|Scenario_23 |Study_2 |
+| 0.75|  30|n*2       |half    | 0.20|ML    |<0.157         | 0.1265814| 3960| -1.6234870|  0.0778107|Scenario_24 |Study_2 |
+| 0.75|  20|n/2       |default | 0.20|ML    |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_1  |Study_3 |
+| 0.75|  20|n         |default | 0.20|ML    |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_2  |Study_3 |
+| 0.75|  20|n*2       |default | 0.20|ML    |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_3  |Study_3 |
+| 0.75|  20|n/2       |default | 0.20|Firth |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_4  |Study_3 |
+| 0.75|  20|n         |default | 0.20|Firth |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_5  |Study_3 |
+| 0.75|  20|n*2       |default | 0.20|Firth |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_6  |Study_3 |
+| 0.75|  20|n/2       |default | 0.20|Ridge |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_7  |Study_3 |
+| 0.75|  20|n         |default | 0.20|Ridge |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_8  |Study_3 |
+| 0.75|  20|n*2       |default | 0.20|Ridge |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_9  |Study_3 |
+| 0.75|  20|n/2       |default | 0.20|Lasso |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_10 |Study_3 |
+| 0.75|  20|n         |default | 0.20|Lasso |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_11 |Study_3 |
+| 0.75|  20|n*2       |default | 0.20|Lasso |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_12 |Study_3 |
+| 0.75|  20|n/2       |default | 0.20|CART  |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_13 |Study_3 |
+| 0.75|  20|n         |default | 0.20|CART  |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_14 |Study_3 |
+| 0.75|  20|n*2       |default | 0.20|CART  |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_15 |Study_3 |
+| 0.75|  20|n/2       |default | 0.20|RF    |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_16 |Study_3 |
+| 0.75|  20|n         |default | 0.20|RF    |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_17 |Study_3 |
+| 0.75|  20|n*2       |default | 0.20|RF    |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_18 |Study_3 |
+
+## 3. Error handling
 Below I describe how anticipated errors in estimation and validation on the
 simulation data are detected and handled.
 
@@ -126,79 +201,73 @@ It might occur that predicted probability are exactly 1 or 0. In those cases the
   - Report an error when probabilities of 0 or 1 occurred. Change the values
     of these probabilities to 0.000001 or 0.999999, respectively.
 
-## 3. Scenario settings
-For a clear overview of all scenarios considered in the thesis, see the table below.
-- dim = dimensionality, or number of candidate predictors
-- n_setting = the setting for the sample size, either half, double or the minimum sample size required
-- noise = the setting for the percentage of noise variables, were the default is 20%, none is 0%, and half 50%
-- prev = prevalence or event-fraction
-- pred_selection = predictor selection, <0.157 represents Backwards selection using the AIC criterion.
-- R2 = R2_CS as obtained through the code by Riley et al., 2020. This is used for calculating the sample size.
-- par1 = The coefficient for the intercept that was obtained through the numerical estimation procedure explained above.
-- par2 = The value of &beta;, which represent a weak candidate predictor.
+### Error occurrence
+The following represents the number of errors that occurred for each scenario
+specifically:
 
-|  AUC| dim|n_setting |noise   | prev|model |pred_selection |        R2|    n|       par1|       par2|scenario    |study   |
-|----:|---:|:---------|:-------|----:|:-----|:--------------|---------:|----:|----------:|----------:|:-----------|:-------|
-| 0.75|  10|n/2       |default | 0.05|ML    |none           | 0.0413198| 1064| -3.3705418|  0.1222722|Scenario_1  |Study_1 |
-| 0.75|  10|n         |default | 0.05|ML    |none           | 0.0413198| 2128| -3.3705418|  0.1222722|Scenario_2  |Study_1 |
-| 0.75|  10|n*2       |default | 0.05|ML    |none           | 0.0413198| 4256| -3.3705418|  0.1222722|Scenario_3  |Study_1 |
-| 0.75|  10|n/2       |default | 0.20|ML    |none           | 0.1265814|  330| -1.6740826|  0.1280781|Scenario_4  |Study_1 |
-| 0.75|  10|n         |default | 0.20|ML    |none           | 0.1265814|  660| -1.6740826|  0.1280781|Scenario_5  |Study_1 |
-| 0.75|  10|n*2       |default | 0.20|ML    |none           | 0.1265814| 1320| -1.6740826|  0.1280781|Scenario_6  |Study_1 |
-| 0.75|  10|n/2       |default | 0.50|ML    |none           | 0.1840704|  219|  0.0140326|  0.1314477|Scenario_7  |Study_1 |
-| 0.75|  10|n         |default | 0.50|ML    |none           | 0.1840704|  438|  0.0140326|  0.1314477|Scenario_8  |Study_1 |
-| 0.75|  10|n*2       |default | 0.50|ML    |none           | 0.1840704|  876|  0.0140326|  0.1314477|Scenario_9  |Study_1 |
-| 0.75|  10|n/2       |default | 0.05|ML    |<0.157         | 0.0413198| 1064| -3.3705418|  0.1222722|Scenario_10 |Study_1 |
-| 0.75|  10|n         |default | 0.05|ML    |<0.157         | 0.0413198| 2128| -3.3705418|  0.1222722|Scenario_11 |Study_1 |
-| 0.75|  10|n*2       |default | 0.05|ML    |<0.157         | 0.0413198| 4256| -3.3705418|  0.1222722|Scenario_12 |Study_1 |
-| 0.75|  10|n/2       |default | 0.20|ML    |<0.157         | 0.1265814|  330| -1.6740826|  0.1280781|Scenario_13 |Study_1 |
-| 0.75|  10|n         |default | 0.20|ML    |<0.157         | 0.1265814|  660| -1.6740826|  0.1280781|Scenario_14 |Study_1 |
-| 0.75|  10|n*2       |default | 0.20|ML    |<0.157         | 0.1265814| 1320| -1.6740826|  0.1280781|Scenario_15 |Study_1 |
-| 0.75|  10|n/2       |default | 0.50|ML    |<0.157         | 0.1840704|  219|  0.0140326|  0.1314477|Scenario_16 |Study_1 |
-| 0.75|  10|n         |default | 0.50|ML    |<0.157         | 0.1840704|  438|  0.0140326|  0.1314477|Scenario_17 |Study_1 |
-| 0.75|  10|n*2       |default | 0.50|ML    |<0.157         | 0.1840704|  876|  0.0140326|  0.1314477|Scenario_18 |Study_1 |
-| 0.75|   6|n/2       |none    | 0.20|ML    |none           | 0.1265814|  198| -1.6705880|  0.2089430|Scenario_1  |Study_2 |
-| 0.75|  30|n/2       |none    | 0.20|ML    |none           | 0.1265814|  990| -1.6670190| -0.0534409|Scenario_2  |Study_2 |
-| 0.75|   6|n         |none    | 0.20|ML    |none           | 0.1265814|  396| -1.6705880|  0.2089430|Scenario_3  |Study_2 |
-| 0.75|  30|n         |none    | 0.20|ML    |none           | 0.1265814| 1980| -1.6670190| -0.0534409|Scenario_4  |Study_2 |
-| 0.75|   6|n*2       |none    | 0.20|ML    |none           | 0.1265814|  792| -1.6705880|  0.2089430|Scenario_5  |Study_2 |
-| 0.75|  30|n*2       |none    | 0.20|ML    |none           | 0.1265814| 3960| -1.6670190| -0.0534409|Scenario_6  |Study_2 |
-| 0.75|   6|n/2       |half    | 0.20|ML    |none           | 0.1265814|  198| -1.6716030|  0.2760249|Scenario_7  |Study_2 |
-| 0.75|  30|n/2       |half    | 0.20|ML    |none           | 0.1265814|  990| -1.6234870|  0.0778107|Scenario_8  |Study_2 |
-| 0.75|   6|n         |half    | 0.20|ML    |none           | 0.1265814|  396| -1.6716030|  0.2760249|Scenario_9  |Study_2 |
-| 0.75|  30|n         |half    | 0.20|ML    |none           | 0.1265814| 1980| -1.6234870|  0.0778107|Scenario_10 |Study_2 |
-| 0.75|   6|n*2       |half    | 0.20|ML    |none           | 0.1265814|  792| -1.6716030|  0.2760249|Scenario_11 |Study_2 |
-| 0.75|  30|n*2       |half    | 0.20|ML    |none           | 0.1265814| 3960| -1.6234870|  0.0778107|Scenario_12 |Study_2 |
-| 0.75|   6|n/2       |none    | 0.20|ML    |<0.157         | 0.1265814|  198| -1.6705880|  0.2089430|Scenario_13 |Study_2 |
-| 0.75|  30|n/2       |none    | 0.20|ML    |<0.157         | 0.1265814|  990| -1.6670190| -0.0534409|Scenario_14 |Study_2 |
-| 0.75|   6|n         |none    | 0.20|ML    |<0.157         | 0.1265814|  396| -1.6705880|  0.2089430|Scenario_15 |Study_2 |
-| 0.75|  30|n         |none    | 0.20|ML    |<0.157         | 0.1265814| 1980| -1.6670190| -0.0534409|Scenario_16 |Study_2 |
-| 0.75|   6|n*2       |none    | 0.20|ML    |<0.157         | 0.1265814|  792| -1.6705880|  0.2089430|Scenario_17 |Study_2 |
-| 0.75|  30|n*2       |none    | 0.20|ML    |<0.157         | 0.1265814| 3960| -1.6670190| -0.0534409|Scenario_18 |Study_2 |
-| 0.75|   6|n/2       |half    | 0.20|ML    |<0.157         | 0.1265814|  198| -1.6716030|  0.2760249|Scenario_19 |Study_2 |
-| 0.75|  30|n/2       |half    | 0.20|ML    |<0.157         | 0.1265814|  990| -1.6234870|  0.0778107|Scenario_20 |Study_2 |
-| 0.75|   6|n         |half    | 0.20|ML    |<0.157         | 0.1265814|  396| -1.6716030|  0.2760249|Scenario_21 |Study_2 |
-| 0.75|  30|n         |half    | 0.20|ML    |<0.157         | 0.1265814| 1980| -1.6234870|  0.0778107|Scenario_22 |Study_2 |
-| 0.75|   6|n * 2     |half    | 0.20|ML    |<0.157         | 0.1265814|  792| -1.6716030|  0.2760249|Scenario_23 |Study_2 |
-| 0.75|  30|n*2       |half    | 0.20|ML    |<0.157         | 0.1265814| 3960| -1.6234870|  0.0778107|Scenario_24 |Study_2 |
-| 0.75|  20|n/2       |default | 0.20|ML    |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_1  |Study_3 |
-| 0.75|  20|n         |default | 0.20|ML    |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_2  |Study_3 |
-| 0.75|  20|n*2       |default | 0.20|ML    |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_3  |Study_3 |
-| 0.75|  20|n/2       |default | 0.20|Firth |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_4  |Study_3 |
-| 0.75|  20|n         |default | 0.20|Firth |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_5  |Study_3 |
-| 0.75|  20|n*2       |default | 0.20|Firth |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_6  |Study_3 |
-| 0.75|  20|n/2       |default | 0.20|Ridge |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_7  |Study_3 |
-| 0.75|  20|n         |default | 0.20|Ridge |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_8  |Study_3 |
-| 0.75|  20|n*2       |default | 0.20|Ridge |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_9  |Study_3 |
-| 0.75|  20|n/2       |default | 0.20|Lasso |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_10 |Study_3 |
-| 0.75|  20|n         |default | 0.20|Lasso |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_11 |Study_3 |
-| 0.75|  20|n*2       |default | 0.20|Lasso |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_12 |Study_3 |
-| 0.75|  20|n/2       |default | 0.20|CART  |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_13 |Study_3 |
-| 0.75|  20|n         |default | 0.20|CART  |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_14 |Study_3 |
-| 0.75|  20|n*2       |default | 0.20|CART  |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_15 |Study_3 |
-| 0.75|  20|n/2       |default | 0.20|RF    |none           | 0.1265814|  660| -1.6497583| -0.0708246|Scenario_16 |Study_3 |
-| 0.75|  20|n         |default | 0.20|RF    |none           | 0.1265814| 1320| -1.6497583| -0.0708246|Scenario_17 |Study_3 |
-| 0.75|  20|n*2       |default | 0.20|RF    |none           | 0.1265814| 2640| -1.6497583| -0.0708246|Scenario_18 |Study_3 |
+|Study   | Scenario| No predictors selected| Prob of 0 or 1| Separation| < 8 events| eci: LOESS warning| No events| No events in fold| No events in bootstrap sample|
+|:-------|--------:|----------------------:|--------------:|----------:|----------:|------------------:|---------:|-----------------:|-----------------------------:|
+|Study_1 |        1|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
+|Study_1 |        2|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        3|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        4|                      0|              0|          2|          0|                  0|         0|                 0|                             0|
+|Study_1 |        5|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        6|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        7|                      0|              0|          5|          0|                  0|         0|                 0|                             0|
+|Study_1 |        8|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        9|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       10|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
+|Study_1 |       11|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       12|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       13|                      0|              0|          2|          0|                  0|         0|                 0|                             0|
+|Study_1 |       14|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       15|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       16|                      0|              0|          5|          0|                  0|         0|                 0|                             0|
+|Study_1 |       17|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       18|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        1|                      0|              0|         86|          0|                  0|         0|                 0|                             0|
+|Study_2 |        2|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        3|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        4|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        5|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        6|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        7|                      0|              0|         69|          0|                  0|         0|                 0|                             0|
+|Study_2 |        8|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        9|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
+|Study_2 |       10|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       11|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       12|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       13|                      0|              0|         86|          0|                  0|         0|                 0|                             0|
+|Study_2 |       14|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       15|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       16|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       17|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       18|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       19|                      0|              0|         69|          0|                  0|         0|                 0|                             0|
+|Study_2 |       20|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       21|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
+|Study_2 |       22|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       23|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       24|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        1|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        2|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        3|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        4|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        5|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        6|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        7|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        8|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        9|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       10|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       11|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       12|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       13|                      0|          14239|        497|          0|                  1|         0|                 0|                             0|
+|Study_3 |       14|                      0|          17057|          0|          0|                  7|         0|                 0|                             0|
+|Study_3 |       15|                    121|           6091|          0|          0|                298|         0|                 0|                             0|
+|Study_3 |       16|                      0|            842|       2500|          0|                  0|         0|                 0|                             0|
+|Study_3 |       17|                      0|            712|       1895|          0|                  0|         0|                 0|                             0|
+|Study_3 |       18|                      0|             70|        180|          0|                  0|         0|                 0|                             0|
+
 
 ## 4. Details on the software and code used
 The following code was used and/or adapted:
@@ -225,7 +294,7 @@ Running under: CentOS Linux 7 (Core)** <br>
 - base     
 
 **other attached packages:**
-- kableExtra_1.3.1 
+- kableExtra_1.3.1
 - ranger_0.12.1
 - rpart_4.1-15
 - caret_6.0-86

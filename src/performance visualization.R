@@ -1,0 +1,519 @@
+########################################
+########################################
+###### Performance measure visualization
+
+################
+## Setting up ##
+################
+source("./src/setup.R")
+scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
+
+df_perf <- readRDS(paste0(performance_general_path, "all_pm_batch_6.RDS"))
+
+################################
+## Pre-processing of the data ##
+################################
+
+## Add some scenario information to the columns:
+scenarios_settings <- scenarios[, (colnames(scenarios) %in% c("study", "scenario", "n_setting", "noise", "dim", "model", "pred_selection", "prev"))]
+df_perf$scenario <- as.character(paste0("Scenario_", df_perf$scenario))
+df_perf <- full_join(df_perf, scenarios_settings, by = c("study", "scenario"))
+
+
+df_perf <- df_perf %>% mutate(estimand = case_when(estimand == "auc" ~ "AUC",
+                                                   estimand == "calib_slope" ~  "log(Slope)",
+                                                   estimand == "calib_int" ~ "Calibration Intercept",
+                                                   estimand == "Tjur" ~ "R2 Tjur",
+                                                   estimand == "R2_CS" ~ "R2 Cox Snell",
+                                                   estimand == "eci" ~ "ECI",
+                                                   estimand == "mape" ~ "MAPE",
+                                                   estimand == "rmspe" ~ "rMSPE",
+                                                   TRUE ~ estimand),
+                              estimand = fct_relevel(estimand,
+                                                     "AUC", 
+                                                     "Calibration Intercept",
+                                                     "log(Slope)",
+                                                     "R2 Tjur",
+                                                     "R2 Cox Snell",
+                                                     "ECI",
+                                                     "MAPE",
+                                                     "rMSPE"),
+                              approach = fct_relevel(approach,
+                                                     "5 fold cross-validation",
+                                                     "10 fold cross-validation",
+                                                     "10x10 fold cross-validation",
+                                                     "Harrell's bootstrap",
+                                                     ".632 bootstrap",
+                                                     ".632+ bootstrap",
+                                                     "Apparent"),
+                              prev = case_when(prev == 0.05 ~ "event-fraction = 0.05",
+                                               prev == 0.2 ~ "event-fraction = 0.2",
+                                               prev == 0.5 ~ "event-fraction = 0.5",
+                                               TRUE ~ as.character(prev)),
+                              dim = case_when(dim == 6 ~ "6 Candidate predictors",
+                                              dim == 30 ~"30 Candidate predictors",
+                                              TRUE ~ as.character(dim)),
+                              noise = case_when(noise == "none" ~ "No noise predictors",
+                                                noise == "half" ~"50% noise predictors",
+                                                noise == "default" ~ "20% noise predictors",
+                                                TRUE ~ as.character(dim))
+)
+
+# step1 <- df_perf %>% pivot_longer(cols = c(md), names_to = "performance measures", values_to = "value")
+# step2 <- step1 %>% dplyr::select(!md_dist & !rmsd_dist)
+# step2b <- df_perf 
+# 
+# step3 <- step2b %>% 
+#   pivot_longer(cols = c(md_dist, rmsd_dist), names_to = "performance measures", values_to = "value_se") %>% 
+#   mutate(`performance measures` = case_when(`performance measures` == "md_dist" ~ "md",
+#                                             `performance measures` == "rmsd_dist" ~ "rmsd",
+#                                             TRUE ~ `performance measures`))
+# 
+# df_perf <- full_join(step3, step2) %>%
+#   mutate(`performance measures` = case_when(`performance measures` == "md" ~ "Mean Difference",
+#                                             `performance measures` == "rmsd" ~ "Root Mean Squared Difference",
+#                                             TRUE ~ `performance measures`))
+# 
+
+
+# Specify color palette:
+colors_perf <- c(
+  "#02c39a", #Mountain meadow
+  "#f28482", #Light coral
+  "#84a59d", # Morning blue
+  "#f6bd60", # Maximum yellow red
+  "#457b9d", # Celadon blue
+  "#f4a261", # Sandy brown
+  "#e63946" # imperial red
+)
+
+# Performance measures for the new estimand names:
+estimand_names_thesis <- c(
+  "AUC",
+  "Calibration Intercept",
+  "log(Slope)",
+  "R2 Tjur",
+  "R2 Cox Snell",
+  "ECI",
+  "MAPE",
+  "rMSPE"
+)
+
+####################
+## visualizations ##
+####################
+p1_all <- 
+    ggplot(data = df_perf %>% filter(study == "Study_1", 
+                                     estimand != "log(Slope)"),
+           mapping = aes(x = as.factor(n_setting),
+                         y = md,
+                         ymin = md-md_dist,
+                         ymax = md+md_dist,
+                         color = approach,
+                         shape = pred_selection
+                         )) +
+    geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+    geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+    geom_point(data = df_perf %>% filter(study == "Study_1", 
+                                         estimand == "log(Slope)"), 
+               mapping = aes(x = as.factor(n_setting),
+                             y = md,
+                             color = approach,
+                             shape = pred_selection),
+               position = position_dodge(width = 0.99), size = 1.5) +    
+  geom_linerange(data = df_perf %>% filter(study == "Study_1",
+                                           estimand == "log(Slope)"), 
+                 mapping = aes(x = as.factor(n_setting),
+                               y = md,
+                               ymin = md_q1,
+                               ymax = md_q3,
+                               color = approach
+                               ),
+                 position = position_dodge(width = 0.99), size = 0.1) +
+    scale_color_manual(values = colors_perf) +
+    labs(y = NULL,
+         x = "Sample size setting",
+         color = "Validation approach",
+         shape = "Predictor selection"
+    ) +
+    facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+
+    theme_set(theme_bw(base_size = 11)) +
+    #theme(legend.position = c(0.75, 0.23)) +
+    guides(color = guide_legend(nrow=4, ncol=2),
+           shape = guide_legend(nrow = 2)) +
+    theme(legend.position="bottom")
+  
+
+p1_thesis <- 
+  ggplot(data = df_perf %>% filter(study == "Study_1",
+                                   !estimand %in% c("log(Slope)", "R2 Cox Snell", "MAPE")), 
+         mapping = aes(x = as.factor(n_setting),
+                       y = md,
+                       ymin = md-md_dist,
+                       ymax = md+md_dist,
+                       color = approach,
+                       shape = pred_selection
+                       )) +
+  geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+  geom_point(data = df_perf %>% filter(study == "Study_1",
+                                       estimand == "log(Slope)"),
+             mapping = aes(x = as.factor(n_setting),
+                           y = md,
+                           color = approach,
+                           shape = pred_selection),
+             position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(data = df_perf %>% filter(study == "Study_1",
+                                           estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting),
+                               y = md,
+                               ymin = md_q1,
+                               ymax = md_q3,
+                               color = approach
+                               ),
+                 position = position_dodge(width = 0.99),
+                 size = 0.1) +
+  scale_color_manual(values = colors_perf) +
+  labs(y = NULL,
+       x = "Sample size setting",
+       color = "Validation approach",
+       shape = "Predictor selection"
+  ) +
+  facet_grid(rows = vars(estimand), cols = vars(prev), scales = "free")+
+  theme_set(theme_bw(base_size = 11)) +
+  #theme(legend.position = c(0.75, 0.23)) +
+  guides(color = guide_legend(nrow=4, ncol=2),
+         shape = guide_legend(nrow = 2)) +
+  theme(legend.position="bottom")
+
+
+p2_all <- 
+    ggplot(data = df_perf %>% filter(study == "Study_2",
+                                     estimand != "log(Slope)"),
+                            mapping = aes(x = as.factor(n_setting),
+                                y = md,
+                                ymin = md-md_dist,
+                                ymax = md+md_dist,
+                                color = approach,
+                                shape = pred_selection
+                  )) +
+             geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+             geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+             geom_point(data = df_perf %>% filter(study == "Study_2",
+                                                  estimand == "log(Slope)"), 
+                        mapping = aes(x = as.factor(n_setting),
+                                      y = md,
+                                      color = approach,
+                                      shape = pred_selection),
+                        position = position_dodge(width = 0.99), size = 1.5) +
+             geom_linerange(data = df_perf %>% filter(study == "Study_2", 
+                                                      estimand == "log(Slope)"),
+                            mapping = aes(x = as.factor(n_setting),
+                                          y = md,
+                                          ymin = md_q1,
+                                          ymax = md_q3,
+                                          color = approach
+                            ),
+                            position = position_dodge(width = 0.99), size = 0.1) +
+             scale_color_manual(values = colors_perf) +
+             labs(y = NULL,
+                  x = "Sample size setting",
+                  color = "Validation approach",
+                  shape = "Predictor selection"
+             ) +
+             facet_grid(rows = vars(estimand), cols = vars(dim, noise), scales = "free")+
+             theme_set(theme_bw(base_size = 11)) +
+             #theme(legend.position = c(0.75, 0.23)) +
+             guides(color = guide_legend(nrow=4, ncol=2),
+                    shape = guide_legend(nrow = 2)) +
+             theme(legend.position="bottom")
+           
+           
+p3_all_p <- 
+             ggplot(data = df_perf %>% 
+                      filter(study == "Study_3", 
+                             estimand != "log(Slope)", 
+                             model %in% c("Firth", "Ridge", "Lasso")),
+                    mapping = aes(x = as.factor(n_setting),    
+                                  y = md,
+                                  ymin = md-md_dist,
+                                  ymax = md+md_dist,
+                                  color = approach,
+                                  shape = pred_selection
+                    )) +
+             geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+             geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+             geom_point(data = df_perf %>% 
+                          filter(study == "Study_3", 
+                                 estimand == "log(Slope)", 
+                                 model %in% c("Firth", "Ridge", "Lasso")), 
+                        mapping = aes(x = as.factor(n_setting),
+                                      y = md,
+                                      color = approach,
+                                      shape = pred_selection),
+                        position = position_dodge(width = 0.99), size = 1.5) +
+             geom_linerange(data = df_perf %>%
+                              filter(study == "Study_3",
+                                     estimand == "log(Slope)", 
+                                     model %in% c("Firth", "Ridge", "Lasso")), 
+                            mapping = aes(x = as.factor(n_setting),
+                                          y = md,
+                                          ymin = md_q1,
+                                          ymax = md_q3,
+                                          color = approach
+                            ),
+                            position = position_dodge(width = 0.99), size = 0.1) +
+             scale_color_manual(values = colors_perf) +
+             labs(y = NULL,
+                  x = "Sample size setting",
+                  color = "Validation approach",
+                  shape = "Predictor selection"
+             ) +
+             facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+
+             theme_set(theme_bw(base_size = 11)) +
+             #theme(legend.position = c(0.75, 0.23)) +
+             guides(color = guide_legend(nrow=4, ncol=2),
+                    shape = guide_legend(nrow = 2)) +
+             theme(legend.position="bottom")
+    
+    
+p2_thesis <- 
+  ggplot(data = df_perf %>% filter(study == "Study_2",
+                                   !estimand %in% c("log(Slope)", "R2 Cox Snell", "MAPE")),
+         mapping = aes(x = as.factor(n_setting),
+                       y = md,
+                       ymin = md-md_dist,
+                       ymax = md+md_dist,
+                       color = approach,
+                       shape = pred_selection
+                       )) +
+  geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+  geom_point(data = df_perf %>% filter(study == "Study_2",
+                                       estimand == "log(Slope)"), 
+             mapping = aes(x = as.factor(n_setting),
+                           y = md,
+                           color = approach,
+                           shape = pred_selection),
+             position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(data = df_perf %>% filter(study == "Study_2", 
+                                           estimand == "log(Slope)"),
+                 mapping = aes(x = as.factor(n_setting),
+                               y = md,
+                               ymin = md_q1,
+                               ymax = md_q3,
+                               color = approach
+                               ),
+  position = position_dodge(width = 0.99), size = 0.1) +
+  scale_color_manual(values = colors_perf) +
+  labs(y = NULL,
+       x = "Sample size setting",
+       color = "Validation approach",
+       shape = "Predictor selection"
+  ) +
+  facet_grid(rows = vars(estimand), cols = vars(dim, noise), scales = "free")+
+  theme_set(theme_bw(base_size = 11)) +
+  #theme(legend.position = c(0.75, 0.23)) +
+  guides(color = guide_legend(nrow=4, ncol=2),
+         shape = guide_legend(nrow = 2)) +
+  theme(legend.position="bottom")
+
+
+p3_all_p <- 
+  ggplot(data = df_perf %>% 
+           filter(study == "Study_3", 
+                  estimand != "log(Slope)", 
+                  model %in% c("Firth", "Ridge", "Lasso")),
+         mapping = aes(x = as.factor(n_setting),    
+                       y = md,
+                       ymin = md-md_dist,
+                       ymax = md+md_dist,
+                       color = approach,
+                       shape = pred_selection
+         )) +
+  geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+  geom_point(data = df_perf %>% 
+               filter(study == "Study_3", 
+                      estimand == "log(Slope)", 
+                      model %in% c("Firth", "Ridge", "Lasso")), 
+             mapping = aes(x = as.factor(n_setting),
+                           y = md,
+                           color = approach,
+                           shape = pred_selection),
+             position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(data = df_perf %>%
+                   filter(study == "Study_3",
+                          estimand == "log(Slope)", 
+                          model %in% c("Firth", "Ridge", "Lasso")), 
+                 mapping = aes(x = as.factor(n_setting),
+                               y = md,
+                               ymin = md_q1,
+                               ymax = md_q3,
+                               color = approach
+                               ),
+                 position = position_dodge(width = 0.99), size = 0.1) +
+  scale_color_manual(values = colors_perf) +
+  labs(y = NULL,
+       x = "Sample size setting",
+       color = "Validation approach",
+       shape = "Predictor selection"
+  ) +
+  facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+
+  theme_set(theme_bw(base_size = 11)) +
+  #theme(legend.position = c(0.75, 0.23)) +
+  guides(color = guide_legend(nrow=4, ncol=2),
+         shape = guide_legend(nrow = 2)) +
+  theme(legend.position="bottom")
+
+
+
+p3_thesis_p <- 
+  ggplot(data = df_perf %>% filter(study == "Study_3",  
+                                   !estimand %in% c("log(Slope)", "R2 Cox Snell", "MAPE"),
+                                   model %in% c("Firth", "Ridge", "Lasso")),
+         mapping = aes(x = as.factor(n_setting),
+                       y = md,
+                       ymin = md-md_dist,
+                       ymax = md+md_dist,
+                       color = approach
+                       )) +
+  geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+  geom_point(data = df_perf %>% filter(study == "Study_3",
+                                       estimand == "log(Slope)", 
+                                       model %in% c("Firth", "Ridge", "Lasso")),
+             mapping = aes(x = as.factor(n_setting),
+                           y = md,
+                           color = approach
+                           ),
+             position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(data = df_perf %>% filter(study == "Study_3", 
+                                           estimand == "log(Slope)", 
+                                           model %in% c("Firth", "Ridge", "Lasso")),
+                 mapping = aes(x = as.factor(n_setting),
+                               y = md,
+                               ymin = md_q1,
+                               ymax = md_q3,
+                               color = approach
+                               ),
+  position = position_dodge(width = 0.99), size = 0.1) +
+  scale_color_manual(values = colors_perf) +
+  labs(y = NULL,
+       x = "Sample size setting",
+       color = "Validation approach"
+  ) +
+  facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+
+  theme_set(theme_bw(base_size = 11)) +
+  #theme(legend.position = c(0.75, 0.23)) +
+  guides(color = guide_legend(nrow=4, ncol=2),
+         shape = guide_legend(nrow = 2)) +
+  theme(legend.position="bottom")
+
+
+
+
+
+p3_all_t <- 
+  ggplot(data = df_perf %>% 
+           filter(study == "Study_3", 
+                  estimand != "log(Slope)", 
+                  model %in% c("ML", "CART", "RF")),
+         mapping = aes(x = as.factor(n_setting),    
+                       y = md,
+                       ymin = md-md_dist,
+                       ymax = md+md_dist,
+                       color = approach,
+                       shape = pred_selection
+         )) +
+  geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+  geom_point(data = df_perf %>% 
+               filter(study == "Study_3", 
+                      estimand == "log(Slope)", 
+                      model %in%c("ML", "CART", "RF")), 
+             mapping = aes(x = as.factor(n_setting),
+                           y = md,
+                           color = approach,
+                           shape = pred_selection),
+             position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(data = df_perf %>%
+                   filter(study == "Study_3",
+                          estimand == "log(Slope)", 
+                          model %in%c("ML", "CART", "RF")), 
+                 mapping = aes(x = as.factor(n_setting),
+                               y = md,
+                               ymin = md_q1,
+                               ymax = md_q3,
+                               color = approach
+                 ),
+                 position = position_dodge(width = 0.99), size = 0.1) +
+  scale_color_manual(values = colors_perf) +
+  labs(y = NULL,
+       x = "Sample size setting",
+       color = "Validation approach",
+       shape = "Predictor selection"
+  ) +
+  facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+
+  theme_set(theme_bw(base_size = 11)) +
+  #theme(legend.position = c(0.75, 0.23)) +
+  guides(color = guide_legend(nrow=4, ncol=2),
+         shape = guide_legend(nrow = 2)) +
+  theme(legend.position="bottom")
+
+
+
+p3_thesis_t <- 
+  ggplot(data = df_perf %>% filter(study == "Study_3",  
+                                   !estimand %in% c("log(Slope)", "R2 Cox Snell", "MAPE"),
+                                   model %in% c("Firth", "Ridge", "Lasso")),
+         mapping = aes(x = as.factor(n_setting),
+                       y = md,
+                       ymin = md-md_dist,
+                       ymax = md+md_dist,
+                       color = approach
+         )) +
+  geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+  geom_point(data = df_perf %>% filter(study == "Study_3",
+                                       estimand == "log(Slope)", 
+                                       model %in% c("Firth", "Ridge", "Lasso")),
+             mapping = aes(x = as.factor(n_setting),
+                           y = md,
+                           color = approach
+             ),
+             position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(data = df_perf %>% filter(study == "Study_3", 
+                                           estimand == "log(Slope)", 
+                                           model %in% c("Firth", "Ridge", "Lasso")),
+                 mapping = aes(x = as.factor(n_setting),
+                               y = md,
+                               ymin = md_q1,
+                               ymax = md_q3,
+                               color = approach
+                 ),
+                 position = position_dodge(width = 0.99), size = 0.1) +
+  scale_color_manual(values = colors_perf) +
+  labs(y = NULL,
+       x = "Sample size setting",
+       color = "Validation approach"
+  ) +
+  facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+
+  theme_set(theme_bw(base_size = 11)) +
+  #theme(legend.position = c(0.75, 0.23)) +
+  guides(color = guide_legend(nrow=4, ncol=2),
+         shape = guide_legend(nrow = 2)) +
+  theme(legend.position="bottom")
+
+
+  ggsave(paste0(full_performance_plots,"performance_study_1_full.pdf"), plot = p1_all, width = 25, height = 30, units = "cm")
+  ggsave(paste0(performance_measures_plots,"performance_study_1_thesis.pdf"), plot = p1_thesis, width = 25, height = 30, units = "cm")
+  
+  
+  ggsave(paste0(full_performance_plots,"performance_study_2_full.pdf"), plot = p2_all, width = 25, height = 30, units = "cm")
+  ggsave(paste0(performance_measures_plots,"performance_study_2_thesis.pdf"), plot = p2_thesis, width = 25, height = 30, units = "cm")
+  
+  ggsave(paste0(full_performance_plots,"performance_study_3_full_penalized.pdf"), plot = p3_all_p, width = 25, height = 30, units = "cm")
+  ggsave(paste0(performance_measures_plots,"performance_study_3_thesis_penalized.pdf"), plot = p3_thesis_p, width = 25, height = 30, units = "cm")
+  ggsave(paste0(full_performance_plots,"performance_study_3_full_tree.pdf"), plot = p3_all_t, width = 25, height = 30, units = "cm")
+  ggsave(paste0(performance_measures_plots,"performance_study_3_thesis_tree.pdf"), plot = p3_thesis_t, width = 25, height = 30, units = "cm")
