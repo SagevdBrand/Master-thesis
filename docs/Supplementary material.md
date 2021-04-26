@@ -273,8 +273,10 @@ iteration.
   - Large slopes (slope > 10): Only for visualizations, these values are winsorized
   to a maximum of 10. The number of occurrences are registered in the table below.
   - NA: In case of no selected predictors, the slope is replaced by the
-    highest estimated calibration slope within the scenario. Register the number
-    of occurrences per scenario, specifically.
+    highest estimated calibration slope within the scenario. When there is
+    another reason that there is no calibration slope, it is also replaced by
+    the highest estimated calibration slope within the scenario. The number
+    of instances is also recorded per scenario.
 
 
 *Calibration intercept:*
@@ -302,6 +304,7 @@ case scenario. The number of occurrences are registered in the table below.
 ### Error occurrence
 The following represents the number of errors that occurred for each scenario
 specifically:
+
 
 |Study   | Scenario| No predictors selected| NA .632+ bootstrap results| Negative Slopes| Slopes > 10| NA slopes| Intercepts < -5| Intercepts > 5| Negative R2 CS| Negative R2 Tjur| (-)Infinite ECI| ECI > 1| NA ECI| Prob. of 0 or 1| Separation| < 8 events| eci: LOESS warning| No events| No events in fold| No events in bootstrap sample|
 |:-------|--------:|----------------------:|--------------------------:|---------------:|-----------:|---------:|---------------:|--------------:|--------------:|----------------:|---------------:|-------:|------:|---------------:|----------:|----------:|------------------:|---------:|-----------------:|-----------------------------:|
@@ -361,7 +364,7 @@ specifically:
 |Study_3 |       12|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
 |Study_3 |       13|                      0|                          0|              26|           0|         1|             335|             70|              0|                0|               0|       9|      0|           14239|        497|          0|                  1|         0|                 0|                             0|
 |Study_3 |       14|                      0|                          0|               1|           0|        32|               0|              0|              0|                0|               2|      32|      0|           17057|          0|          0|                  7|         0|                 0|                             0|
-|Study_3 |       15|                    121|                         29|               0|           0|       544|               0|              0|             29|               29|             151|     589|     32|            6091|          0|          0|                298|         0|                 0|                             0|
+|Study_3 |       15|                    121|                         29|               0|           0|       544|               0|              0|             29|               29|             151|     589|      3|            6091|          0|          0|                298|         0|                 0|                             0|
 |Study_3 |       16|                      0|                          0|               0|        1133|         0|               0|              0|              0|                0|               0|       0|      0|             842|       2500|          0|                  0|         0|                 0|                             0|
 |Study_3 |       17|                      0|                          0|               0|        1246|         0|               0|              0|              0|                0|               0|       0|      0|             942|       2500|          0|                  0|         0|                 0|                             0|
 |Study_3 |       18|                      0|                          0|               0|        1411|         0|               0|              0|              0|                0|               0|       0|      0|             980|       2500|          0|                  0|         0|                 0|                             0|

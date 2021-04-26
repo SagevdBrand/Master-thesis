@@ -210,13 +210,13 @@ num_datasets <- 60*500
 
 
 percentage_errors <- c(all_together[,1]/num_models_pred_sel,
-                       all_together[,2]/num_models_tree_based,
-                       all_together[,3]/num_models_total,
-                       all_together[,4]/num_models_tuning,
-                       all_together[,5]/num_models_total,
-                       all_together[,6]/num_datasets,
-                       all_together[,7]/num_models_cv,
-                       all_together[,8]/num_models_boot
+                       all_together[,13]/num_models_tree_based,
+                       all_together[,14]/num_models_total,
+                       all_together[,15]/num_models_tuning,
+                       all_together[,16]/num_models_total,
+                       all_together[,17]/num_datasets,
+                       all_together[,18]/num_models_cv,
+                       all_together[,19]/num_models_boot
                          )
 percentage_errors <- lapply(percentage_errors, round, 4)  
 
@@ -237,8 +237,27 @@ df_all <- df_all %>% group_by(study, scenario) %>%
            case_when(
              str_detect(error_info,
                         "No predictors selected -> no calibration slope") == TRUE ~ max(calib_slope, na.rm = T),
+             is.na(calib_slope) ~ 10,
              TRUE ~ calib_slope
-           ))
+           ),
+         auc = case_when(is.na(auc) ~ 0.5,
+                         TRUE ~ auc),
+         calib_int = case_when(is.na(calib_int) ~ max(calib_int, na.rm = T),
+                                TRUE ~ calib_int),
+         rmspe = case_when(is.na(rmspe) ~ max(rmspe, na.rm = T),
+                               TRUE ~ rmspe),
+         mape = case_when(is.na(mape) ~ max(mape, na.rm = T),
+                           TRUE ~ mape),
+         eci = case_when(is.na(eci) ~ 1,
+                         eci > 1 ~ 1,
+                         is.infinite(eci) ~ 1,
+                         eci < 0 ~ 1, 
+                         TRUE ~ eci),
+         Tjur = case_when(is.na(Tjur) ~ 1,
+                         TRUE ~ Tjur),
+         R2_CS = case_when(is.na(R2_CS) ~ 0,
+                          TRUE ~ R2_CS)
+         )
 
 # Check
 # df_all$calib_slope[no_pred_ind]
