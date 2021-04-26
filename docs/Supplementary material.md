@@ -201,73 +201,173 @@ It might occur that predicted probability are exactly 1 or 0. In those cases the
   - Report an error when probabilities of 0 or 1 occurred. Change the values
     of these probabilities to 0.000001 or 0.999999, respectively.
 
+### Estimand adjustments
+After the simulations, some new issues arose regarding the calculation of some
+of the estimands. Some estimands were outside of their theoretical boundaries,
+indicated model performance to worse than an intercept-only model, were
+infinitely large or small, or simply missing. As explained above,
+in those cases where no predictors were selected when developing the full model
+(based on all development data), the calibration slope could not be estimated.
+Consequently, an error occurred when calculating the .632+ because their estimation
+depended on the apparent estimands. Under these circumstances, no estimands
+could be calculated for the .632+ bootstrap approach for that particular
+iteration.
+
+1. How to detect:
+
+  For all estimands the number of missing, infinite and values outside of the
+  theoretical boundaries were counted.
+
+*AUC, rMSPE and MAPE:*
+  - NA: This only occurred when no estimands could be calculated for
+      .632+ bootstrap, due to the error described above.
+
+*Calibration slope:*
+  - Negative slopes (slope < 0): Negative slopes indicate that the risk
+      estimates are the opposite of what they should have been. Predicted high
+      risks are in fact low risks and vice versa. This happened when the
+      prediction model was worse than an intercept only model.
+  - Large slopes (slope > 10): The predicted probabilities are extremely
+      underfitted.
+  - NA: No calibration slopes could be calculated due to degenerate linear
+      predictors within either a fold, bootstrap sample or within the apparent
+      approach. In case of the latter, this meant that also no slope could be
+      calculated for the .632+ bootstrap approach as its calculations are
+      dependent on the apparent results.
+
+*Calibration intercept:*
+  - Very negative (intercept < -5) or positive (intercept > 5): In cases of
+      bad model performance, the predictions can be severely over- or
+      underestimated.
+  - NA: This only occurred when no calibration intercept was calculated for
+      .632+ bootstrap, due to the error described above.
+
+*R2_CS, R2_Tjur*:
+  - Negative (R2_CS < 0 | R2_Tjur < 0):
+      Theoretically, these estimands have a range between 0 and <1. However, in
+      case the intercept-only model performs better than the final estimated
+      model, this can be negative.
+  - NA: This only occurred when no was calculated for R2_CS and R2_Tjur
+      within .632+ bootstrap, due to the error described above.
+
+*ECI:*
+  - Infinite (ECI = Infinite | ECI = -Infinite): Both indicate that the
+      model estimate the risks in complete the opposite to the actual risks.
+  - ECI > 1: In these cases the squared difference between the estimated
+      risks and the event-fraction, is smaller than the squared difference between
+      the estimated risks and observed probabilities.
+  - NA: This occurred for both Harrell's and .632+ bootstrap in those cases
+      where there were no predictors chosen within the apparent model.
+
+2. How to handle:
+
+*AUC, rMSPE and MAPE:*
+  - NA: In case of no selected predictors, these estimands are replaced by 0.5
+  for the AUC, and highest rMSPE and MAPE within the scenario.
+  The number of occurrences are registered in the table below.
+
+
+*Calibration slope:*
+  - Negative slopes (slope < 0): No action is taken but registering the number
+  of occurrences per scenario, specifically.
+  - Large slopes (slope > 10): Only for visualizations, these values are winsorized
+  to a maximum of 10. The number of occurrences are registered in the table below.
+  - NA: In case of no selected predictors, the slope is replaced by the
+    highest estimated calibration slope within the scenario. When there is
+    another reason that there is no calibration slope, it is also replaced by
+    the highest estimated calibration slope within the scenario. The number
+    of instances is also recorded per scenario.
+
+
+*Calibration intercept:*
+  - Very negative (< -5) or positive (>5): No action is taken but registering
+  the number of occurrences per scenario, specifically.
+  - NA: the intercept is replaced by the highest estimated calibration intercept
+   within the scenario. The number of occurrences are registered in the table below.
+
+
+*R2_CS, R2_Tjur*:
+  - Negative (R2_CS < 0 | R2_Tjur < 0): No action is taken but registering
+  the number of occurrences per scenario, specifically.
+  - NA: The estimands are replaced by 0, to indicate that a useless model.
+   The number of occurrences are registered in the table below.
+
+
+*ECI:*
+  - Infinite (ECI = Infinite | ECI = -Infinite): Replace by 1, indicating the worst
+case scenario. The number of occurrences are registered in the table below.
+  - ECI > 1: Replace by 1, indicating the worst
+case scenario. The number of occurrences are registered in the table below.
+  - NA: Replace by 1, indicating the worst
+case scenario. The number of occurrences are registered in the table below.
+
 ### Error occurrence
 The following represents the number of errors that occurred for each scenario
 specifically:
 
-|Study   | Scenario| No predictors selected| Prob of 0 or 1| Separation| < 8 events| eci: LOESS warning| No events| No events in fold| No events in bootstrap sample|
-|:-------|--------:|----------------------:|--------------:|----------:|----------:|------------------:|---------:|-----------------:|-----------------------------:|
-|Study_1 |        1|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
-|Study_1 |        2|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |        3|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |        4|                      0|              0|          2|          0|                  0|         0|                 0|                             0|
-|Study_1 |        5|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |        6|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |        7|                      0|              0|          5|          0|                  0|         0|                 0|                             0|
-|Study_1 |        8|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |        9|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |       10|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
-|Study_1 |       11|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |       12|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |       13|                      0|              0|          2|          0|                  0|         0|                 0|                             0|
-|Study_1 |       14|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |       15|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |       16|                      0|              0|          5|          0|                  0|         0|                 0|                             0|
-|Study_1 |       17|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_1 |       18|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |        1|                      0|              0|         86|          0|                  0|         0|                 0|                             0|
-|Study_2 |        2|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |        3|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |        4|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |        5|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |        6|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |        7|                      0|              0|         69|          0|                  0|         0|                 0|                             0|
-|Study_2 |        8|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |        9|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
-|Study_2 |       10|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       11|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       12|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       13|                      0|              0|         86|          0|                  0|         0|                 0|                             0|
-|Study_2 |       14|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       15|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       16|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       17|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       18|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       19|                      0|              0|         69|          0|                  0|         0|                 0|                             0|
-|Study_2 |       20|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       21|                      0|              0|          1|          0|                  0|         0|                 0|                             0|
-|Study_2 |       22|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       23|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_2 |       24|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |        1|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |        2|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |        3|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |        4|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |        5|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |        6|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |        7|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |        8|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |        9|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |       10|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |       11|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |       12|                      0|              0|          0|          0|                  0|         0|                 0|                             0|
-|Study_3 |       13|                      0|          14239|        497|          0|                  1|         0|                 0|                             0|
-|Study_3 |       14|                      0|          17057|          0|          0|                  7|         0|                 0|                             0|
-|Study_3 |       15|                    121|           6091|          0|          0|                298|         0|                 0|                             0|
-|Study_3 |       16|                      0|            842|       2500|          0|                  0|         0|                 0|                             0|
-|Study_3 |       17|                      0|            942|       2500|          0|                  0|         0|                 0|                             0|
-|Study_3 |       18|                      0|            980|       2500|          0|                  0|         0|                 0|                             0|
 
+|Study   | Scenario| No predictors selected| NA .632+ bootstrap results| Negative Slopes| Slopes > 10| NA slopes| Intercepts < -5| Intercepts > 5| Negative R2 CS| Negative R2 Tjur| (-)Infinite ECI| ECI > 1| NA ECI| Prob. of 0 or 1| Separation| < 8 events| eci: LOESS warning| No events| No events in fold| No events in bootstrap sample|
+|:-------|--------:|----------------------:|--------------------------:|---------------:|-----------:|---------:|---------------:|--------------:|--------------:|----------------:|---------------:|-------:|------:|---------------:|----------:|----------:|------------------:|---------:|-----------------:|-----------------------------:|
+|Study_1 |        1|                      0|                          0|               0|           3|         0|               0|              0|              0|                0|               0|      23|      0|               0|          1|          0|                  0|         0|                 0|                             0|
+|Study_1 |        2|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        3|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        4|                      0|                          0|               0|           2|         0|               0|              0|              0|                0|               0|       6|      0|               0|          2|          0|                  0|         0|                 0|                             0|
+|Study_1 |        5|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        6|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        7|                      0|                          0|               0|           8|         0|               0|              0|              0|                0|               0|       5|      0|               0|          5|          0|                  0|         0|                 0|                             0|
+|Study_1 |        8|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |        9|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       10|                      0|                          0|               0|           3|         0|               0|              0|              0|                0|               0|      23|      0|               0|          1|          0|                  0|         0|                 0|                             0|
+|Study_1 |       11|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       12|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       13|                      0|                          0|               0|           2|         0|               0|              0|              0|                0|               0|       6|      0|               0|          2|          0|                  0|         0|                 0|                             0|
+|Study_1 |       14|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       15|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       16|                      0|                          0|               0|           8|         0|               0|              0|              0|                0|               0|       5|      0|               0|          5|          0|                  0|         0|                 0|                             0|
+|Study_1 |       17|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_1 |       18|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        1|                      0|                          0|               0|         144|         0|               0|              0|              0|                0|               0|     242|      0|               0|         86|          0|                  0|         0|                 0|                             0|
+|Study_2 |        2|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        3|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        4|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        5|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        6|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        7|                      0|                          0|               1|         122|         0|               0|              0|              0|                0|               0|     223|      0|               0|         69|          0|                  0|         0|                 0|                             0|
+|Study_2 |        8|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |        9|                      0|                          0|               0|           1|         0|               0|              0|              0|                0|               0|       2|      0|               0|          1|          0|                  0|         0|                 0|                             0|
+|Study_2 |       10|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       11|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       12|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       13|                      0|                          0|               0|         144|         0|               0|              0|              0|                0|               0|     242|      0|               0|         86|          0|                  0|         0|                 0|                             0|
+|Study_2 |       14|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       15|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       16|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       17|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       18|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       19|                      0|                          0|               1|         122|         0|               0|              0|              0|                0|               0|     223|      0|               0|         69|          0|                  0|         0|                 0|                             0|
+|Study_2 |       20|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       21|                      0|                          0|               0|           1|         0|               0|              0|              0|                0|               0|       2|      0|               0|          1|          0|                  0|         0|                 0|                             0|
+|Study_2 |       22|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       23|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_2 |       24|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        1|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        2|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        3|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        4|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        5|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        6|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        7|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       7|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        8|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |        9|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       10|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       11|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       12|                      0|                          0|               0|           0|         0|               0|              0|              0|                0|               0|       0|      0|               0|          0|          0|                  0|         0|                 0|                             0|
+|Study_3 |       13|                      0|                          0|              26|           0|         1|             335|             70|              0|                0|               0|       9|      0|           14239|        497|          0|                  1|         0|                 0|                             0|
+|Study_3 |       14|                      0|                          0|               1|           0|        32|               0|              0|              0|                0|               2|      32|      0|           17057|          0|          0|                  7|         0|                 0|                             0|
+|Study_3 |       15|                    121|                         29|               0|           0|       611|               0|              0|             29|               29|             151|     589|      3|            6091|          0|          0|                298|         0|                 0|                             0|
+|Study_3 |       16|                      0|                          0|               0|        1133|         0|               0|              0|              0|                0|               0|       0|      0|             842|       2500|          0|                  0|         0|                 0|                             0|
+|Study_3 |       17|                      0|                          0|               0|        1246|         0|               0|              0|              0|                0|               0|       0|      0|             942|       2500|          0|                  0|         0|                 0|                             0|
+|Study_3 |       18|                      0|                          0|               0|        1411|         0|               0|              0|              0|                0|               0|       0|      0|             980|       2500|          0|                  0|         0|                 0|                             0|
 
 ## 4. Details on the software and code used
 The following code was used and/or adapted:
