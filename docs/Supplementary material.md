@@ -214,7 +214,8 @@ could be calculated for the .632+ bootstrap approach for that particular
 iteration.
 
 1. How to detect:
-  - For all estimands the number of missing, infinite and values outside of the
+
+  For all estimands the number of missing, infinite and values outside of the
   theoretical boundaries were counted.
 
 *AUC, rMSPE and MAPE:*
