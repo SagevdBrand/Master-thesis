@@ -217,49 +217,45 @@ iteration.
   - For all estimands the number of missing, infinite and values outside of the
   theoretical boundaries were counted.
 
-   *AUC, rMSPE and MAPE:*
-      - NA: This only occurred when no estimands could be calculated for
+*AUC, rMSPE and MAPE:*
+  - NA: This only occurred when no estimands could be calculated for
       .632+ bootstrap, due to the error described above.
 
-
-    *Calibration slope:*
-      - Negative slopes (slope < 0): Negative slopes indicate that the risk
+*Calibration slope:*
+  - Negative slopes (slope < 0): Negative slopes indicate that the risk
       estimates are the opposite of what they should have been. Predicted high
       risks are in fact low risks and vice versa. This happened when the
       prediction model was worse than an intercept only model.
-      - Large slopes (slope > 10): The predicted probabilities are extremely
+  - Large slopes (slope > 10): The predicted probabilities are extremely
       underfitted.
-      - NA: No calibration slopes could be calculated due to degenerate linear
+  - NA: No calibration slopes could be calculated due to degenerate linear
       predictors within either a fold, bootstrap sample or within the apparent
       approach. In case of the latter, this meant that also no slope could be
       calculated for the .632+ bootstrap approach as its calculations are
       dependent on the apparent results.
 
-
-   *Calibration intercept:*
-      - Very negative (intercept < -5) or positive (intercept > 5): In cases of
+*Calibration intercept:*
+  - Very negative (intercept < -5) or positive (intercept > 5): In cases of
       bad model performance, the predictions can be severely over- or
       underestimated.
-      - NA: This only occurred when no calibration intercept was calculated for
+  - NA: This only occurred when no calibration intercept was calculated for
       .632+ bootstrap, due to the error described above.
 
-
-  *R2_CS, R2_Tjur*:
-      - Negative (R2_CS < 0 | R2_Tjur < 0):
+*R2_CS, R2_Tjur*:
+  - Negative (R2_CS < 0 | R2_Tjur < 0):
       Theoretically, these estimands have a range between 0 and <1. However, in
       case the intercept-only model performs better than the final estimated
       model, this can be negative.
-      - NA: This only occurred when no was calculated for R2_CS and R2_Tjur
+  - NA: This only occurred when no was calculated for R2_CS and R2_Tjur
       within .632+ bootstrap, due to the error described above.
 
-
-  *ECI:*
-      - Infinite (ECI = Infinite | ECI = -Infinite): Both indicate that the
+*ECI:*
+  - Infinite (ECI = Infinite | ECI = -Infinite): Both indicate that the
       model estimate the risks in complete the opposite to the actual risks.
-      - ECI > 1: In these cases the squared difference between the estimated
+  - ECI > 1: In these cases the squared difference between the estimated
       risks and the event-fraction, is smaller than the squared difference between
       the estimated risks and observed probabilities.
-      - NA: This occurred for both Harrell's and .632+ bootstrap in those cases
+  - NA: This occurred for both Harrell's and .632+ bootstrap in those cases
       where there were no predictors chosen within the apparent model.
 
 2. How to handle:
