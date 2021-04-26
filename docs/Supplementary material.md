@@ -216,9 +216,11 @@ iteration.
 1. How to detect:
   - For all estimands the number of missing, infinite and values outside of the
   theoretical boundaries were counted.
+
    *AUC, rMSPE and MAPE:*
       - NA: This only occurred when no estimands could be calculated for
       .632+ bootstrap, due to the error described above.
+
 
     *Calibration slope:*
       - Negative slopes (slope < 0): Negative slopes indicate that the risk
@@ -233,12 +235,14 @@ iteration.
       calculated for the .632+ bootstrap approach as its calculations are
       dependent on the apparent results.
 
+
    *Calibration intercept:*
       - Very negative (intercept < -5) or positive (intercept > 5): In cases of
       bad model performance, the predictions can be severely over- or
       underestimated.
       - NA: This only occurred when no calibration intercept was calculated for
       .632+ bootstrap, due to the error described above.
+
 
   *R2_CS, R2_Tjur*:
       - Negative (R2_CS < 0 | R2_Tjur < 0):
@@ -247,6 +251,7 @@ iteration.
       model, this can be negative.
       - NA: This only occurred when no was calculated for R2_CS and R2_Tjur
       within .632+ bootstrap, due to the error described above.
+
 
   *ECI:*
       - Infinite (ECI = Infinite | ECI = -Infinite): Both indicate that the
@@ -258,10 +263,12 @@ iteration.
       where there were no predictors chosen within the apparent model.
 
 2. How to handle:
+
 *AUC, rMSPE and MAPE:*
   - NA: In case of no selected predictors, these estimands are replaced by 0.5
   for the AUC, and highest rMSPE and MAPE within the scenario.
   The number of occurrences are registered in the table below.
+
 
 *Calibration slope:*
   - Negative slopes (slope < 0): No action is taken but registering the number
@@ -272,11 +279,13 @@ iteration.
     highest estimated calibration slope within the scenario. Register the number
     of occurrences per scenario, specifically.
 
+
 *Calibration intercept:*
   - Very negative (< -5) or positive (>5): No action is taken but registering
   the number of occurrences per scenario, specifically.
   - NA: the intercept is replaced by the highest estimated calibration intercept
    within the scenario. The number of occurrences are registered in the table below.
+
 
 *R2_CS, R2_Tjur*:
   - Negative (R2_CS < 0 | R2_Tjur < 0): No action is taken but registering
@@ -284,12 +293,13 @@ iteration.
   - NA: The estimands are replaced by 0, to indicate that a useless model.
    The number of occurrences are registered in the table below.
 
+
 *ECI:*
-- Infinite (ECI = Infinite | ECI = -Infinite): Replace by 1, indicating the worst
+  - Infinite (ECI = Infinite | ECI = -Infinite): Replace by 1, indicating the worst
 case scenario. The number of occurrences are registered in the table below.
-- ECI > 1: Replace by 1, indicating the worst
+  - ECI > 1: Replace by 1, indicating the worst
 case scenario. The number of occurrences are registered in the table below.
-- NA: Replace by 1, indicating the worst
+  - NA: Replace by 1, indicating the worst
 case scenario. The number of occurrences are registered in the table below.
 
 ### Error occurrence
