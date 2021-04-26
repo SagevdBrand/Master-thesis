@@ -37,6 +37,88 @@ counts <- df_all %>% group_by(study, scenario) %>% summarise(count = n())
 # df_s3_s18 <- df_all %>% filter(study == "Study_3", scenario == "Scenario_18")
 # which(!ind %in% df_s3_s18$iteration)
 
+##############################
+## ESTIMAND SPECIFIC ERRORS ##
+##############################
+
+#########
+## AUC ##
+#########
+
+summary(df_all$auc)
+auc_na <- df_all %>% filter(is.na(auc))
+
+####################
+## Slope problems ##
+####################
+summary(df_all$calib_slope)
+slope_problems <- df_all %>% filter(is.na(calib_slope)|calib_slope<0)
+negative_slope <- slope_problems %>% filter
+
+big_slope <-   slope_problems %>% filter(calib_slope > 10)
+na_slope <- slope_problems %>% filter(is.na(calib_slope))
+
+########################
+## intercept problems ##
+########################
+summary(df_all$calib_int)
+intercept_problems <- df_all %>% filter(is.na(calib_int)|calib_int > 5|calib_int< -5)
+very_negative_intercept <- intercept_problems %>% filter(calib_int < -5) # All CART S3_s13!
+very_positive_intercept <-   intercept_problems %>% filter(calib_int > 5)
+na_intercept <- intercept_problems %>% filter(is.na(calib_int))
+
+checking <- df_all %>% filter(seed == 116241, iteration == 483, study == "Study_3", scenario == "Scenario_15")
+
+
+##################
+## ECI problems ##
+##################
+summary(df_all$eci)
+eci_problems <- df_all %>% filter(is.na(eci)|is.infinite(eci)| eci>1| eci<0)
+infinite_eci <- eci_problems %>% filter(eci == Inf)
+negative_eci <- eci_problems %>% filter(eci <0)
+bigger_1_eci <- eci_problems %>% filter(eci > 1 & eci != Inf)
+eci_na <- eci_problems %>% filter(is.na(eci))
+
+
+###################
+## R2CS problems ##
+###################
+summary(df_all$R2_CS)
+R2_CS_problems <- df_all %>% filter(is.na(R2_CS)|R2_CS>1| R2_CS<0)
+negative_R2_CS <- R2_CS_problems %>% filter(R2_CS <0)
+na_R2_CS <-   R2_CS_problems %>% filter(is.na(R2_CS))
+
+
+
+
+#####################
+## R2Tjur problems ##
+#####################
+
+summary(df_all$Tjur)
+R2_Tjur_problems <- df_all %>% filter(is.na(Tjur)|Tjur>1| Tjur<0)
+negative_R2_Tjur <- R2_Tjur_problems %>% filter(Tjur <0)
+na_R2_Tjur <-   R2_Tjur_problems %>% filter(is.na(Tjur))
+
+###########
+## rMSPE ##
+###########
+
+summary(df_all$rmspe)
+na_rmspe <-  df_all %>% filter(is.na(rmspe))
+
+##########
+## MAPE ##
+##########
+
+summary(df_all$mape)
+na_mape <-  df_all %>% filter(is.na(mape))
+
+
+
+
+
 
 
 ##################################
@@ -57,44 +139,60 @@ no_events <- "Error: No events sampled"
 no_events_folds <- "No events sampled in folds "
 no_events_training_samp <- " No events sampled in training sample"
 
-## Count how many were present per error and scenario ##
-# per_scenario <- df_all %>% group_by(study,scenario) %>% summarise(no_pred_count = sum(str_count(error_info, no_pred), na.rm = T),
-#                                                           max_probs_count = sum(str_count(error_info, max_probs), na.rm = T),
-#                                                           sep_count = sum(str_count(error_info, paste0(separation, " | ",separation_warning)), na.rm = T),
-#                                                           few_events_count = sum(str_count(error_info, few_events), na.rm = T),
-#                                                           loess_warning_count = sum(str_count(error_info, loess_warning), na.rm = T),
-#                                                           no_events_count = sum(str_count(error_info, no_events), na.rm = T),
-#                                                           no_events_folds_count = sum(str_count(error_info, no_events_folds), na.rm = T),
-#                                                           no_events_training_samp_count = sum(str_count(error_info, no_events_training_samp), na.rm = T),
-#                                                           .groups = "keep")
-# 
-# per_scenario$scenario <- as.numeric(gsub("Scenario_", "", per_scenario$scenario))
-# per_scenario <- per_scenario %>% arrange(study, scenario)
-# colnames(per_scenario) <- c("Study",
-# "Scenario",
-# "No predictors selected",
-# "Prob of 0 or 1",
-# "Separation",
-# "< 8 events",
-# "eci: LOESS warning",
-# "No events",
-# "No events in fold",
-# "No events in bootstrap sample"
-# )
-# 
-# saveRDS(per_scenario, file = paste0(errors_path,"all_errors_per_scenario.Rds"))
-# 
-# all_together <- df_all %>% summarise(no_pred_count = sum(str_count(.$error_info, no_pred), na.rm = T),
-#                                                           max_probs_count = sum(str_count(.$error_info, max_probs), na.rm = T),
-#                                                           sep_count = sum(str_count(.$error_info, paste0(separation, " | ",separation_warning)), na.rm = T),
-#                                                           few_events_count = sum(str_count(.$error_info, few_events), na.rm = T),
-#                                                           loess_warning_count = sum(str_count(.$error_info, loess_warning), na.rm = T),
-#                                                           no_events_count = sum(str_count(.$error_info, no_events), na.rm = T),
-#                                                           no_events_folds_count = sum(str_count(.$error_info, no_events_folds), na.rm = T),
-#                                                           no_events_training_samp_count = sum(str_count(.$error_info, no_events_training_samp), na.rm = T),
-#                                                           )
-# 
-# saveRDS(all_together, file = paste0(errors_path,"all_errors_together.Rds"))
+
+
+# Count how many were present per error and scenario ##
+per_scenario <- df_all %>% group_by(study,scenario) %>% summarise(no_pred_count = sum(str_count(error_info, no_pred), na.rm = T),
+                                                                  no_pred_app = n_distinct(which(is.na(auc))), #This were the only times when this error occurred
+                                                                  negative_slopes = n_distinct(which(calib_slope <0)),
+                                                                  large_slope = n_distinct(which(calib_slope >10)),
+                                                                  NA_slopes = n_distinct(which(is.na(calib_slope))),
+                                                                  very_negative_intercepts = n_distinct(which(calib_int < -5)),
+                                                                  very_positive_intercepts = n_distinct(which(calib_int > 5)),
+                                                                  negative_R2_CS = n_distinct(which(is.na(R2_CS))),
+                                                                  negative_R2_Tjur = n_distinct(which(is.na(Tjur))), 
+                                                                  infinite_eci = n_distinct(c(which(is.infinite(eci)), which(eci < 0))),
+                                                                  eci_bigger_1 = n_distinct(which(eci > 1)),
+                                                                  NA_ECI = n_distinct(which(is.na(eci))), 
+                                                                  max_probs_count = sum(str_count(error_info, max_probs), na.rm = T),
+                                                                  sep_count = sum(str_count(error_info, paste0(separation, " | ",separation_warning)), na.rm = T),
+                                                                  few_events_count = sum(str_count(error_info, few_events), na.rm = T),
+                                                                  loess_warning_count = sum(str_count(error_info, loess_warning), na.rm = T),
+                                                                  no_events_count = sum(str_count(error_info, no_events), na.rm = T),
+                                                                  no_events_folds_count = sum(str_count(error_info, no_events_folds), na.rm = T),
+                                                                  no_events_training_samp_count = sum(str_count(error_info, no_events_training_samp), na.rm = T),
+                                                                  .groups = "keep")
+
+per_scenario$scenario <- as.numeric(gsub("Scenario_", "", per_scenario$scenario))
+per_scenario <- per_scenario %>% arrange(study, scenario)
+colnames(per_scenario) <- c("Study",
+"Scenario",
+"No predictors selected",
+"NA .632+ bootstrap results",
+"Negative Slopes",
+"Slopes > 10",
+"NA slopes",
+"Intercepts < -5",
+"Intercepts > 5",
+"Negative R2 CS",
+"Negative R2 Tjur",
+"(-)Infinite ECI",
+"ECI > 1",
+"NA ECI",
+"Prob. of 0 or 1",
+"Separation",
+"< 8 events",
+"eci: LOESS warning",
+"No events",
+"No events in fold",
+"No events in bootstrap sample"
+)
+
+saveRDS(per_scenario, file = paste0(errors_path,"all_errors_per_scenario.Rds"))
+
+all_together <- as.matrix(colSums(per_scenario[,c(3:21)]))
+
+saveRDS(all_together, file = paste0(errors_path,"all_errors_together.Rds"))
 
 per_scenario <- readRDS(paste0(errors_path,"all_errors_per_scenario.Rds"))
 all_together <- readRDS(paste0(errors_path,"all_errors_together.Rds"))
@@ -122,45 +220,6 @@ percentage_errors <- c(all_together[,1]/num_models_pred_sel,
                          )
 percentage_errors <- lapply(percentage_errors, round, 4)  
 
-##################
-## ECI problems ##
-##################
-summary(df_all$eci)
-eci_problems <- df_all %>% filter(is.na(eci)|is.infinite(eci)| eci>1| eci<0)
-infinite_eci <- eci_problems %>% filter(eci == Inf)
-negative_eci <- eci_problems %>% filter(eci <0)
-bigger_1_eci <- eci_problems %>% filter(eci > 1 & eci != Inf)
-eci_na <- eci_problems %>% filter(is.na(eci))
-
-
-###################
-## R2CS problems ##
-###################
-summary(df_all$R2_CS)
-R2_CS_problems <- df_all %>% filter(is.na(R2_CS)|R2_CS>1| R2_CS<0)
-negative_R2_CS <- R2_CS_problems %>% filter(R2_CS <0)
-na_R2_CS <-   R2_CS_problems %>% filter(is.na(R2_CS))
-
-
-
-####################
-## Slope problems ##
-####################
-summary(df_all$calib_slope)
-slope_problems <- df_all %>% filter(is.na(calib_slope)|calib_slope<0)
-negative_slope <- slope_problems %>% filter(calib_slope <0)
-big_slope <-   slope_problems %>% filter(calib_slope > 5)
-na_slope <- slope_problems %>% filter(is.na(calib_slope))
-
-########################
-## intercept problems ##
-########################
-summary(df_all$calib_int)
-intercept_problems <- df_all %>% filter(is.na(calib_int)|calib_int > 5|calib_int< -5)
-very_negative_intercept <- intercept_problems %>% filter(calib_int < -5) # All CART S3_s13!
-very_positive_intercept <-   intercept_problems %>% filter(calib_int > 5)
-na_intercept <- intercept_problems %>% filter(is.na(calib_int))
-
 #########################################################
 # For those situations were no predictors were selected #
 # #########################################################
@@ -183,5 +242,5 @@ df_all <- df_all %>% group_by(study, scenario) %>%
 
 # Check
 # df_all$calib_slope[no_pred_ind]
-saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
+#saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
 

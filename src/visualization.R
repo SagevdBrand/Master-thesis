@@ -27,7 +27,7 @@ df_all_long <- df_all_2 %>% pivot_longer(., cols = all_of(estimands_names), name
 ## Rename estimands for plots and change the order of factors ##
 ################################################################
 df_all_long <- df_all_long %>% mutate(estimand = case_when(estimand == "auc" ~ "AUC",
-                                                           estimand == "calib_slope" ~  "log(Slope)",
+                                                           estimand == "calib_slope" ~  "Calib. Slope",
                                                            estimand == "calib_int" ~ "Calibration Intercept",
                                                            estimand == "Tjur" ~ "R2 Tjur",
                                                            estimand == "R2_CS" ~ "R2 Cox Snell",
@@ -38,7 +38,7 @@ df_all_long <- df_all_long %>% mutate(estimand = case_when(estimand == "auc" ~ "
                                       estimand = fct_relevel(estimand,
                                                              "AUC", 
                                                              "Calibration Intercept",
-                                                             "log(Slope)",
+                                                             "Calib. Slope",
                                                              "R2 Tjur",
                                                              "R2 Cox Snell",
                                                              "ECI",
@@ -71,7 +71,20 @@ df_all_long <- df_all_long %>% mutate(estimand = case_when(estimand == "auc" ~ "
 ############
 
 # Specify color palette:
-colors <- c("white",   # White
+colors <- c("white",   # white
+            "#e63946", # imperial red
+            "#02c39a", #Mountain meadow
+            "#f28482", #Light coral
+            "#84a59d", # Morning blue
+            "#f6bd60", # Maximum yellow red
+            "#457b9d", # Celadon blue
+            "#f4a261" # Sandy brown
+)
+
+
+## for CART
+# Specify color palette:
+colors2 <- c("#76c893",   # Ocean green
             "#e63946", # imperial red
             "#02c39a", #Mountain meadow
             "#f28482", #Light coral
@@ -90,25 +103,18 @@ colors <- c("white",   # White
 # Results of study 1:
 df_s1_long<- df_all_long %>% filter(study == "Study_1")
 df_s1_long$scenario <- as.numeric(gsub("Scenario_", "", df_s1_long$scenario))
-df_s1_long <- df_s1_long%>% mutate(value = case_when(estimand == "log(Slope)" & value > 5 ~ 5,
-                                                     estimand == "log(Slope)" & value < 0 ~ 0,
-                                                     estimand == "log(Slope)" & is.infinite(value) ~ 5,
-                                                     TRUE ~ value))
-
+df_s1_long <- df_s1_long %>% mutate(value = case_when(estimand == "Calib. Slope" & value > 10 ~ 10,
+                                                      TRUE ~ value))
+# 
 ### Figures to be included in thesis
 p1 <- 
   ggplot(data = df_s1_long %>% 
            filter(pred_selection == "none",
-                  estimand %in% c("AUC", "rMSPE")),
+                  estimand %in% c("AUC", "rMSPE", "Calib. Slope", "R2 Tjur")),
          mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
-  geom_boxplot(data = df_s1_long %>% 
-                 filter(pred_selection == "none",
-                        estimand == "log(Slope)"),
-               mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
-               position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-  #coord_cartesian(ylim = c(-1, 2.5)) +
   geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
   theme_set(theme_bw(base_size = 11)) +
+  scale_y_continuous(trans = "log10")+
   scale_fill_manual(values = colors) +
   labs(y = "Estimand value",
        x = "Sample size setting",
@@ -122,16 +128,11 @@ p1 <-
 p2 <- 
   ggplot(data = df_s1_long %>% 
            filter(pred_selection == "<0.157",
-                  estimand %in% c("AUC", "rMSPE")),
+                  estimand %in% c("AUC", "rMSPE", "Calib. Slope",  "R2 Tjur")),
          mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
-  geom_boxplot(data = df_s1_long %>% 
-                 filter(pred_selection == "<0.157",
-                        estimand == "log(Slope)"),
-               mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
-               position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
   geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-  # stat_summary(fun=mean, geom="point",position = position_dodge(width = 0.95), shape=1, size= 1.5) +
   theme_set(theme_bw(base_size = 11)) +
+  scale_y_continuous(trans = "log10")+
   scale_fill_manual(values = colors) +
   labs(y = "Estimand value",
        x = "Sample size setting",
@@ -146,15 +147,9 @@ p2 <-
 # Figures of all estimands (For supplementary material)
 p3 <- 
   ggplot(data = df_s1_long %>% 
-           filter(pred_selection == "none", 
-                  estimand != "log(Slope)"), 
+           filter(pred_selection == "none"), 
          mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
   geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-  geom_boxplot(data = df_s1_long %>% 
-                 filter(pred_selection == "none",
-                        estimand == "log(Slope)"),
-               mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
-               position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
   theme_set(theme_bw(base_size = 11)) +
   scale_fill_manual(values = colors) +
   labs(y = "Estimand value",
@@ -168,15 +163,9 @@ p3 <-
 
 p4 <- 
   ggplot(data = df_s1_long %>% 
-           filter(pred_selection == "<0.157",
-                  estimand != "log(Slope)"),
+           filter(pred_selection == "<0.157"),
          mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
   geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-  geom_boxplot(data = df_s1_long %>% 
-                 filter(pred_selection == "<0.157",
-                        estimand == "log(Slope)"),
-               mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
-               position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
   theme_set(theme_bw(base_size = 11)) +
   scale_fill_manual(values = colors) +
   labs(y = "Estimand value",
@@ -190,9 +179,9 @@ p4 <-
 
 ## Saving the plots
 assign(paste0("thesis_estimands_study_1_no_pred_sel"), p1)
-ggsave(paste0(estimand_plots,"estimands_study_1_no_pred_sel.pdf"), plot = p1, width = 20, height = 23, units = "cm")
+ggsave(paste0(estimand_plots,"estimands_study_1_no_pred_sel.pdf"), plot = p1, width = 19, height = 15, units = "cm")
 assign(paste0("thesis_estimands_study_1_pred_sel"), p2)
-ggsave(paste0(estimand_plots,"estimands_study_1_pred_sel.pdf"), plot = p2, width = 20, height = 25, units = "cm")
+ggsave(paste0(estimand_plots,"estimands_study_1_pred_sel.pdf"), plot = p2, width = 19, height = 15, units = "cm")
 ggsave(paste0(full_estimand_plots,"full_estimands_study_1_no_pred_sel.pdf"), plot = p3, width = 20, height = 25, units = "cm")
 ggsave(paste0(full_estimand_plots,"full_estimands_study_1_pred_sel.pdf"), plot = p4, width = 20, height = 25, units = "cm")
 
@@ -206,28 +195,23 @@ ggsave(paste0(full_estimand_plots,"full_estimands_study_1_pred_sel.pdf"), plot =
 # Results of study 2:
 df_s2_long<- df_all_long %>% filter(study == "Study_2")
 df_s2_long$scenario <- as.numeric(gsub("Scenario_", "", df_s2_long$scenario))
-df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" & value > 5 ~ 5,
-                                                      estimand == "log(Slope)" & value < 0 ~ 0,
-                                                      estimand == "log(Slope)" & is.infinite(value) ~ 5,
+df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "Calib. Slope" & value > 10 ~ 10,
                                                       TRUE ~ value))
 
-  p1 <-  
+ p1 <-  
     ggplot(data = df_s2_long %>%
              filter(pred_selection == "none",
-                    estimand %in% c("AUC", "rMSPE", "eci")), 
+                    noise == "50% noise predictors",
+                    estimand %in% c("AUC", "Calib. Slope", "ECI")), 
            mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s2_long %>% 
-                   filter(pred_selection == "none",
-                          estimand == "log(Slope)"),
-                 mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
-                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    scale_y_continuous(trans = "log10")+
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
     labs(y = "Estimand value",
          x = "Sample size setting",
          fill = "Validation approach") +
-    facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
+    facet_grid(rows = vars(estimand), cols = vars(dim), scales = "free")+ 
     theme(legend.position="bottom")+
     guides(color = guide_legend(nrow=4, ncol=3))+
     theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
@@ -236,35 +220,26 @@ df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" &
   
   p2 <- ggplot(data = df_s2_long %>%
                  filter(pred_selection == "<0.157",
-                        estimand %in% c("AUC", "rMSPE", "eci")), 
-               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+                        noise == "50% noise predictors",
+                        estimand %in% c("AUC", "ECI", "Calib. Slope")),
+                        mapping = aes(x = as.factor(n_setting),  y =value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s2_long %>% 
-                   filter(pred_selection == "<0.157",
-                          estimand == "log(Slope)"),
-                 mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
-                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
+    scale_y_continuous(trans = "log10")+
     labs(y = "Estimand value",
          x = "Sample size setting",
          fill = "Validation approach") +
-    facet_grid(rows = vars(estimand), cols = vars(noise, dim), scales = "free")+ 
+    facet_grid(rows = vars(estimand), cols = vars(dim), scales = "free")+ 
     theme(legend.position="bottom")+
     guides(color = guide_legend(nrow=4, ncol=3))+
     theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
   
   
   p3 <- ggplot(data = df_s2_long %>%
-                 filter(pred_selection == "none",
-                        estimand != "log(Slope)"), 
+                 filter(pred_selection == "none"), 
                mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s2_long %>% 
-                   filter(pred_selection == "none",
-                          estimand == "log(Slope)"),
-                 mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
-                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
     labs(y = "Estimand value",
@@ -278,15 +253,9 @@ df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" &
   
   
   p4 <-  ggplot(data = df_s2_long %>%
-                 filter(pred_selection == "<0.157",
-                        estimand != "log(Slope)"), 
+                 filter(pred_selection == "<0.157"), 
                mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s2_long %>% 
-                   filter(pred_selection == "<0.157",
-                          estimand == "log(Slope)"),
-                 mapping = aes(x = as.factor(n_setting), y =ifelse(value == 0, 0, log(value)), fill = approach),
-                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
     labs(y = "Estimand value",
@@ -299,9 +268,9 @@ df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" &
   
   
   assign("thesis_estimands_study_2_no_pred_sel", p1)
-  ggsave(paste0(estimand_plots,"estimands_study_2_no_pred_sel.pdf"), plot = p1, width = 20, height = 25, units = "cm")
+  ggsave(paste0(estimand_plots,"estimands_study_2_no_pred_sel.pdf"), plot = p1, width = 19, height = 15, units = "cm")
   assign("thesis_estimands_study_2_pred_sel", p2)
-  ggsave(paste0(estimand_plots,"estimands_study_2_pred_sel.pdf"), plot = p2, width = 20, height = 25, units = "cm")
+  ggsave(paste0(estimand_plots,"estimands_study_2_pred_sel.pdf"), plot = p2, width = 19, height = 15, units = "cm")
   ggsave(paste0(full_estimand_plots,"full_estimands_study_2_no_pred_sel.pdf"), plot = p3, width = 20, height = 25, units = "cm")
   ggsave(paste0(full_estimand_plots,"full_estimands_study_2_pred_sel.pdf"), plot = p4, width = 20, height = 25, units = "cm")
   
@@ -315,23 +284,17 @@ df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "log(Slope)" &
 # Results of study 2:
 df_s3_long<- df_all_long %>% filter(study == "Study_3")
 df_s3_long$scenario <- as.numeric(gsub("Scenario_", "", df_s3_long$scenario))
-df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" & value > 5 ~ 5,
-                                                      estimand == "log(Slope)" & value < 0 ~ 0,
-                                                      estimand == "log(Slope)" & is.infinite(value) ~ 5,
+df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "Calib. Slope" & value > 10 ~ 10,
                                                       TRUE ~ value))
+
 
   p1 <- 
     ggplot(data = df_s3_long %>% 
-             filter(model %in% c("Firth", "Ridge", "Lasso"), 
-                    !(estimand %in% c( "log(Slope)", "R2 Cox Snell", "MAPE")) ), 
+             filter(model %in% c("Firth", "Ridge", "Lasso", "RF"), 
+                    estimand %in% c("AUC", "Calib. Slope", "R2 Tjur", "ECI")), 
            mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s2_long %>% 
-                   filter(pred_selection == "<0.157",
-                          model %in% c("Firth", "Ridge", "Lasso"), 
-                          estimand == "log(Slope)"),
-                 mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
-                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    scale_y_continuous(trans = "log10") +
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
     labs(y = "Estimand value",
@@ -346,16 +309,9 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" &
  
   
   p2 <-ggplot(data = df_s3_long %>% 
-                filter(model %in% c("Firth", "Ridge", "Lasso"), 
-                       estimand != "log(Slope)"), 
+                filter(model %in% c("Firth", "Ridge", "Lasso", "RF")), 
               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s2_long %>% 
-                   filter(pred_selection == "<0.157",
-                          model %in% c("Firth", "Ridge", "Lasso"), 
-                          estimand == "log(Slope)"),
-                 mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
-                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
     labs(y = "Estimand value",
@@ -371,15 +327,11 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" &
   
   p3 <- 
     ggplot(data = df_s3_long %>% 
-             filter(model %in% c("ML","CART", "RF"), 
-                    !(estimand %in% c("log(Slope)", "R2 Cox Snell", "MAPE")) ), 
+             filter(model %in% c("ML","CART"), 
+                    estimand %in% c("AUC", "Calib. Slope", "R2 Tjur")),
            mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s3_long %>% 
-                   filter(model %in% c("ML", "CART", "RF"), 
-                          estimand == "log(Slope)"),
-                 mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
-                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    scale_y_continuous(trans = "log10") +
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
     labs(y = "Estimand value",
@@ -392,15 +344,9 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" &
   
   
   p4 <-ggplot(data = df_s3_long %>% 
-                filter(model %in% c("ML", "CART", "RF"), 
-                       estimand  != "log(Slope)"), 
+                filter(model %in% c("ML", "CART")), 
               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
-    geom_boxplot(data = df_s3_long %>% 
-                   filter(model %in% c("ML", "CART", "RF"), 
-                          estimand == "log(Slope)"),
-                 mapping = aes(x = as.factor(n_setting), y = ifelse(value == 0, 0, log(value)), fill = approach),
-                 position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
     theme_set(theme_bw(base_size = 11)) +
     scale_fill_manual(values = colors) +
     labs(y = "Estimand value",
@@ -412,10 +358,61 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "log(Slope)" &
     theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
   
   
+  ###################################################
+  ##### The freakshow that is the CART model ########
+  ###################################################
+
+  
+  cart_data <- df_all_long %>% filter(study == "Study_3") %>% mutate(value = case_when(value == Inf ~ 10000,
+                                                                                       value == -Inf ~ -10000,
+                                                                                       value > 10000 ~ 10000,
+                                                                                       value < -10000 ~ -10000,
+                                                                                       TRUE ~ value))
+  
+  summary(cart_data)
+  
+  ggplot(data = cart_data %>%
+           filter(model %in% c("CART"),
+         #approach != "Apparent",
+         !estimand %in% c("AUC", "R2 Tjur", "MAPE", "rMSPE")),
+         mapping = aes(x = value, fill = approach)) +
+    geom_density(alpha = 0.6 ) +
+    #coord_cartesian(xlim = c(-1000, 1000)) +
+  #scale_y_continuous(trans = "log10") +
+  scale_x_continuous(trans = "log10") +
+    theme_set(theme_bw(base_size = 11)) +
+    scale_fill_manual(values = colors2) +
+    facet_grid(
+      rows = vars(estimand), 
+      cols = vars(model, as.factor(n_setting)), 
+      scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+  
+  
+    ggplot(data = cart_data %>% 
+                filter(model %in% c("CART"),
+                       !estimand %in% c("AUC", "R2 Tjur", "MAPE", "rMSPE")), 
+              mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
+    geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
+    theme_set(theme_bw(base_size = 11)) +
+    #scale_y_continuous(trans = "log10") +
+    scale_fill_manual(values = colors) +
+    labs(y = "Estimand value",
+         x = "Sample size setting",
+         fill = "Validation approach") +
+    facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+ 
+    theme(legend.position="bottom")+
+    guides(color = guide_legend(nrow=4, ncol=3))+
+    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+  
+  
+  
   
   assign("thesis_estimands_study_3_penalized", p1)
-  ggsave(paste0(estimand_plots,"estimands_study_3_penalized.pdf"), plot = p1, width = 20, height = 25, units = "cm")
-  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_penalized.pdf"), plot = p2, width = 20, height = 20, units = "cm")
+  ggsave(paste0(estimand_plots,"estimands_study_3_thesis.pdf"), plot = p1,width = 19, height = 17, units = "cm")
+  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_thesis.pdf"), plot = p2, width = 20, height = 20, units = "cm")
   assign("full_estimands_study_3_treebased", p3)
-  ggsave(paste0(estimand_plots,"estimands_study_3_treebased.pdf"), plot = p3, width = 20, height = 25, units = "cm")
-  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_treebased.pdf"), plot = p4, width = 20, height = 20, units = "cm")
+  ggsave(paste0(estimand_plots,"estimands_study_3_ML_CART.pdf"), plot = p3, width = 19, height = 15, units = "cm")
+  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_ML_CART.pdf"), plot = p4, width = 20, height = 20, units = "cm")
