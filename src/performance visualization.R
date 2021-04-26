@@ -236,7 +236,8 @@ p2_all <-
     
 p2_thesis <- 
   ggplot(data = df_perf %>% filter(study == "Study_2",
-                                   estimand %in% c("AUC", "ECI")),
+                                   estimand %in% c("AUC", "ECI"),
+                                   noise == "50% noise predictors"),
          mapping = aes(x = as.factor(n_setting),
                        y = md,
                        ymin = md-md_dist,
@@ -247,14 +248,16 @@ p2_thesis <-
   geom_point(position = position_dodge(width = 0.99), size = 1.5) +
   geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
   geom_point(data = df_perf %>% filter(study == "Study_2",
-                                       estimand == "log(Slope)"), 
+                                       estimand == "log(Slope)",
+                                       noise == "50% noise predictors"), 
              mapping = aes(x = as.factor(n_setting),
                            y = md,
                            color = approach,
                            shape = pred_selection),
              position = position_dodge(width = 0.99), size = 1.5) +
   geom_linerange(data = df_perf %>% filter(study == "Study_2", 
-                                           estimand == "log(Slope)"),
+                                           estimand == "log(Slope)",
+                                           noise == "50% noise predictors"),
                  mapping = aes(x = as.factor(n_setting),
                                y = md,
                                ymin = md_q1,
@@ -268,7 +271,7 @@ p2_thesis <-
        color = "Validation approach",
        shape = "Predictor selection"
   ) +
-  facet_grid(rows = vars(estimand), cols = vars(dim, noise), scales = "free")+
+  facet_grid(rows = vars(estimand), cols = vars(dim), scales = "free")+
   theme_set(theme_bw(base_size = 11)) +
   #theme(legend.position = c(0.75, 0.23)) +
   guides(color = guide_legend(nrow=4, ncol=2),

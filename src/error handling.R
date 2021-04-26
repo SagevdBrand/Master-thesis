@@ -8,12 +8,12 @@ source("./src/setup.R")
 scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
 ## Loading the separate datafiles and binding them togetgher saving it for easy reference 
-#df_all <- list.files(path = estimands_path, pattern = "*.Rds", full.names = T) %>%
+# df_all <- list.files(path = estimands_path, pattern = "*.Rds", full.names = T) %>%
 #  map_dfr(readRDS)
 
 # First save it, just to be sure!
 #saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
-df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
+# df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
 
 ### Pre-processing ###
 # Convert all "NA" to actual NA 
@@ -117,13 +117,9 @@ na_mape <-  df_all %>% filter(is.na(mape))
 
 
 
-
-
-
-
 ##################################
 ## What are the error messages? ##
-################################## 
+##################################
 
 ### Count all the errors ###
 error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
@@ -150,10 +146,10 @@ error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
 #                                                                   very_negative_intercepts = n_distinct(which(calib_int < -5)),
 #                                                                   very_positive_intercepts = n_distinct(which(calib_int > 5)),
 #                                                                   negative_R2_CS = n_distinct(which(is.na(R2_CS))),
-#                                                                   negative_R2_Tjur = n_distinct(which(is.na(Tjur))), 
+#                                                                   negative_R2_Tjur = n_distinct(which(is.na(Tjur))),
 #                                                                   infinite_eci = n_distinct(c(which(is.infinite(eci)), which(eci < 0))),
 #                                                                   eci_bigger_1 = n_distinct(which(eci > 1)),
-#                                                                   NA_ECI = n_distinct(which(is.na(eci))), 
+#                                                                   NA_ECI = n_distinct(which(is.na(eci))),
 #                                                                   max_probs_count = sum(str_count(error_info, max_probs), na.rm = T),
 #                                                                   sep_count = sum(str_count(error_info, paste0(separation, " | ",separation_warning)), na.rm = T),
 #                                                                   few_events_count = sum(str_count(error_info, few_events), na.rm = T),
@@ -162,7 +158,7 @@ error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
 #                                                                   no_events_folds_count = sum(str_count(error_info, no_events_folds), na.rm = T),
 #                                                                   no_events_training_samp_count = sum(str_count(error_info, no_events_training_samp), na.rm = T),
 #                                                                   .groups = "keep")
-# 
+
 # per_scenario$scenario <- as.numeric(gsub("Scenario_", "", per_scenario$scenario))
 # per_scenario <- per_scenario %>% arrange(study, scenario)
 # colnames(per_scenario) <- c("Study",
@@ -187,11 +183,13 @@ error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
 # "No events in fold",
 # "No events in bootstrap sample"
 # )
-# 
+#
+# per_scenario[57,14] <- 32-29 # 29 out of 32 errors were alreadu covered by the NA .632+ bootstrap results!
+
 # saveRDS(per_scenario, file = paste0(errors_path,"all_errors_per_scenario.Rds"))
-# 
+#
 # all_together <- as.matrix(colSums(per_scenario[,c(3:21)]))
-# 
+#
 # saveRDS(all_together, file = paste0(errors_path,"all_errors_together.Rds"))
 
 per_scenario <- readRDS(paste0(errors_path,"all_errors_per_scenario.Rds"))
@@ -208,7 +206,7 @@ num_models_boot <- 500*60*500
 num_models_tree_based <- (1 + 5 + 10 + 100 + 500) * 6 * 500
 num_datasets <- 60*500
 
-
+all_together <- t(all_together)
 percentage_errors <- c(all_together[,1]/num_models_pred_sel,
                        all_together[,13]/num_models_tree_based,
                        all_together[,14]/num_models_total,
