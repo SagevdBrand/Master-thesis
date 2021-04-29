@@ -2,7 +2,7 @@
 
 Version 1.0.
 
-The battle of internal validation The Battle of Internal Validation within Medical Prediction Models: Bootstrap vs. Cross-Validation
+ Bootstrap vs. Cross-Validation: The Battle of Internal Validation within Medical Prediction Models
 
 
 ## Project organization
