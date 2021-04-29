@@ -4,7 +4,7 @@ This document contains the following material.
 used within the data generating mechanism
 2. Scenario settings
 3. Error handling
-4. Details on the software and code used
+4. Details on the origin of some of the code used
 
 ## 1. Numerical estimation procedure for regression coefficients used within the data generating mechanism
 This approach is based on the supplemental material of Van Smeden et al., 2019.
@@ -367,7 +367,7 @@ specifically:
 |Study_3 |       17|                      0|                          0|               0|        1246|         0|               0|              0|              0|                0|               0|       0|      0|             942|       2500|          0|                  0|         0|                 0|                             0|
 |Study_3 |       18|                      0|                          0|               0|        1411|         0|               0|              0|              0|                0|               0|       0|      0|             980|       2500|          0|                  0|         0|                 0|                             0|
 
-## 4. Details on the software and code used
+## 4. Details on the origin of some of the code used
 The following code was used and/or adapted:
 -	For generating the data: Approximate R2_CS function Riley et al., 2020
 -	For ridge and Lasso: Lambda tuning approach by Van Calster et al., 2020
@@ -375,46 +375,3 @@ The following code was used and/or adapted:
 -	For obtaining the AUC: [FastAUC](https://gist.github.com/traversc/1446ebe1dcc2d84bccdca781d4f1fa2a)
 -	Multiple functions from Van Smeden's [Beyond EPV simulation study](https://github.com/MvanSmeden/Beyond-EPV)
 -	Parts from [here](https://github.com/easystats/performance/blob/master/R/r2_tjur.R) to obtain Tjur’s R2
-
-The following describes all information about the HPC used,
-and packages and dependencies that were used to obtain the results:
-
-**R version 4.0.2 (2020-06-22) <br>
-Platform: x86_64-pc-linux-gnu (64-bit) <br>
-Running under: CentOS Linux 7 (Core)** <br>
-
-**attached base packages:**
-- stats
-- graphics
-- grDevices utils
-- datasets
-- methods
-- base     
-
-**other attached packages:**
-- kableExtra_1.3.1
-- ranger_0.12.1
-- rpart_4.1-15
-- caret_6.0-86
-- glmnetUtils_1.1.8
-- glmnet_4.1-1
-- Matrix_1.2-18
-- logistf_1.24
-- glue_1.4.2
-- rms_6.2-0
-- SparseM_1.81
-- Hmisc_4.4-1
-- Formula_1.2-3
-- survival_3.1-12
-- lattice_0.20-41   
-- MASS_7.3-53.1
-- pmsampsize_1.0.3
-- forcats_0.5.0
-- stringr_1.4.0
-- dplyr_1.0.2
-- purrr_0.3.4
-- readr_1.3.1
-- tidyr_1.1.2
-- tibble_3.0.3
-- ggplot2_3.3.2    
-- tidyverse_1.3.0  

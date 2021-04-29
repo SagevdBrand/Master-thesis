@@ -12,7 +12,6 @@ Version 1.0.
 
 ```
 .
-├── config                  <- Configuration files (HW)
 ├── data                    <- All project data, ignored by git
 │   └── simulation settings <- The simulation studies as defined in the thesis (RO)
 ├── docs                    <- Documentation notebook for users + supplementary material (HW)

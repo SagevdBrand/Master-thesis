@@ -1,0 +1,43 @@
+
+The following describes all information about the HPC used,
+packages and dependencies that were used to obtain the results:
+
+**R version 4.0.2 (2020-06-22) <br>
+Platform: x86_64-pc-linux-gnu (64-bit) <br>
+Running under: CentOS Linux 7 (Core)** <br>
+
+**attached base packages:**
+- stats
+- graphics
+- grDevices utils
+- datasets
+- methods
+- base     
+
+**other attached packages:**
+- kableExtra_1.3.1
+- ranger_0.12.1
+- rpart_4.1-15
+- caret_6.0-86
+- glmnetUtils_1.1.8
+- glmnet_4.1-1
+- Matrix_1.2-18
+- logistf_1.24
+- glue_1.4.2
+- rms_6.2-0
+- SparseM_1.81
+- Hmisc_4.4-1
+- Formula_1.2-3
+- survival_3.1-12
+- lattice_0.20-41   
+- MASS_7.3-53.1
+- pmsampsize_1.0.3
+- forcats_0.5.0
+- stringr_1.4.0
+- dplyr_1.0.2
+- purrr_0.3.4
+- readr_1.3.1
+- tidyr_1.1.2
+- tibble_3.0.3
+- ggplot2_3.3.2    
+- tidyverse_1.3.0  
