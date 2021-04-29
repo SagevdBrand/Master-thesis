@@ -1,6 +1,6 @@
 # Master thesis internal validation
 
-Version 0.1.1
+Version 1.0.
 
 The battle of internal validation The Battle of Internal Validation within Medical Prediction Models: Bootstrap vs. Cross-Validation
 
