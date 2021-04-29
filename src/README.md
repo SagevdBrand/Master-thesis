@@ -70,6 +70,8 @@ scripts.
 simulations. They require the study scenarios to be specified within
 `study scenarios` and the validation data to be generated from `create
 validation data.R`.
+- `performance visualization.R`: Create figures to depict the performance measure.
+which are stored in the [figures folder](https://github.com/SagevdBrand/Master-thesis/tree/master/results/figures)
 - `setup_packages.R`: An initial script to be run when not all packages within
 the `libraries.R` are installed yet.
 -  `setup.R`: This script defines all the file paths called for in the other
@@ -78,6 +80,6 @@ script accordingly.
 - `study scenarios.R`: Within this script the study scenarios are defined. It
 requires that the regression coefficients of the data generating mechanism have
 already been defined through the `beta optimization script.R`.
-- `visualization.R`: Within this script the visualization of the results are
+- `visualization.R`: Within this script the visualization of the estimands are
 created and then stored in the
-[figures folder](https://github.com/SagevdBrand/Master-thesis/tree/master/results/figures). 
+[figures folder](https://github.com/SagevdBrand/Master-thesis/tree/master/results/figures).
