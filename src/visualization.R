@@ -358,46 +358,11 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "Calib. Slope"
     theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
   
   
-  ###################################################
-  ##### The freakshow that is the CART model ########
-  ###################################################
-
-  
-  cart_data <- df_all_long %>% filter(study == "Study_3") %>% mutate(value = case_when(value == Inf ~ 10000,
-                                                                                       value == -Inf ~ -10000,
-                                                                                       value > 10000 ~ 10000,
-                                                                                       value < -10000 ~ -10000,
-                                                                                       TRUE ~ value))
-  
-  summary(cart_data)
-  
-  ggplot(data = cart_data %>%
-           filter(model %in% c("CART"),
-         #approach != "Apparent",
-         !estimand %in% c("AUC", "R2 Tjur", "MAPE", "rMSPE")),
-         mapping = aes(x = value, fill = approach)) +
-    geom_density(alpha = 0.6 ) +
-    #coord_cartesian(xlim = c(-1000, 1000)) +
-  #scale_y_continuous(trans = "log10") +
-  scale_x_continuous(trans = "log10") +
-    theme_set(theme_bw(base_size = 11)) +
-    scale_fill_manual(values = colors2) +
-    facet_grid(
-      rows = vars(estimand), 
-      cols = vars(model, as.factor(n_setting)), 
-      scales = "free")+ 
-    theme(legend.position="bottom")+
-    guides(color = guide_legend(nrow=4, ncol=3))+
-    theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
-  
-  
-    ggplot(data = cart_data %>% 
-                filter(model %in% c("CART"),
-                       !estimand %in% c("AUC", "R2 Tjur", "MAPE", "rMSPE")), 
+  p5 <-ggplot(data = df_s3_long %>% 
+                filter(model %in% c("ML", "Firth")), 
               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.size = 0.00) +
     theme_set(theme_bw(base_size = 11)) +
-    #scale_y_continuous(trans = "log10") +
     scale_fill_manual(values = colors) +
     labs(y = "Estimand value",
          x = "Sample size setting",
@@ -407,7 +372,7 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "Calib. Slope"
     guides(color = guide_legend(nrow=4, ncol=3))+
     theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
   
-  
+ 
   
   
   assign("thesis_estimands_study_3_penalized", p1)
@@ -416,3 +381,4 @@ df_s3_long <- df_s3_long %>% mutate(value = case_when(estimand == "Calib. Slope"
   assign("full_estimands_study_3_treebased", p3)
   ggsave(paste0(estimand_plots,"estimands_study_3_ML_CART.pdf"), plot = p3, width = 19, height = 15, units = "cm")
   ggsave(paste0(full_estimand_plots,"full_estimands_study_3_ML_CART.pdf"), plot = p4, width = 20, height = 20, units = "cm")
+  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_Firth_ML.pdf"), plot = p5, width = 20, height = 20, units = "cm")

@@ -112,26 +112,64 @@ saveRDS(m_perform_results, file = paste0(performance_general_path, "all_pm_batch
 
 # Comparing the results of ML with CART
 ML_CART_results <- 
-  perform_results %>% 
+  df_all %>% 
   filter(study == "Study_3" & scenario %in% c("Scenario_3", "Scenario_15")) %>% 
-  group_by(study, scenario, approach.x) %>% 
+  group_by(scenario, approach, study) %>% 
   summarise(auc_mean = mean(auc, na.rm = T),
             auc_median = median(auc, na.rm = T),
-            slope_mean = mean(calib_slope, na.rm = T),
+            auc_sd = sd(auc, na.rm = T),
             slope_median = median(calib_slope, na.rm = T),
+            slope_lower = summary(calib_slope)[2],
+            slope_upper = summary(calib_slope)[5],
             intercept_mean = mean(calib_int, na.rm = T),
             intercept_median = median(calib_int, na.rm = T),
+            intercept_sd = sd(calib_int, na.rm = T),
             Tjur_mean = mean(Tjur, na.rm = T),
             Tjur_median = median(Tjur, na.rm = T),
+            Tjur_sd = sd(Tjur, na.rm = T),
             R2_CS_mean = mean(R2_CS, na.rm = T),
             R2_CS_median = median(R2_CS, na.rm = T),
+            R2_CS_sd = sd(R2_CS, na.rm = T),
             eci_mean = mean(eci, na.rm = T),
             eci_median = median(eci, na.rm = T),
+            eci_sd = sd(eci, na.rm = T),
             mape_mean = mean(mape, na.rm = T),
             mape_median = median(mape, na.rm = T),
+            mape_sd = sd(mape, na.rm = T),
             rmspe_mean = mean(rmspe, na.rm = T),
-            rmspe_median = median(rmspe, na.rm = T)
+            rmspe_median = median(rmspe, na.rm = T),
+            rmspe_sd = sd(rmspe, na.rm = T)
             )
-                 
 
+
+ML_CART_table <- ML_CART_results %>% group_by(scenario) %>%
+  dplyr::select(approach, scenario, study, auc_mean, auc_sd, slope_median, slope_lower, slope_upper, R2_CS_mean, R2_CS_sd, eci_mean, eci_sd, rmspe_mean, rmspe_sd) %>% 
+  mutate(model = case_when(scenario == "Scenario_15" ~ "CART",
+                           scenario == "Scenario_3" ~ "ML"),
+         approach = fct_relevel(approach,
+                                "5 fold cross-validation",
+                                "10 fold cross-validation",
+                                "10x10 fold cross-validation",
+                                "Harrell's bootstrap",
+                                ".632 bootstrap",
+                                ".632+ bootstrap",
+                                "Apparent")) %>%
+  dplyr::select(model, everything()) %>%
+  arrange(scenario, approach, model)
+
+ML_CART_table <- ML_CART_table[,-c(3,4)] 
+ML_CART_table[,c(3:13)] <- round(ML_CART_table[, c(3:13)], 3)
+
+ML_CART_table$auc <- paste0(ML_CART_table$auc_mean," (", ML_CART_table$auc_sd,")")
+ML_CART_table$slope <- paste0(ML_CART_table$slope_median," (", ML_CART_table$slope_lower," - ", ML_CART_table$slope_upper,")")
+ML_CART_table$R2_CS <- paste0(ML_CART_table$R2_CS_mean," (", ML_CART_table$R2_CS_sd,")")
+ML_CART_table$eci <- paste0(ML_CART_table$eci_mean," (", ML_CART_table$eci_sd,")")
+ML_CART_table$rmspe <- paste0(ML_CART_table$rmspe_mean," (", ML_CART_table$rmspe_sd,")")
+
+kable(ML_CART_table[, c(2, 14:18)], 
+      digits = 3, 
+      format = "latex",
+      row.names = NA, 
+      booktabs = TRUE) %>% 
+  pack_rows(index = c("CART" = 8, "ML" = 8))
 

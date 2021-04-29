@@ -9,10 +9,10 @@ scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
 ## Loading the separate datafiles and binding them togetgher saving it for easy reference 
 # df_all <- list.files(path = estimands_path, pattern = "*.Rds", full.names = T) %>%
-#  map_dfr(readRDS)
+#     map_dfr(readRDS)
 
 # First save it, just to be sure!
-#saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
+# saveRDS(df_all, file = paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
 # df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
 
 ### Pre-processing ###
@@ -124,7 +124,7 @@ na_mape <-  df_all %>% filter(is.na(mape))
 ### Count all the errors ###
 error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
 
-# ## Specific errors ##
+# # ## Specific errors ##
 # no_pred <- "No predictors selected -> no calibration slope"
 # separation <- "Data separation might have occured"
 # separation_warning <- "simpleWarning: glm.fit: fitted probabilities numerically"
@@ -134,10 +134,10 @@ error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
 # no_events <- "Error: No events sampled"
 # no_events_folds <- "No events sampled in folds "
 # no_events_training_samp <- " No events sampled in training sample"
-
-
-
-# Count how many were present per error and scenario ##
+# 
+# 
+# 
+# ## Count how many were present per error and scenario ##
 # per_scenario <- df_all %>% group_by(study,scenario) %>% summarise(no_pred_count = sum(str_count(error_info, no_pred), na.rm = T),
 #                                                                   no_pred_app = n_distinct(which(is.na(auc))), #This were the only times when this error occurred
 #                                                                   negative_slopes = n_distinct(which(calib_slope <0)),
@@ -158,7 +158,7 @@ error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
 #                                                                   no_events_folds_count = sum(str_count(error_info, no_events_folds), na.rm = T),
 #                                                                   no_events_training_samp_count = sum(str_count(error_info, no_events_training_samp), na.rm = T),
 #                                                                   .groups = "keep")
-
+# 
 # per_scenario$scenario <- as.numeric(gsub("Scenario_", "", per_scenario$scenario))
 # per_scenario <- per_scenario %>% arrange(study, scenario)
 # colnames(per_scenario) <- c("Study",
@@ -183,13 +183,13 @@ error_counting <- df_all %>% group_by(study,scenario) %>% count(error_info)
 # "No events in fold",
 # "No events in bootstrap sample"
 # )
-#
+# 
 # per_scenario[57,14] <- 32-29 # 29 out of 32 errors were alreadu covered by the NA .632+ bootstrap results!
-
+# 
 # saveRDS(per_scenario, file = paste0(errors_path,"all_errors_per_scenario.Rds"))
-#
+# 
 # all_together <- as.matrix(colSums(per_scenario[,c(3:21)]))
-#
+# 
 # saveRDS(all_together, file = paste0(errors_path,"all_errors_together.Rds"))
 
 per_scenario <- readRDS(paste0(errors_path,"all_errors_per_scenario.Rds"))
@@ -235,26 +235,12 @@ df_all <- df_all %>% group_by(study, scenario) %>%
            case_when(
              str_detect(error_info,
                         "No predictors selected -> no calibration slope") == TRUE ~ max(calib_slope, na.rm = T),
-             is.na(calib_slope) ~ 10,
              TRUE ~ calib_slope
            ),
-         auc = case_when(is.na(auc) ~ 0.5,
-                         TRUE ~ auc),
-         calib_int = case_when(is.na(calib_int) ~ max(calib_int, na.rm = T),
-                                TRUE ~ calib_int),
-         rmspe = case_when(is.na(rmspe) ~ max(rmspe, na.rm = T),
-                               TRUE ~ rmspe),
-         mape = case_when(is.na(mape) ~ max(mape, na.rm = T),
-                           TRUE ~ mape),
-         eci = case_when(is.na(eci) ~ 1,
-                         eci > 1 ~ 1,
+         eci = case_when(eci > 1 ~ 1,
                          is.infinite(eci) ~ 1,
                          eci < 0 ~ 1, 
-                         TRUE ~ eci),
-         Tjur = case_when(is.na(Tjur) ~ 1,
-                         TRUE ~ Tjur),
-         R2_CS = case_when(is.na(R2_CS) ~ 0,
-                          TRUE ~ R2_CS)
+                         TRUE ~ eci)
          )
 
 # Check

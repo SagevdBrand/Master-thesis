@@ -148,7 +148,7 @@ p1_all <-
 
 p1_thesis <- 
   ggplot(data = df_perf %>% filter(study == "Study_1",
-                                   estimand %in% c("AUC", "rMSPE")), 
+                                   estimand %in% c("AUC", "rMSPE", "R2 Tjur")), 
          mapping = aes(x = as.factor(n_setting),
                        y = md,
                        ymin = md-md_dist,
@@ -481,6 +481,51 @@ p3_thesis_ML_CART <-
 
 
 
+p3_all_ML_Firth <- 
+  ggplot(data = df_perf %>% filter(study == "Study_3",  
+                                   estimand != "log(Slope)", 
+                                   model %in%c("ML", "Firth")),
+         mapping = aes(x = as.factor(n_setting),
+                       y = md,
+                       ymin = md-md_dist,
+                       ymax = md+md_dist,
+                       color = approach
+         )) +
+  geom_point(position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(position = position_dodge(width = 0.99), size = 0.1) +
+  geom_point(data = df_perf %>% filter(study == "Study_3",
+                                       estimand == "log(Slope)", 
+                                       model %in%c("ML", "Firth")),
+             mapping = aes(x = as.factor(n_setting),
+                           y = md,
+                           color = approach
+             ),
+             position = position_dodge(width = 0.99), size = 1.5) +
+  geom_linerange(data = df_perf %>% filter(study == "Study_3", 
+                                           estimand == "log(Slope)", 
+                                           model %in% c("ML", "Firth")),
+                 mapping = aes(x = as.factor(n_setting),
+                               y = md,
+                               ymin = md_q1,
+                               ymax = md_q3,
+                               color = approach
+                 ),
+                 position = position_dodge(width = 0.99), size = 0.1) +
+  scale_color_manual(values = colors_perf) +
+  labs(y = "Median difference",
+       x = "Sample size setting",
+       color = "Validation approach"
+  ) +
+  facet_grid(rows = vars(estimand), cols = vars(model), scales = "free")+
+  theme_set(theme_bw(base_size = 11)) +
+  #theme(legend.position = c(0.75, 0.23)) +
+  guides(color = guide_legend(nrow=4, ncol=2),
+         shape = guide_legend(nrow = 2)) +
+  theme(legend.position="bottom")+
+  theme(plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"))
+
+
+
   ggsave(paste0(full_performance_plots,"performance_study_1_full.pdf"), plot = p1_all,  width = 20, height = 25, units = "cm")
   ggsave(paste0(performance_measures_plots,"performance_study_1_thesis.pdf"), plot = p1_thesis, width = 19, height = 15, units = "cm")
   
@@ -492,3 +537,6 @@ p3_thesis_ML_CART <-
   ggsave(paste0(performance_measures_plots,"performance_study_3_thesis_models.pdf"), plot = p3_thesis_models, width = 19, height = 15, units = "cm")
   ggsave(paste0(full_performance_plots,"performance_study_3_full_ML_CART.pdf"), plot = p3_all_ML_CART, width = 25, height = 30, units = "cm")
   ggsave(paste0(performance_measures_plots,"performance_study_3_thesis_ML_CART.pdf"), plot = p3_thesis_ML_CART, width = 19, height = 15, units = "cm")
+  ggsave(paste0(full_performance_plots,"performance_study_3_full_Firth_ML.pdf"), plot = p3_ML_Firth, width = 25, height = 30, units = "cm")
+  
+  

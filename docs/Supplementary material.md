@@ -262,35 +262,33 @@ iteration.
 2. How to handle:
 
 *AUC, rMSPE and MAPE:*
-  - NA: In case of no selected predictors, these estimands are replaced by 0.5
-  for the AUC, and highest rMSPE and MAPE within the scenario.
+  - NA: These are treated as missing data.
   The number of occurrences are registered in the table below.
 
 
 *Calibration slope:*
-  - Negative slopes (slope < 0): No action is taken but registering the number
+  - Negative slopes (slope < 0): No action is taken, except registering the number
   of occurrences per scenario, specifically.
   - Large slopes (slope > 10): Only for visualizations, these values are winsorized
   to a maximum of 10. The number of occurrences are registered in the table below.
   - NA: In case of no selected predictors, the slope is replaced by the
     highest estimated calibration slope within the scenario. When there is
-    another reason that there is no calibration slope, it is also replaced by
-    the highest estimated calibration slope within the scenario. The number
-    of instances is also recorded per scenario.
+    another reason that there is no calibration slope, it is treated as
+    missing data. The number of instances is also recorded per scenario.
 
 
 *Calibration intercept:*
-  - Very negative (< -5) or positive (>5): No action is taken but registering
+  - Very negative (< -5) or positive (>5): No action is taken, except registering
   the number of occurrences per scenario, specifically.
-  - NA: the intercept is replaced by the highest estimated calibration intercept
-   within the scenario. The number of occurrences are registered in the table below.
+  - NA:  These are treated as missing data.
+  The number of occurrences are registered in the table below.
 
 
 *R2_CS, R2_Tjur*:
-  - Negative (R2_CS < 0 | R2_Tjur < 0): No action is taken but registering
+  - Negative (R2_CS < 0 | R2_Tjur < 0): No action is taken but to register
   the number of occurrences per scenario, specifically.
-  - NA: The estimands are replaced by 0, to indicate that a useless model.
-   The number of occurrences are registered in the table below.
+  - NA:  These are treated as missing data.
+  The number of occurrences are registered in the table below.
 
 
 *ECI:*
@@ -298,8 +296,8 @@ iteration.
 case scenario. The number of occurrences are registered in the table below.
   - ECI > 1: Replace by 1, indicating the worst
 case scenario. The number of occurrences are registered in the table below.
-  - NA: Replace by 1, indicating the worst
-case scenario. The number of occurrences are registered in the table below.
+  - NA:  These are treated as missing data.
+   The number of occurrences are registered in the table below.
 
 ### Error occurrence
 The following represents the number of errors that occurred for each scenario
