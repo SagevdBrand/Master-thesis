@@ -7,7 +7,8 @@ scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 ## Loading the file, created after error handling. 
 df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
 
-
+scenarios_n_setting <- scenarios[, (colnames(scenarios) %in% c("study", "scenario", "n_setting", "noise"))]
+df_all <- merge(df_all, scenarios_n_setting, by = c("study", "scenario"))
 
 #####################################
 ####### Performance measures ########
@@ -28,13 +29,20 @@ df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
 external_results <- df_all %>% filter(approach == "External")
 # Only keep study, scenario, iteration and value (change value to "external value")
 external_results <- external_results[, (colnames(external_results) %in% c("study", "scenario", "iteration", "approach", estimands_names))]
-colnames(external_results) <- c("iteration", "study", "scenario", "approach", paste0(estimands_names, "_ext"))
+colnames(external_results) <- c("study", "scenario", "iteration", "approach", paste0(estimands_names, "_ext"))
 
+
+# Get the performance results in a format fit for 
+# the nested loop plot. Here, we can then use the external validation as a reference.
+perform_results <- df_all %>% group_by(approach) %>% merge(., external_results, by = c("study", "scenario", "iteration"))
+saveRDS(perform_results, paste0(performance_general_path, "internal_external_by_columns.RDS"))
+
+# For the other plots:
 # Use everything but the external values as a base
 # for the column of "ext_value" to be merged on:
 iv_app_results <- df_all%>% filter(approach != "External")
-
 perform_results <- iv_app_results %>% group_by(approach) %>% merge(., external_results, by = c("study", "scenario", "iteration"))
+
 
 ###############################
 ## Obtain median differences ##
@@ -172,4 +180,5 @@ kable(ML_CART_table[, c(2, 14:18)],
       row.names = NA, 
       booktabs = TRUE) %>% 
   pack_rows(index = c("CART" = 8, "ML" = 8))
+
 

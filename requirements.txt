@@ -40,4 +40,5 @@ Running under: CentOS Linux 7 (Core)** <br>
 - tidyr_1.1.2
 - tibble_3.0.3
 - ggplot2_3.3.2    
-- tidyverse_1.3.0  
+- tidyverse_1.3.0 
+- facetscales_0.1.0.9000 
