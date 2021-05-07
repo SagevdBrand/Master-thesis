@@ -207,14 +207,14 @@ num_models_tree_based <- (1 + 5 + 10 + 100 + 500) * 6 * 500
 num_datasets <- 60*500
 
 all_together <- t(all_together)
-percentage_errors <- c(all_together[,1]/num_models_pred_sel,
-                       all_together[,13]/num_models_tree_based,
-                       all_together[,14]/num_models_total,
-                       all_together[,15]/num_models_tuning,
-                       all_together[,16]/num_models_total,
-                       all_together[,17]/num_datasets,
-                       all_together[,18]/num_models_cv,
-                       all_together[,19]/num_models_boot
+percentage_errors <- c(all_together[,1]/num_models_pred_sel *100,
+                       all_together[,13]/num_models_tree_based *100,
+                       all_together[,14]/num_models_total *100,
+                       all_together[,15]/num_models_tuning *100,
+                       all_together[,16]/num_models_total *100,
+                       all_together[,17]/num_datasets *100,
+                       all_together[,18]/num_models_cv *100,
+                       all_together[,19]/num_models_boot *100
                          )
 percentage_errors <- lapply(percentage_errors, round, 4)  
 

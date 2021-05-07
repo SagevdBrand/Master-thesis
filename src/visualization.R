@@ -63,7 +63,11 @@ df_all_long <- df_all_long %>% mutate(estimand = case_when(estimand == "auc" ~ "
                                       noise = case_when(noise == "none" ~ "No noise predictors",
                                                       noise == "half" ~"50% noise predictors",
                                                       noise == "default" ~ "20% noise predictors",
-                                                      TRUE ~ as.character(dim))
+                                                      TRUE ~ as.character(dim)),
+                                      n_setting = case_when(n_setting == "n/2" ~ "N/2",
+                                                            n_setting == "n" ~ "N",
+                                                            n_setting == "n*2" ~ "N*2",
+                                                            TRUE ~ as.character(n_setting))
                                       )
 
 ############
@@ -182,15 +186,15 @@ p4 <-
 
 ### No predictor selection 
 # original scale
-ggsave(paste0(estimand_plots,"estimands_study_1_no_pred_sel.pdf"), plot = p1, width = 19, height = 15, units = "cm")
+# ggsave(paste0(estimand_plots,"estimands_study_1_no_pred_sel.pdf"), plot = p1, width = 19, height = 15, units = "cm")
 # All estimands
-ggsave(paste0(full_estimand_plots,"full_estimands_study_1_no_pred_sel.pdf"), plot = p3, width = 20, height = 25, units = "cm")
+ggsave(paste0(full_estimand_plots,"S1_All_metrics_study_1_no_pred_sel.pdf"), plot = p3, width = 20, height = 25, units = "cm")
 
 ### Predictor selection
 # original scale
-ggsave(paste0(estimand_plots,"estimands_study_1_pred_sel.pdf"), plot = p2, width = 19, height = 15, units = "cm")
+ggsave(paste0(estimand_plots,"estimands_study_1_pred_sel.pdf"), plot = p2, width = 19, height = 18, units = "cm")
 # All estimands
-ggsave(paste0(full_estimand_plots,"full_estimands_study_1_pred_sel.pdf"), plot = p4, width = 20, height = 25, units = "cm")
+ggsave(paste0(full_estimand_plots,"S2_All_metrics_study_1_pred_sel.pdf"), plot = p4, width = 20, height = 25, units = "cm")
 
 
 ############################
@@ -284,16 +288,16 @@ df_s2_long <- df_s2_long %>% mutate(value = case_when(estimand == "Calib. Slope"
   # Saving the plots:
   ### 50% noise and no predictor selection
   # Original scale
-  ggsave(paste0(estimand_plots,"estimands_study_2_no_pred_sel.pdf"), plot = p1, width = 19, height = 15, units = "cm")
+  #ggsave(paste0(estimand_plots,"estimands_study_2_no_pred_sel.pdf"), plot = p1, width = 19, height = 15, units = "cm")
   # All estimands: both with and without noise, no predictor selection
-  ggsave(paste0(full_estimand_plots,"full_estimands_study_2_no_pred_sel.pdf"), plot = p3, width = 20, height = 25, units = "cm")
+  ggsave(paste0(full_estimand_plots,"S3_All_metrics_study_2_no_pred_sel.pdf"), plot = p3, width = 20, height = 25, units = "cm")
   
   
   ### 50% noise and predictor selection
   # Original scale
-  ggsave(paste0(estimand_plots,"estimands_study_2_pred_sel.pdf"), plot = p2, width = 19, height = 15, units = "cm")
+  ggsave(paste0(estimand_plots,"estimands_study_2_pred_sel.pdf"), plot = p2, width = 19, height = 18, units = "cm")
   # All estimands: both with and without noise, predictor selection
-  ggsave(paste0(full_estimand_plots,"full_estimands_study_2_pred_sel.pdf"), plot = p4, width = 20, height = 25, units = "cm")
+  ggsave(paste0(full_estimand_plots,"S4_All_metrics_study_2_pred_sel.pdf"), plot = p4, width = 20, height = 25, units = "cm")
   
   
 ############################
@@ -390,7 +394,7 @@ p1 <-
   
   # ML and Firth 
   p5 <-ggplot(data = df_s3_long %>% 
-                filter(model %in% c("ML", "Firth")), 
+                filter(model %in% c("ML", "Firth", "CART")), 
               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.shape = NA) +
     theme_set(theme_bw(base_size = 11)) +
@@ -406,7 +410,7 @@ p1 <-
   
   # Ridge and LASSO
   p6 <-ggplot(data = df_s3_long %>% 
-                filter(model %in% c("Ridge", "Lasso")), 
+                filter(model %in% c("Ridge", "Lasso", "RF")), 
               mapping = aes(x = as.factor(n_setting), y = value, fill = approach)) +
     geom_boxplot(position = position_dodge(width = 0.95), size = 0.005, outlier.shape = NA) +
     theme_set(theme_bw(base_size = 11)) +
@@ -425,17 +429,17 @@ p1 <-
   # original scale 
   ggsave(paste0(estimand_plots,"estimands_study_3_thesis.pdf"), plot = p1, width = 19, height = 17, units = "cm")
   # all estimands
-  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_thesis.pdf"), plot = p2, width = 20, height = 20, units = "cm")
+  # ggsave(paste0(full_estimand_plots,"full_estimands_study_3_thesis.pdf"), plot = p2, width = 20, height = 20, units = "cm")
   
   
   ### ML and CART
   # original scale
-  ggsave(paste0(estimand_plots,"estimands_study_3_ML_CART.pdf"), plot = p3, width = 19, height = 15, units = "cm")
+  #ggsave(paste0(estimand_plots,"estimands_study_3_ML_CART.pdf"), plot = p3, width = 19, height = 15, units = "cm")
   # all estimands
-  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_ML_CART.pdf"), plot = p4, width = 20, height = 20, units = "cm")
+  #ggsave(paste0(full_estimand_plots,"full_estimands_study_3_ML_CART.pdf"), plot = p4, width = 20, height = 20, units = "cm")
   
-  ## ML and Firth
-  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_Firth_ML.pdf"), plot = p5, width = 20, height = 20, units = "cm")
+  ## ML, Firth and RF
+  ggsave(paste0(full_estimand_plots,"S5_All_metrics_study_3_Firth_ML_RF.pdf"), plot = p5, width = 20, height = 20, units = "cm")
   
-  ## Ridge and LASSO
-  ggsave(paste0(full_estimand_plots,"full_estimands_study_3_Ridge_Lasso.pdf"), plot = p6, width = 20, height = 20, units = "cm")
+  ## Ridge, LASSO and CART
+  ggsave(paste0(full_estimand_plots,"S6_All_metrics_study_3_Ridge_Lasso_CART.pdf"), plot = p6, width = 20, height = 20, units = "cm")
