@@ -56,7 +56,11 @@ df_perf <- df_perf %>% mutate(estimand = case_when(estimand == "auc" ~ "AUC",
                               noise = case_when(noise == "none" ~ "No noise predictors",
                                                 noise == "half" ~"50% noise predictors",
                                                 noise == "default" ~ "20% noise predictors",
-                                                TRUE ~ as.character(dim))
+                                                TRUE ~ as.character(dim)),
+                              n_setting = case_when(n_setting == "n/2" ~ "N/2",
+                                                    n_setting == "n" ~ "N",
+                                                    n_setting == "n*2" ~ "N*2",
+                                                    TRUE ~ as.character(n_setting))
 )
 
 # step1 <- df_perf %>% pivot_longer(cols = c(md), names_to = "performance measures", values_to = "value")
@@ -528,18 +532,18 @@ p3_all_ML_Firth <-
 
 
 
-  ggsave(paste0(full_performance_plots,"performance_study_1_full.pdf"), plot = p1_all,  width = 20, height = 25, units = "cm")
-  ggsave(paste0(performance_measures_plots,"performance_study_1_thesis.pdf"), plot = p1_thesis, width = 19, height = 15, units = "cm")
+  ggsave(paste0(full_performance_plots,"S7_Performance_measures_study_1.pdf"), plot = p1_all,  width = 20, height = 25, units = "cm")
+  #ggsave(paste0(performance_measures_plots,"performance_study_1_thesis.pdf"), plot = p1_thesis, width = 19, height = 15, units = "cm")
   
   
-  ggsave(paste0(full_performance_plots,"performance_study_2_full.pdf"), plot = p2_all, width = 25, height = 30, units = "cm")
-  ggsave(paste0(performance_measures_plots,"performance_study_2_thesis.pdf"), plot = p2_thesis, width = 21, height = 15, units = "cm")
+  ggsave(paste0(full_performance_plots,"S8_Performance_measures_study_2.pdf"), plot = p2_all, width = 25, height = 30, units = "cm")
+  #ggsave(paste0(performance_measures_plots,"performance_study_2_thesis.pdf"), plot = p2_thesis, width = 21, height = 15, units = "cm")
   
-  ggsave(paste0(full_performance_plots,"performance_study_3_full_models.pdf"), plot = p3_all_models, width = 25, height = 30, units = "cm")
-  ggsave(paste0(performance_measures_plots,"performance_study_3_thesis_models.pdf"), plot = p3_thesis_models, width = 19, height = 15, units = "cm")
-  ggsave(paste0(full_performance_plots,"performance_study_3_full_ML_CART.pdf"), plot = p3_all_ML_CART, width = 25, height = 30, units = "cm")
-  ggsave(paste0(performance_measures_plots,"performance_study_3_thesis_ML_CART.pdf"), plot = p3_thesis_ML_CART, width = 19, height = 15, units = "cm")
-  ggsave(paste0(full_performance_plots,"performance_study_3_full_Firth_ML.pdf"), plot = p3_all_ML_Firth, width = 25, height = 30, units = "cm")
+  ggsave(paste0(full_performance_plots,"S9_Performance_measures_study_3_F_Ridge_Lasso_RF.pdf"), plot = p3_all_models, width = 25, height = 30, units = "cm")
+  #ggsave(paste0(performance_measures_plots,"performance_study_3_thesis_models.pdf"), plot = p3_thesis_models, width = 19, height = 15, units = "cm")
+  ggsave(paste0(full_performance_plots,"S10_Performance_measures_study_3_ML_CART.pdf"), plot = p3_all_ML_CART, width = 25, height = 30, units = "cm")
+  #ggsave(paste0(performance_measures_plots,"performance_study_3_thesis_ML_CART.pdf"), plot = p3_thesis_ML_CART, width = 19, height = 15, units = "cm")
+  #ggsave(paste0(full_performance_plots,"performance_study_3_full_Firth_ML.pdf"), plot = p3_all_ML_Firth, width = 25, height = 30, units = "cm")
   
 
 
@@ -593,7 +597,11 @@ p3_all_ML_Firth <-
                                 noise = case_when(noise == "none" ~ "No noise predictors",
                                                   noise == "half" ~"50% noise predictors",
                                                   noise == "default" ~ "20% noise predictors",
-                                                  TRUE ~ as.character(dim))
+                                                  TRUE ~ as.character(dim)),
+                                n_setting = case_when(n_setting == "n/2" ~ "N/2",
+                                                      n_setting == "n" ~ "N",
+                                                      n_setting == "n*2" ~ "N*2",
+                                                      TRUE ~ as.character(n_setting))
   )
   
   df_perf$scenario <- as.numeric(gsub("Scenario_", "", df_perf$scenario))
@@ -603,9 +611,9 @@ p3_all_ML_Firth <-
   # Study 1 #
   ###########
   plot_data_s1 <- df_perf %>% filter(study == "Study_1") %>% 
-    mutate(n_setting_plot = case_when(n_setting == "n/2" ~ 0.33,
-                                      n_setting == "n" ~ 0.35,
-                                      n_setting == "n*2" ~ 0.37,
+    mutate(n_setting_plot = case_when(n_setting == "N/2" ~ 0.33,
+                                      n_setting == "N" ~ 0.35,
+                                      n_setting == "N*2" ~ 0.37,
                                       TRUE ~ 0),
            prev_plot = case_when(prev == 0.05 ~ 0.43,
                                  prev == 0.2 ~ 0.45,
@@ -642,7 +650,7 @@ p3_all_ML_Firth <-
     geom_step(data = plot_data_s1, mapping = aes(x = scenario, y = n_setting_plot), color = "black", 
               size = 0.4) +
     geom_label(x = 1, y = 0.38, 
-               label = "Sample size setting: n/2, n, n*2",
+               label = "Sample size setting: N/2, N, N*2",
                hjust = "inward",
                vjust = "outward",
                color = "black",
@@ -658,13 +666,13 @@ p3_all_ML_Firth <-
     scale_x_continuous(breaks = 1:18) +
     scale_y_continuous(breaks = seq(-0.2, 0.3, by = 0.05)) +
     guides(color = guide_legend(nrow=2, ncol=4)) +
-    theme(plot.margin = unit(c(0.1, 0.5, 0.1, 0.1), "cm"),
+    theme(plot.margin = unit(c(0.1, 0.6, 0.1, 0.1), "cm"),
           panel.border = element_blank(),
           axis.line = element_line(colour = "black"))
   
   p1_thesis
   
-  ggsave(paste0(performance_measures_plots,"nlp_study_1_thesis.pdf"), plot = p1_thesis, width = 19, height = 12, units = "cm")
+  ggsave(paste0(performance_measures_plots,"nlp_study_1_thesis.pdf"), plot = p1_thesis, width = 19, height = 15, units = "cm")
   
   
   ###########
@@ -675,9 +683,9 @@ p3_all_ML_Firth <-
                                 dim == "30 Candidate predictors" ~ 0.68,
                                 TRUE ~ 0),
            
-           n_setting_plot = case_when(n_setting == "n/2" ~ 0.77,
-                                      n_setting == "n" ~ 0.8,
-                                      n_setting == "n*2" ~ 0.83,
+           n_setting_plot = case_when(n_setting == "N/2" ~ 0.77,
+                                      n_setting == "N" ~ 0.8,
+                                      n_setting == "N*2" ~ 0.83,
                                       TRUE ~ 0),
            
            noise_plot = case_when(noise == "No noise predictors" ~ 0.94,
@@ -716,7 +724,7 @@ p3_all_ML_Firth <-
     geom_step(data = plot_data_s2, mapping = aes(x = scenario, y = noise_plot), color = "black",
               size = 0.4) +
     geom_label(x = 1, y = 0.84,
-               label = "Sample size setting: n/2, n, n*2",
+               label = "Sample size setting: N/2, N, N*2",
                hjust = "inward",
                vjust = "outward",
                color = "black",
