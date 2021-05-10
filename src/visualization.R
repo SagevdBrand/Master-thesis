@@ -439,7 +439,7 @@ p1 <-
   #ggsave(paste0(full_estimand_plots,"full_estimands_study_3_ML_CART.pdf"), plot = p4, width = 20, height = 20, units = "cm")
   
   ## ML, Firth and RF
-  ggsave(paste0(full_estimand_plots,"S5_All_metrics_study_3_Firth_ML_RF.pdf"), plot = p5, width = 20, height = 20, units = "cm")
+  ggsave(paste0(full_estimand_plots,"S5_All_metrics_study_3_ML_Firth_CART.pdf"), plot = p5, width = 20, height = 20, units = "cm")
   
   ## Ridge, LASSO and CART
-  ggsave(paste0(full_estimand_plots,"S6_All_metrics_study_3_Ridge_Lasso_CART.pdf"), plot = p6, width = 20, height = 20, units = "cm")
+  ggsave(paste0(full_estimand_plots,"S6_All_metrics_study_3_Ridge_Lasso_RF.pdf"), plot = p6, width = 20, height = 20, units = "cm")

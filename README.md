@@ -16,6 +16,7 @@ Version 1.0.
 │   └── simulation settings <- The simulation studies as defined in the thesis (RO)
 ├── docs                    <- Documentation notebook for users + supplementary material (HW)
 │   ├── manuscript          <- Manuscript source, e.g., LaTeX, Markdown, etc. (HW)
+|   ├── suppl. material     <- A document containing the supplementary information (RO)
 │   └── reports             
 |       ├── Proposal        <- Research proposal (HW)
 |       └── Research report <- Research report (HW)            
