@@ -601,7 +601,8 @@ p3_all_ML_Firth <-
                                 n_setting = case_when(n_setting == "n/2" ~ "N/2",
                                                       n_setting == "n" ~ "N",
                                                       n_setting == "n*2" ~ "N*2",
-                                                      TRUE ~ as.character(n_setting))
+                                                      TRUE ~ as.character(n_setting)),
+                                apparent_result = ifelse(approach == "Apparent", "1", "0")
   )
   
   df_perf$scenario <- as.numeric(gsub("Scenario_", "", df_perf$scenario))
@@ -630,7 +631,7 @@ p3_all_ML_Firth <-
                       mapping = aes(x = scenario,
                                     y = md,
                                     color = approach)) +
-    geom_step(direction = "hv", size = 0.7) +
+    geom_step(direction = "hv", size = 0.7, aes(linetype = apparent_result)) +
     geom_step(data = plot_data_s1, mapping = aes(x = scenario, y = pred_sel_plot), color = "black",
               size = 0.4) +
     geom_label(x = 1, y = 0.55, 
@@ -659,13 +660,16 @@ p3_all_ML_Firth <-
     theme_bw(base_size = 11) + 
     theme(legend.position="bottom")+
     scale_color_manual(values = colors_perf) +
+    scale_linetype_manual(values = c("solid", "dashed"))  +
     labs(y = "Median difference log(Calibration Slope)",
          x = "Scenarios study 1",
-         color = "Validation approach"
+         color = "Validation approach",
+         linetype = NULL
     ) +
     scale_x_continuous(breaks = 1:18) +
     scale_y_continuous(breaks = seq(-0.2, 0.3, by = 0.05)) +
-    guides(color = guide_legend(nrow=2, ncol=4)) +
+    guides(color = guide_legend(nrow=2, ncol=4),
+           linetype = FALSE) +
     theme(plot.margin = unit(c(0.1, 0.6, 0.1, 0.1), "cm"),
           panel.border = element_blank(),
           axis.line = element_line(colour = "black"))
@@ -704,7 +708,7 @@ p3_all_ML_Firth <-
                       mapping = aes(x = scenario,
                                     y = md,
                                     color = approach)) +
-    geom_step(direction = "hv", size = 0.7) +
+    geom_step(direction = "hv", size = 0.7, aes(linetype = apparent_result)) +
     geom_step(data = plot_data_s2, mapping = aes(x = scenario, y = pred_sel_plot), color = "black",
               size = 0.4) +
     geom_label(x = 1, y = 1.13,
@@ -743,12 +747,14 @@ p3_all_ML_Firth <-
     scale_color_manual(values = colors_perf) +
     labs(y = "Median difference ECI",
          x = "Scenarios study 2",
-         color = "Validation approach"
+         color = "Validation approach",
+         linetype = NULL
     ) +
     scale_x_continuous(breaks = 1:24) +
     scale_y_continuous(breaks = seq(-0.2, 0.6, by = 0.1),
                        limits = c(-0.1, 1.15)) +
-    guides(color = guide_legend(nrow=2)) +
+    guides(color = guide_legend(nrow=2),
+          linetype = FALSE) +
     theme(plot.margin = unit(c(0.1, 0.5, 0.1, 0.1), "cm"),
           panel.border = element_blank(),
           axis.line = element_line(colour = "black"))
