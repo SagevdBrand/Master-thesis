@@ -1,4 +1,4 @@
-# Master thesis internal validation
+# Master Thesis Sofie van den Brand MSBBSS research master
 
 Version 1.0.
 
