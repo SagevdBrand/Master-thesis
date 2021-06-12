@@ -5,7 +5,7 @@ source("./src/setup.R")
 scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
 ## Loading the file, created after error handling. 
-df_all <- readRDS(paste0(estimands_general_path, "all_estimands_batch_7.RDS"))
+df_all <- readRDS(paste0(estimands_general_path, "all_estimands_part_2.RDS"))
 
 scenarios_n_setting <- scenarios[, (colnames(scenarios) %in% c("study", "scenario", "n_setting", "noise"))]
 df_all <- merge(df_all, scenarios_n_setting, by = c("study", "scenario"))
@@ -111,7 +111,7 @@ rmspe_p <- performance_measures(ext = "rmspe_ext", int = "rmspe", name = "rmspe"
 
 m_perform_results <-  rbind(auc_p, calib_slope_p, calib_int_p, tjur_p, R2_CS_p,eci_p, mape_p, rmspe_p)
 
-saveRDS(m_perform_results, file = paste0(performance_general_path, "all_pm_batch_7.RDS"))
+saveRDS(m_perform_results, file = paste0(performance_general_path, "all_pm_part_2.RDS"))
 
 
 ##########################

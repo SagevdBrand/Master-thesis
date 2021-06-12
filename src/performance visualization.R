@@ -8,7 +8,7 @@
 source("./src/setup.R")
 scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
 
-df_perf <- readRDS(paste0(performance_general_path, "all_pm_batch_7.RDS"))
+df_perf <- readRDS(paste0(performance_general_path, "all_pm_part_2.RDS"))
 
 ################################
 ## Pre-processing of the data ##
@@ -553,7 +553,7 @@ p3_all_ML_Firth <-
   source("./src/setup.R")
   scenarios <- readRDS(paste0(setting_path, "studies.RDS"))
   
-  df_perf <- readRDS(paste0(performance_general_path, "all_pm_batch_7.RDS"))
+  df_perf <- readRDS(paste0(performance_general_path, "all_pm_part_2.RDS"))
   
   ################################
   ## Pre-processing of the data ##
