@@ -1,7 +1,9 @@
 # Master Thesis Sofie van den Brand MSBBSS research master
 
-Version 1.1.
-Date 12-05-2021
+Version 1.2.
+Date 12-06-2021
+
+*Update*: Working on a newer version of the paper. The figure and error counts are no longer in line with the numbers and figures of the manuscript.
 
 *Title*: Clinical Prediction Models: A Comparison Between Cross-Validation and Bootstrap Approaches for Internal Validation
 
